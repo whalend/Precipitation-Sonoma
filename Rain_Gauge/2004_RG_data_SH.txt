@@ -1,0 +1,9 @@
+August 3, 2012  Author: Sarah Haas
+
+I've come across some rain gauge files in the root directory: 
+     "Sonoma\...\Plot_Network\Data\Field\Microclimate|PROCESSING_micrcoclimate\Working Files\2004.09.15 Working\Exported\RainGauge1".
+
+I'm pretty sure these are the rain gauges that Brian Anacker ran through his "RainGaugeMarco.xls" program.  
+
+These "Processed" data might be good to feed into spatial interpolation anlayses.
+

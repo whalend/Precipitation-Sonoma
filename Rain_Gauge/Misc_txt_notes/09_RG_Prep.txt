@@ -1,0 +1,27 @@
+2009 RAIN GAUGE PREPERATION:
+---------------------------------------------------
+
+1. Replace all batteries in rain gauges
+> Battery type: Ray-O-Vac CR2032, QTY.15
+
+2. Depending on if RG collected data 08-09 will depend on if we replace them. The type of rain gauge logger that currently
+exists in the shield are retired. Please contact Onset Computer Corp. to determine alternatives and cost.
+> Current RG: Model: H07-002-004
+> Questions for Onset: 
+-If you replace the logger battery, what is the probability it will continue logging for another year?
+-Can you relaunch non-logging logger with portable shuttle device or would it be more effect to use a laptop? If so, how?
+-Will new RG logger units fit inside existing shields?
+-How much would it cost to just have the old RG logger unit send in for repairs? What is the probability it would continue logging for another year?
+
+3. Rain gauges that will most likely need to be replaced are:
+> Kunde: has not logged or provided any data in the last three years (06)
+> Mitsui: has provided incomplete data for the last three years. Ended log early in '08
+> Spaulinding: has consistantly provided imcomplete data. 
+> Beltane: Ended log early in '08
+
+4. Determine if replacing RG's is in our budget?
+
+5. Return to plots and replace if needed?
+
+6. Visit RG according to RG Visit spreadsheet.
+

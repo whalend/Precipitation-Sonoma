@@ -1,0 +1,23 @@
+OCTOBER 2009
+RAIN GAUGE LOGGER REPLACEMENTS
+
+- NOTE: At the end of the 2009 field season, data from all rain gauges was compiled to 
+determine which rain gauge loggers were still collecting data and which were inconsistant
+and failing. The following list of replacements is compiled from inconsistant data 
+recovered from the logger units. The old loggers were replaced with the new UA-003-64
+model in October 2009. 
+- Old loggers are stored  in the 'Old Hobo Logger' box in the lab.
+- See rain gauge summary documents for further details regarding data collected from the spring
+through october, as well as new rain gauge serial numbers and locations.
+
+Replacement loggers
+-------------------------------
+1. Annandel
+2. Beltane
+3. Cook
+4. Mitsui (new location- waypoint in Garmin #5 'Bigfoot' as 'mitsuinewr'), (originally moved from Bush property in 2005)
+5. SDC
+6. Secret (Joe Wade's)
+
+7. Backman- the Backman property is located near the Hood Mntn. Summit. Still awaiting clearance from 
+State Parks. Not replaced as of 10/20/09. UPDATE:  Replaced during 2010 visit

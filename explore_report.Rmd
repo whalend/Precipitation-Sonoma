@@ -1,0 +1,51 @@
+---
+title: "Rain gauge data exploration"
+author: "whalen"
+date: "November 10, 2014"
+output: html_document
+---
+
+# Rain gauge data summary and manipulation
+#### Goal: summarize precipitation events into hourly and daily, and convert to inches
+- Conversion factor: 1 event = 0.01 inches
+
+
+```{r Load libraries}
+library(plyr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+```
+
+NOT RUN: Manipulations of some single files that were not correctly formatted for opening in Excel. I later found a better way to do this using the CSV library in Python that allows relatively simple conversion of text/CSV files from one delimiter to another.
+```{r not run, echo=FALSE}
+# d1 <- fread("Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
+# d1 <- separate(d1, date_time, c("date", "time"), sep=" ")
+# write.csv(d1, "Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
+# 
+# d1 <- fread("Rain_Gauge/all_years_raw_exports/SDC_502836_2008_RG.csv")
+# d1$id <- "sec"
+# write.csv(d1, "Rain_Gauge/all_years_raw_exports/SDC_502836_2008_RG.csv")
+# 
+# d1 <- fread("Rain_Gauge/all_years_raw_exports/SUGAR_20070416_20090411_RG.csv")
+# d1$id <- "sugarloaf"
+# d1 <- d1 %>% separate(date_time, c("date", "time"), sep=" ") %>% 
+#       select(id, date, time, events)
+# write.csv(d1, "Rain_Gauge/all_years_raw_exports/SUGAR_20070416_20090411_RG.csv")
+# 
+# d1 <- fread("Rain_Gauge/all_years_raw_exports/YAHNG_502848_2009_RG.txt")
+# names(d1)[1:2]  <- c("dt", "events")
+# d1$id <- "yahng"
+# d1 <- d1 %>% separate(dt, c("date", "time"), sep=" ") %>% 
+#       select(id, date, time, events)
+# write.csv(d1, "Rain_Gauge/all_years_raw_exports/YAHNG_502848_2009_RG.csv")
+# head(d1)
+# 
+# d1 <- fread("Rain_Gauge/all_years_raw_exports/MITSUI_502950_2006_RG.csv")
+# head(d1)
+# d1$id <- "mitsui"
+# write.csv(d1, "Rain_Gauge/all_years_raw_exports/MITSUI_502950_2006_RG.csv")
+```
+
+
+
