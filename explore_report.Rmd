@@ -271,10 +271,11 @@ hr_rg_data
 # class(hr_rg_data)
 summary(hr_rg_data)
 ```
-This grouping and summarization has eliminated `NA`s from the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe
+This grouping and summarization has eliminated `NA`s from the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe and save it as an R data source file
 ```{r join hourly dataframes, echo=TRUE}
 hr_rg_data <- rbind(hr_rg_data, hourly_special)
 hr_rg_data
+saveRDS(hr_rg_data, file = "hr_rg_data.rds")
 ```
 Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
 ```{r create daily data set, echo=TRUE}
@@ -286,11 +287,12 @@ dy_rg_data <- rg_data %>%
 dy_rg_data
 # class(dy_rg_data)
 ```
-Next, `rbind` this with the `daily_special` dataframe
+Next, `rbind` this with the `daily_special` dataframe and save it as an R data source file
 ```{r join daily dataframes, echo=TRUE}
 dy_rg_data <- rbind(dy_rg_data, daily_special)
 dy_rg_data
 dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
+saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 ```
 Looking at the summaries it appears something rather sketchy is going on. The maximum values are way above a realistic range, with a maximum daily precipitation of over 52 inches and a maximum of hourly precipitation of over 14 inches. **Just. Not. Possible.** 
 ```{r dataframe summaries, echo=TRUE}
