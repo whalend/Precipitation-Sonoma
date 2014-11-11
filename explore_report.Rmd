@@ -257,6 +257,7 @@ rg_data$day <- mday(rg_data$date_time)
 rg_data$hour <- hour(rg_data$date_time)
 head(rg_data)
 class(rg_data$date_time)# Confirm POSIX format
+saveRDS(rg_data, file = "rg_data.rds")
 ```
 
 Summarize `rg_data` into a data set with hourly resolution through April of 2014 by excluding any dates that are in month 5 AND the year 2014. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
