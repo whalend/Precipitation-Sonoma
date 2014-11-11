@@ -11,3 +11,8 @@ These data (likely in combination with other available external data) are primar
 
 I have been backing up a copy of the *soco_ppt* folder onto my flash drive.
 
+10/31/2014 - I now have 112 `.csv` files in the `2_RG_EXPORTS` folder that represent the available data from each rain gauge. These are all backed up on my flash drive. Each file is a summary of the daily and hourly events summarized and exported using the HoboWare software.
+
+11/10/2014 - There are four year-location combinations that were not in the Onset proprietary format. I manipulated these in `R` to create an hourly events summary file and a daily events summary file.
+
+My next step is to create an hourly database and a daily database that each incorporate all of the files. I am working on this in the `explore_report.Rmd` document.

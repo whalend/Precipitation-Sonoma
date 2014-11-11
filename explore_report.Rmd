@@ -18,7 +18,7 @@ library(tidyr)
 ```
 
 NOT RUN: Manipulations of some single files that were not correctly formatted for opening in Excel. I later found a better way to do this using the CSV library in Python that allows relatively simple conversion of text/CSV files from one delimiter to another.
-```{r not run, echo=FALSE}
+```{r not run, eval=FALSE echo=FALSE}
 # d1 <- fread("Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
 # d1 <- separate(d1, date_time, c("date", "time"), sep=" ")
 # write.csv(d1, "Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
@@ -48,4 +48,270 @@ NOT RUN: Manipulations of some single files that were not correctly formatted fo
 ```
 
 
+Summarizing independent files of four plots to daily and hourly because they were not in the .hobo or .dtf format of the Onset data logger files. Individual files for daily and hourly were then exported as CSV, so there are two files for these locations that will need to be merged into the full database.
+```{r not run 2, eval=FALSE echo=FALSE}
+library(xlsx)
 
+
+badg <- read.xlsx("Rain_Gauge/all_years_raw/BADGER_669845_2004_RG_B.xlsx", 1)
+head(badg)
+badg$date_time2 <- strptime(badg$date_time, format = "%m/%d/%y %H:%M")
+badg$year <- year(badg$date_time2)
+badg$month <- month(badg$date_time2)
+badg$day <- mday(badg$date_time2)
+badg$hour <- hour(badg$date_time2)
+
+badg_daily <- badg %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+badg_daily$id <- "badger"
+badg_daily <- select(badg_daily, id, year, month, day, daily_events, daily_ppt)
+head(badg_daily)
+
+badg_hourly <- badg %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+
+badg_hourly$id <- "badger"
+badg_hourly <- select(badg_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(badg_hourly)
+
+
+sec <- read.xlsx("SDC_502836_2007_RG.xls", 1)
+head(sec)
+sec <- select(sec, date_time = Date.Time, events = Event..Events.)
+sec$date_time2 <- strptime(sec$date_time, format = "%m/%d/%y %H:%M")
+sec$year <- year(sec$date_time2)
+sec$month <- month(sec$date_time2)
+sec$day <- mday(sec$date_time2)
+sec$hour <- hour(sec$date_time2)
+
+sec_daily <- sec %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+sec_daily$id <- "sec"
+sec_daily <- select(sec_daily, id, year, month, day, daily_events, daily_ppt)
+head(sec_daily)
+
+sec_hourly <- sec %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+
+sec_hourly$id <- "sec"
+sec_hourly <- select(sec_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(sec_hourly)
+
+
+sugar <- read.xlsx("SUGAR_20070416_20090411_RG.xlsx", 1)
+head(sugar)
+sugar$date_time2 <- strptime(sugar$date_time, format = "%m/%d/%y %H:%M")
+sugar$year <- year(sugar$date_time2)
+sugar$month <- month(sugar$date_time2)
+sugar$day <- mday(sugar$date_time2)
+sugar$hour <- hour(sugar$date_time2)
+
+sugar_daily <- sugar %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+sugar_daily$id <- "sugarloaf"
+sugar_daily <- select(sugar_daily, id, year, month, day, daily_events, daily_ppt)
+head(sugar_daily)
+
+sugar_hourly <- sugar %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+sugar_hourly$id <- "sugarloaf"
+sugar_hourly <- select(sugar_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(sugar_hourly)
+
+
+yahng <- fread("YAHNG_502848_2009_RG.txt")
+head(yahng)
+str(yahng)
+yahng <- as.data.frame(select(yahng, date_time = 1, events = 2))
+yahng$date_time2 <- strptime(yahng$date_time, format = "%m/%d/%y %H:%M")
+yahng$year <- year(yahng$date_time2)
+yahng$month <- month(yahng$date_time2)
+yahng$day <- mday(yahng$date_time2)
+yahng$hour <- hour(yahng$date_time2)
+
+yahng_daily <- yahng %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+yahng_daily$id <- "yahng"
+yahng_daily <- select(yahng_daily, id, year, month, day, daily_events, daily_ppt)
+head(yahng_daily)
+
+yahng_hourly <- yahng %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+yahng_hourly$id <- "yahng"
+yahng_hourly <- select(yahng_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(yahng_hourly)
+
+
+
+write.csv(badg_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/badger_day_2004.csv")
+write.csv(badg_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/badger_hr_2004.csv")
+write.csv(sec_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/sec_day_2007.csv")
+write.csv(sec_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/sec_hr_2007.csv")
+write.csv(sugar_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_day_2007_2009.csv")
+write.csv(sugar_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_hr_2007_2009.csv")
+write.csv(yahng_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_day_2009.csv")
+write.csv(yahng_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv")
+```
+
+
+Files that were "special cases" because they did not have a HoboWare compatible data file. I am reading these into `R` and then creating two dataframes, one that is hourly and one that is daily. My plan is to break apart the larger dataframe read in below into a daily and hourly dataframe and then bind those to each of these.
+```{r Read in single files, echo=FALSE}
+# Yahng 2009 files
+y_hr09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv") 
+y_dy09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_day_2009.csv")
+
+# Sugarloaf 2007-2009 files
+s_hr07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_hr_2007_2009.csv")
+s_dy07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_day_2007_2009.csv")
+
+# Sonoma ecology center 2007 files
+sec_hr07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sec_hr_2007.csv")
+sec_dy07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sec_day_2007.csv")
+
+#Badger 2004 files
+ba_hr04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_hr_2004.csv")
+ba_dy04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_day_2004.csv")
+```
+
+```{r bind special cases, echo=TRUE}
+daily_special <- rbind.fill(list(y_dy09,s_dy07,sec_dy07,ba_dy04))
+tail(daily_special)
+daily_special <- daily_special[,-1]# Drop the first column as excess variable
+daily_special$date <- with(daily_special, paste(month, day, year, sep="/"))
+daily_special <- daily_special %>%
+      select(id, date, year, month, day, daily_events, daily_ppt)
+
+hourly_special <- rbind.fill(list(y_hr09,s_hr07,sec_hr07,ba_hr04))
+tail(hourly_special)
+hourly_special <- hourly_special[,-1]# Drop the first column as excess variable
+hourly_special$date <- with(hourly_special, paste(month, day, year, sep="/"))
+hourly_special <- hourly_special %>% 
+      select(id, date, year, month, day, hour, hourly_events, hourly_ppt)
+```
+Remove the single file data frames from the environment
+```{r remove data frames, echo=FALSE}
+rm(y_hr09)
+rm(y_dy09)
+rm(sec_hr07)
+rm(sec_dy07)
+rm(s_dy07)
+rm(s_hr07)
+rm(ba_hr04)
+rm(ba_dy04)
+```
+
+Make database by compiling all the files that were exported using the proprietary HoboWare software together. This will result in one large dataframe that contains hourly and daily events. I will then want to break this down further into separate hourly and daily dataframes
+```{r List files in working directory}
+#setwd("~/Documents/git_local/soco_ppt")
+files <- list.files("Rain_Gauge/2_RG_EXPORTS", pattern="*.csv", full.names=TRUE)
+# fnames <- sub("^([^.]*).*", "\\1", basename(files)) # create list of file basenames
+# gauge_names <- sub("^([^_.]*).*", "\\1", basename(files)) # create list of gauge names by pulling the first part of the file name
+# gname <- sub("^([^_.]*).*", "\\1", basename(files)) # same as above
+```
+
+Read all the files in the list "files" into a single data frame. 
+```{r Batch read in files}
+rg_data <- ldply(files, function(i){fread(i)})
+
+# rg_data <- ldply(files, function(i){
+#       read.csv(i, skip=2, stringsAsFactors=FALSE, col.names = c("date", "time","events","daily_events","hourly_events"))
+#       # fnames <- sub("^([^.]*).*", "\\1", basename(i))
+#       gauge_name <- sub("^([^_.]*).*", "\\1", basename(i))
+#       i$id <- gauge_name
+# })
+head(rg_data)
+str(rg_data)
+```
+
+Join `date` and `time` columns in `rg_data` and convert to POSIX
+```{r POSIX time conversion}
+rg_data$date_time <- paste(rg_data$date, rg_data$time, sep=" ")
+rg_data$date_time <- strptime(rg_data$date_time, format="%m/%d/%Y %H:%M:%S", tz="America/Los_Angeles")
+```
+
+Create year, month, day, and hour columns for grouping
+```{r create date variables, echo=TRUE}
+rg_data$year <- year(rg_data$date_time)
+rg_data$month <- month(rg_data$date_time)
+rg_data$day <- mday(rg_data$date_time)
+rg_data$hour <- hour(rg_data$date_time)
+head(rg_data)
+class(rg_data$date_time)# Confirm POSIX format
+```
+
+Summarize `rg_data` into a data set with hourly resolution through April of 2014 by excluding any dates that are in month 5 AND the year 2014. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
+```{r create hourly data set, echo=TRUE}
+hr_rg_data <- rg_data %>% 
+      select(id, date, year, month, day, hour, events) %>% 
+      group_by(id, date, year, month, day, hour) %>%
+      filter(year<=2014 & month<=5) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+
+hr_rg_data
+# class(hr_rg_data)
+summary(hr_rg_data)
+```
+This grouping and summarization has eliminated `NA`s from the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe
+```{r join hourly dataframes, echo=TRUE}
+hr_rg_data <- rbind(hr_rg_data, hourly_special)
+hr_rg_data
+```
+Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
+```{r create daily data set, echo=TRUE}
+dy_rg_data <- rg_data %>% 
+      select(id, date, year, month, day, events) %>% 
+      group_by(id, date, year, month, day) %>%
+      filter(year<=2014 & month<=5) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+dy_rg_data
+# class(dy_rg_data)
+```
+Next, `rbind` this with the `daily_special` dataframe
+```{r join daily dataframes, echo=TRUE}
+dy_rg_data <- rbind(dy_rg_data, daily_special)
+dy_rg_data
+dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
+```
+Looking at the summaries it appears something rather sketchy is going on. The maximum values are way above a realistic range, with a maximum daily precipitation of over 52 inches and a maximum of hourly precipitation of over 14 inches. **Just. Not. Possible.** 
+```{r dataframe summaries, echo=TRUE}
+library(ggplot2)
+summary(dy_rg_data)
+qplot(, daily_ppt, data=dy_rg_data) + theme_bw()
+
+summary(hr_rg_data)
+qplot(id, hourly_ppt, data=hr_rg_data)
+```
+
+Exploring when and where these enormous anomalous values are coming from, first dealing with the daily events data frame. For reference, this pdf has some data on maximum rainfall recorded in California <http://www.cepsym.org/Sympro1994/goodridge_paper.pdf> Also more information here: <http://earthzine.org/2011/04/19/average-recurrence-interval-of-extreme-rainfall-in-real-time/> which I believe refers to the report from the first link.
+```{r explore outliers, echo=TRUE}
+filter(dy_rg_data, daily_ppt>5)
+filter(dy_rg_data, year==2007 & month==1 & day==28)
+filter(dy_rg_data, year==2007 & month==1 & day==27)
+filter(dy_rg_data, year==2008 & month==3 & day==15)
+filter(dy_rg_data, year==2008 & month==1 & day==25)
+
+
+filter(hr_rg_data, hourly_ppt>5)
+filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
+```
+Based on these 

@@ -4,13 +4,18 @@
 # Conversion factor: 1 event = 0.01 inches
 #---
 
-setwd("P:/geospatial/Research/rkmeente/Workspaces/wwdillon/soco_ppt")
+#setwd("P:/geospatial/Research/rkmeente/Workspaces/wwdillon/soco_ppt")
 library(plyr)
 library(data.table)
 library(dplyr)
 library(tidyr)
 
-
+#### Download weather data from city of Santa Rosa
+sr <- fread("http://web1.ci.santa-rosa.ca.us/pworks/other/weather/download%207-1-06%206-30-07.txt", skip = 1, header=TRUE)
+head(sr)
+summary(sr)
+str(sr)
+sum(sr$Rain)
 
 
 make_database <- function(x){
@@ -60,14 +65,172 @@ make_database <- function(x){
 # d1$id <- "mitsui"
 # write.csv(d1, "Rain_Gauge/all_years_raw_exports/MITSUI_502950_2006_RG.csv")
 
-#### Make database by compiling all the files together ####
-files <- list.files("Rain_Gauge/all_years_raw_exports", full.names=TRUE)
-fnames <- sub("^([^.]*).*", "\\1", basename(files))
-gauge_names <- sub("^([^_.]*).*", "\\1", basename(files))
 
-rg_data <- ldply(files, function(i){
-      fread(i, header=TRUE, stringsAsFactors=FALSE, showProgress=TRUE)
-})
+#### Summarizing a few independent files to daily and hourly because they were not in .hobo or .dtf format. ####
+
+library(xlsx)
+
+badg <- read.xlsx("Rain_Gauge/all_years_raw/BADGER_669845_2004_RG_B.xlsx", 1)
+head(badg)
+badg$date_time2 <- strptime(badg$date_time, format = "%m/%d/%y %H:%M")
+badg$year <- year(badg$date_time2)
+badg$month <- month(badg$date_time2)
+badg$day <- mday(badg$date_time2)
+badg$hour <- hour(badg$date_time2)
+
+badg_daily <- badg %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+badg_daily$id <- "badger"
+badg_daily <- select(badg_daily, id, year, month, day, daily_events, daily_ppt)
+head(badg_daily)
+
+badg_hourly <- badg %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+
+badg_hourly$id <- "badger"
+badg_hourly <- select(badg_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(badg_hourly)
+
+
+sec <- read.xlsx("SDC_502836_2007_RG.xls", 1)
+head(sec)
+sec <- select(sec, date_time = Date.Time, events = Event..Events.)
+sec$date_time2 <- strptime(sec$date_time, format = "%m/%d/%y %H:%M")
+sec$year <- year(sec$date_time2)
+sec$month <- month(sec$date_time2)
+sec$day <- mday(sec$date_time2)
+sec$hour <- hour(sec$date_time2)
+
+sec_daily <- sec %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+sec_daily$id <- "sec"
+sec_daily <- select(sec_daily, id, year, month, day, daily_events, daily_ppt)
+head(sec_daily)
+
+sec_hourly <- sec %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+
+sec_hourly$id <- "sec"
+sec_hourly <- select(sec_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(sec_hourly)
+
+
+sugar <- read.xlsx("SUGAR_20070416_20090411_RG.xlsx", 1)
+head(sugar)
+sugar$date_time2 <- strptime(sugar$date_time, format = "%m/%d/%y %H:%M")
+sugar$year <- year(sugar$date_time2)
+sugar$month <- month(sugar$date_time2)
+sugar$day <- mday(sugar$date_time2)
+sugar$hour <- hour(sugar$date_time2)
+
+sugar_daily <- sugar %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+sugar_daily$id <- "sugarloaf"
+sugar_daily <- select(sugar_daily, id, year, month, day, daily_events, daily_ppt)
+head(sugar_daily)
+
+sugar_hourly <- sugar %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+sugar_hourly$id <- "sugarloaf"
+sugar_hourly <- select(sugar_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(sugar_hourly)
+
+
+yahng <- fread("YAHNG_502848_2009_RG.txt")
+head(yahng)
+str(yahng)
+yahng <- as.data.frame(select(yahng, date_time = 1, events = 2))
+yahng$date_time2 <- strptime(yahng$date_time, format = "%m/%d/%y %H:%M")
+yahng$year <- year(yahng$date_time2)
+yahng$month <- month(yahng$date_time2)
+yahng$day <- mday(yahng$date_time2)
+yahng$hour <- hour(yahng$date_time2)
+
+yahng_daily <- yahng %>% 
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day) %>%
+      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+
+yahng_daily$id <- "yahng"
+yahng_daily <- select(yahng_daily, id, year, month, day, daily_events, daily_ppt)
+head(yahng_daily)
+
+yahng_hourly <- yahng %>%
+      select(date_time, year, month, day, hour, events) %>% 
+      group_by(year, month, day, hour) %>%
+      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+yahng_hourly$id <- "yahng"
+yahng_hourly <- select(yahng_hourly, id, year, month, day, hour, hourly_events, hourly_ppt)
+head(yahng_hourly)
+
+
+
+write.csv(badg_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/badger_day_2004.csv")
+write.csv(badg_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/badger_hr_2004.csv")
+write.csv(sec_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/sec_day_2007.csv")
+write.csv(sec_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/sec_hr_2007.csv")
+write.csv(sugar_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_day_2007_2009.csv")
+write.csv(sugar_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_hr_2007_2009.csv")
+write.csv(yahng_daily, "Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_day_2009.csv")
+write.csv(yahng_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv")
+
+
+# library(zoo)
+# library(chron)
+# library(xts)
+# badg_zoo <- zoo(badg$events, badg$date_time2)
+# anyDuplicated(badg_zoo)
+# badg_zoo <- badg_zoo[-1404,]
+# 
+# badg_hourly <- to.hourly(badg_zoo)
+# 
+# str(badg_hourly)
+# plot(badg_hourly)
+
+
+#### Make database by compiling all the files together ####
+setwd("~/wwdillon/soco_ppt")
+files <- list.files("Rain_Gauge/2_RG_EXPORTS", pattern="*.csv", full.names=TRUE)
+# fnames <- sub("^([^.]*).*", "\\1", basename(files))
+# gauge_names <- sub("^([^_.]*).*", "\\1", basename(files))
+# gname <- sub("^([^_.]*).*", "\\1", basename(files))
+
+
+y_hr09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv")
+y_dy09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_day_2009.csv")
+s_hr07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_hr_2007_2009.csv")
+s_dy07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sugar_day_2007_2009.csv")
+sec_hr07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sec_hr_2007.csv")
+sec_dy07 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/sec_day_2007.csv")
+ba_hr04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_hr_2004.csv")
+ba_dy04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_day_2004.csv")
+
+
+
+rg_data <- ldply(files, function(i){fread(i)})
+
+# rg_data <- ldply(files, function(i){
+#       read.csv(i, skip=2, stringsAsFactors=FALSE, col.names = c("date", "time","events","daily_events","hourly_events"))
+#       # fnames <- sub("^([^.]*).*", "\\1", basename(i))
+#       gauge_name <- sub("^([^_.]*).*", "\\1", basename(i))
+#       i$id <- gauge_name
+# })
+head(rg_data)
 
 ### Join `date` and `time` columns and convert to POSIX ####
 rg_data$date_time <- paste(rg_data$date, rg_data$time, sep=" ")
@@ -83,6 +246,7 @@ head(rg_data)
 class(rg_data$date_time)
 rg_data <- rg_data[,-5]
 
+rg_data$date2 <- strptime(rg_data$date, format="%m/%d/%Y", tz="America/Los_Angeles")
 
 ### Summarize into hourly data set ####
 hourly_rain <- rg_data %>% 
