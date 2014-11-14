@@ -297,12 +297,14 @@ saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 ```
 Looking at the summaries it appears something rather sketchy is going on. The maximum values are way above a realistic range, with a maximum daily precipitation of over 52 inches and a maximum of hourly precipitation of over 14 inches. **Just. Not. Possible.** 
 ```{r dataframe summaries, echo=TRUE}
+dy_rg_data <- readRDS("dy_rg_data.rds")
 library(ggplot2)
 summary(dy_rg_data)
-qplot(, daily_ppt, data=dy_rg_data) + theme_bw()
+qplot(date2, daily_ppt, data=dy_rg_data) + theme_bw()
 
+hr_rg_data <- readRDS("hr_rg_data.rds")
 summary(hr_rg_data)
-qplot(id, hourly_ppt, data=hr_rg_data)
+qplot(date2, hourly_ppt, data=hr_rg_data)
 ```
 
 Exploring when and where these enormous anomalous values are coming from, first dealing with the daily events data frame. For reference, this pdf has some data on maximum rainfall recorded in California <http://www.cepsym.org/Sympro1994/goodridge_paper.pdf> Also more information here: <http://earthzine.org/2011/04/19/average-recurrence-interval-of-extreme-rainfall-in-real-time/> which I believe refers to the report from the first link.
@@ -317,4 +319,4 @@ filter(dy_rg_data, year==2008 & month==1 & day==25)
 filter(hr_rg_data, hourly_ppt>5)
 filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
 ```
-Based on these 
+I am thinking I should replace the outlying values with the average of the remaining values for that day or hour.
