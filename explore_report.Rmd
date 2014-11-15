@@ -277,6 +277,7 @@ This grouping and summarization has eliminated `NA`s from the resulting data fra
 hr_rg_data <- rbind(hr_rg_data, hourly_special)
 hr_rg_data
 saveRDS(hr_rg_data, file = "hr_rg_data.rds")
+hr_rg_data <- readRDS("hr_rg_data.rds")
 ```
 Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
 ```{r create daily data set, echo=TRUE}
@@ -292,31 +293,100 @@ Next, `rbind` this with the `daily_special` dataframe and save it as an R data s
 ```{r join daily dataframes, echo=TRUE}
 dy_rg_data <- rbind(dy_rg_data, daily_special)
 dy_rg_data
-dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
 saveRDS(dy_rg_data, file = "dy_rg_data.rds")
+dy_rg_data <- readRDS("dy_rg_data.rds")
+dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
 ```
 Looking at the summaries it appears something rather sketchy is going on. The maximum values are way above a realistic range, with a maximum daily precipitation of over 52 inches and a maximum of hourly precipitation of over 14 inches. **Just. Not. Possible.** 
 ```{r dataframe summaries, echo=TRUE}
 dy_rg_data <- readRDS("dy_rg_data.rds")
 library(ggplot2)
 summary(dy_rg_data)
-qplot(date2, daily_ppt, data=dy_rg_data) + theme_bw()
+qplot(id, daily_ppt, data=dy_rg_data) + theme_bw()
 
 hr_rg_data <- readRDS("hr_rg_data.rds")
 summary(hr_rg_data)
-qplot(date2, hourly_ppt, data=hr_rg_data)
+qplot(date, hourly_ppt, data=hr_rg_data)
 ```
 
 Exploring when and where these enormous anomalous values are coming from, first dealing with the daily events data frame. For reference, this pdf has some data on maximum rainfall recorded in California <http://www.cepsym.org/Sympro1994/goodridge_paper.pdf> Also more information here: <http://earthzine.org/2011/04/19/average-recurrence-interval-of-extreme-rainfall-in-real-time/> which I believe refers to the report from the first link.
-```{r explore outliers, echo=TRUE}
-filter(dy_rg_data, daily_ppt>5)
+```{r explore outliers, echo=FALSE}
+filter(dy_rg_data, daily_ppt>6)
 filter(dy_rg_data, year==2007 & month==1 & day==28)
 filter(dy_rg_data, year==2007 & month==1 & day==27)
 filter(dy_rg_data, year==2008 & month==3 & day==15)
-filter(dy_rg_data, year==2008 & month==1 & day==25)
+filter(dy_rg_data, date=="1/27/2007")
+
+qplot(year, daily_ppt, data=dy_rg_data, facets= id ~.)
+qplot(id, daily_ppt, data=dy_rg_data  %>% filter(date=="3/15/2008"))
 
 
-filter(hr_rg_data, hourly_ppt>5)
+qplot(hour, hourly_ppt, data=hr_rg_data %>% filter(date=="3/15/2008"), color=id)
+
+filter(hr_rg_data, hourly_ppt>1)
+filter(hr_rg_data, date=="3/15/2008" & id=="mitsui")
 filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
+
 ```
-I am thinking I should replace the outlying values with the average of the remaining values for that day or hour.
+I was thinking I should replace the outlying values with the average of the remaining values for that day or hour.
+
+Francesco suggests that for aggregating to monthly, If more than 5 days of `NA`/missing for a month then treat entire month as missing. Maybe use a spline approach instead of regression kriging because of small number of points (FT, suggests thin plate spline).
+
+For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
+```{r outliers to NA, echo=TRUE}
+# Replace ppt values >= 6 with `NA`
+dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6] <- NA
+
+qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
+            group_by(id, date, year, month, day), color = id)
+
+#Replace hourly_ppt values >= 1
+hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=1]  <- NA
+
+qplot(month, monthly_ppt, data = hr_rg_data %>%
+      group_by(id, date, year, month) %>%
+            filter(year==2006) %>%
+            summarize(monthly_ppt=sum(hourly_ppt)), color = id,
+      main="Monthly total from hourly data - 2006") 
+
+
+```
+
+
+Francesco talking over the exploration with me
+```{r}
+test=dy_rg_data$date2[order(dy_rg_data$date2), ]
+test=dy_rg_data[order(dy_rg_data$date2), ]
+head(test)
+head(test,40)
+test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
+```
+
+```{r breakdown years by shapefiles}
+library(rgdal)
+ogrListLayers("shapefiles")
+rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
+str(rg_0308)
+rg_0308@data$NAME
+rg_0308@data$NAME <- tolower(rg_0308@data$NAME)
+rg_0308@data$NAME[rg_0308@data$NAME=="macki"] <- "mackie"
+rg_0308@data$NAME[rg_0308@data$NAME=="sdc"] <- "sec"
+rg_0308@data$NAME[rg_0308@data$NAME=="sugar"] <- "sugarloaf"
+unique(dy_rg_data$id)
+
+month_rg_0308 <- dy_rg_data %>%
+      group_by(id, year, month) %>% 
+      filter(year<=2008) %>%
+      summarise(monthly_ppt = sum(daily_ppt))
+month_rg_0308$id <- as.factor(month_rg_0308$id)
+summary(month_rg_0308)
+rg_0308@data <- inner_join(rg_0308@data, month_rg_0308, by = c("NAME" = "id"))
+str(month_rg_0308)
+str(rg_0308)
+
+
+```
+
+
+
+
