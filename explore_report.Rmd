@@ -396,7 +396,7 @@ str(rg_0308)
 #spplot(slope, scales=list(draw=T), sp.layout=list("sp.points", depth, pch="+"))
 ```
 
-#Joing monthly precipitation data to spatial points data frame
+Joining monthly precipitation data to spatial points data frame
 ```{r joining data}
 rg_0308@data <- inner_join(rg_0308@data, month_rg_0308, by = c("NAME" = "id"))
 str(month_rg_0308)
@@ -404,10 +404,57 @@ str(rg_0308)
 summary(rg_0308)
 ```
 
+Plotting precipitation against elevation for a subset of the data
 ```{r plot elevation precip}
 rg08 <- filter(rg_0308@data, year==2008)
 qplot(rg_0308@data$elev, rg_0308@data$monthly_ppt)
 qplot(elev, monthly_ppt, data = rg08, facets = .~ month, color = NAME, main = "2008 Rain")
 qplot(elev, monthly_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rain") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
 ```
+
+Developing a linear modeling for kriging
+```{r rk model jan 2008}
+rg_0108 <- subset(rg_0308@data, year==2008 & month==1)
+#coordinates(rg_0108) = ~NORTHING+EASTING
+str(rg_0108)
+rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
+rg_0308 <- spTransform(rg_0308, CRS=crs)
+rg_0108@proj4string <- rg_0308@proj4string
+rg_0108 <- spTransform(rg_0108, CRS=crs)
+
+elev_ppt = overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-points overlay
+   # copy the slope values
+lm_rg_0108 <- lm(monthly_ppt ~ elev, rg_0108)
+summary(lm_rg_0108)
+```
+
+
+```{r thin plate spline}
+library(fields)
+loc_matrix <- cbind(rg_0108$NORTHING,rg_0108$EASTING)
+ppt <- c(rg_0108$monthly_ppt)
+jan08tps <- Tps(loc_matrix, ppt)
+summary(jan08tps)
+plot(jan08tps)
+surface(jan08tps)
+
+look <- predict(jan08tps, lambda = 2.0)
+look <- predict(jan08tps, df = 4)
+
+tps1 <- Tps(loc_matrix, ppt, df = 4)
+summary(tps1)
+set.panel(2,2)
+plot(tps1)
+set.panel()
+
+out_jan08 <- predictSurface(jan08tps)
+image(out_jan08)
+
+fit <- Tps(ozone$x, ozone$y)
+set.panel(2,2)
+plot(fit)
+
+```
+
+
 
