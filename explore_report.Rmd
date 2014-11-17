@@ -348,13 +348,11 @@ qplot(month, monthly_ppt, data = hr_rg_data %>%
             filter(year==2006) %>%
             summarize(monthly_ppt=sum(hourly_ppt)), color = id,
       main="Monthly total from hourly data - 2006") 
-
-
 ```
 
 
 Francesco talking over the exploration with me
-```{r}
+```{r explore with francesco, eval=FALSE}
 test=dy_rg_data$date2[order(dy_rg_data$date2), ]
 test=dy_rg_data[order(dy_rg_data$date2), ]
 head(test)
@@ -380,13 +378,36 @@ month_rg_0308 <- dy_rg_data %>%
       summarise(monthly_ppt = sum(daily_ppt))
 month_rg_0308$id <- as.factor(month_rg_0308$id)
 summary(month_rg_0308)
+```
+
+```{r geostats}
+library(sp)
+library(raster)
+library(rgdal)
+elev <- raster("dem/sod15m.tif")
+str(elev)
+crs <- elev@crs
+rg_0308 <- spTransform(rg_0308, CRS=crs)
+str(rg_0308)
+spplot(elev, scales=list(draw=T), sp.layout=list("sp.points", rg_0308))
+
+rg_0308@data$elev <- extract(elev, rg_0308)
+str(rg_0308)
+#spplot(slope, scales=list(draw=T), sp.layout=list("sp.points", depth, pch="+"))
+```
+
+#Joing monthly precipitation data to spatial points data frame
+```{r joining data}
 rg_0308@data <- inner_join(rg_0308@data, month_rg_0308, by = c("NAME" = "id"))
 str(month_rg_0308)
 str(rg_0308)
-
-
+summary(rg_0308)
 ```
 
-
-
+```{r plot elevation precip}
+rg08 <- filter(rg_0308@data, year==2008)
+qplot(rg_0308@data$elev, rg_0308@data$monthly_ppt)
+qplot(elev, monthly_ppt, data = rg08, facets = .~ month, color = NAME, main = "2008 Rain")
+qplot(elev, monthly_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rain") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
+```
 
