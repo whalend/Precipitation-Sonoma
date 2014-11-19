@@ -326,6 +326,15 @@ filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
 ```
 I was thinking I should replace the outlying values with the average of the remaining values for that day or hour.
 
+Francesco talking over the exploration with me
+```{r explore with francesco, eval=FALSE, echo=FALSE}
+test=dy_rg_data$date2[order(dy_rg_data$date2), ]
+test=dy_rg_data[order(dy_rg_data$date2), ]
+head(test)
+head(test,40)
+test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
+```
+
 Francesco suggests that for aggregating to monthly, If more than 5 days of `NA`/missing for a month then treat entire month as missing. Maybe use a spline approach instead of regression kriging because of small number of points (FT, suggests thin plate spline).
 
 For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
@@ -337,6 +346,7 @@ qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>%
             group_by(id, year, month, day), color = id) # + 
       # geom_text(aes(label=id),hjust=-0.1, vjust=0)
 
+# Looking at precipitation by month during 2006
 qplot(month, monthly_ppt, data = dy_rg_data %>% 
             filter(year==2006) %>%
             group_by(id, year, month) %>%

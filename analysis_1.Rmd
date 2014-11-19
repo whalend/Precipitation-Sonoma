@@ -9,38 +9,92 @@ Outliers have been replaced with `NA` (see `explore_report.Rmd` for details). He
 
 Load libraries I plan to use for data manipulation (`dplyr`) and plotting (`ggplot2`).
 ```{r load basic libraries, echo=TRUE}
-library(ggplot2, suppressPackageStartupMessages(expr = TRUE))
-library(plyr)
-library(dplyr, suppressPackageStartupMessages(expr = TRUE))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(plyr))
+suppressPackageStartupMessages(library(dplyr))
 ```
 
-Read-in the data sets, one daily and one hourly, and then plot.
-```{r dataframe summaries, echo=TRUE}
-# These data files have already had the outliers replaced with `NA`
+Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
+```{r read in daily data, echo=TRUE}
 dy_rg_data <- readRDS("dy_rg_data.rds")
 summary(dy_rg_data)
+dy_rg_data$id <- as.factor(dy_rg_data$id)# change `id` from character to factor
 qplot(id, daily_ppt, data=dy_rg_data) + theme_bw()
+```
 
+Replace ppt values >= 6 with `NA`
+```{r outliers to NA}
+dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6] <- NA
+
+qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
+            group_by(id, year, month, day), color = id) # + 
+      # geom_text(aes(label=id),hjust=-0.1, vjust=0)
+
+# Looking at precipitation by month during 2006
+qplot(month, monthly_ppt, data = dy_rg_data %>% 
+            filter(year==2006) %>%
+            group_by(id, year, month) %>%
+            summarize(monthly_ppt=sum(daily_ppt)), 
+      color = id, geom = 5, main = "Monthly total from daily data - 2006") #+
+      geom_point(shape = 5, size = 1.5)
+
+# An implementation of the `qplot` above using `ggplot`
+ggplot(data = dy_rg_data %>% 
+            filter(year==2006) %>%
+            group_by(id, year, month) %>%
+            summarize(monthly_ppt=sum(daily_ppt)),
+       aes(x = month, y = monthly_ppt, color = id)) +
+      geom_point(size=2, shape=3)
+```
+
+I also have data at an hourly resolution, but am not going to work with that for now
+```{r hourly data, eval=FALSE, echo=TRUE}
 hr_rg_data <- readRDS("hr_rg_data.rds")
 summary(hr_rg_data)
 qplot(id, hourly_ppt, data=hr_rg_data)
+#Replace hourly_ppt values >= 1
+hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=1] <- NA
+
+qplot(month, monthly_ppt, data = hr_rg_data %>%
+      filter(year==2006) %>%
+            group_by(id, year, month) %>%
+            summarize(monthly_ppt=sum(hourly_ppt)), color = id,
+      main="Monthly total from hourly data - 2006")
+```
+
+I want to group the daily data into data frames by month and year so that I can create and interpolation for precipitation for each unique month-year combination from each location. For example:
+```{r group by year month, echo=TRUE}
+ppt2004_01 <- dy_rg_data %>% #
+      group_by(id, year, month) %>% 
+      filter(year==2004, month==1) %>%
+      summarise(monthly_ppt = sum(daily_ppt))
+ppt2004_01
+```
+
+This is how I need each data frame to be structured, but I want to find a faster way to create the whole set of month-year combinations
+```{r list of data frames split by month-year, echo=TRUE}
+# Make a data frame of monthly totals for each year-month-location combination
+monthly_ppt <- dy_rg_data %>%
+      group_by(year, month, id) %>%
+      summarise(monthly_ppt = sum(daily_ppt))
+monthly_ppt
+
+# Split that dataframe on the month and year to create a list of data frames with the total precipitation and location id for each month and year combo
+df_list <- split(monthly_ppt, list(monthly_ppt$year, monthly_ppt$month))# 132 data frames
+```
+```{r unlist data frames into environment}
+# I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on Stack Overflow:
+list2env(df_list, .GlobalEnv))# http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes
 ```
 
 
-Francesco talking over the exploration with me
-```{r explore with francesco, eval=FALSE}
-test=dy_rg_data$date2[order(dy_rg_data$date2), ]
-test=dy_rg_data[order(dy_rg_data$date2), ]
-head(test)
-head(test,40)
-test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
-```
 
 A couple of rain gauges have been moved to new locations near their established areas over the years, so I have shapefiles corresponding the move of one or more gauge stations.
 ```{r list rain gague shapefiles}
 list.files("shapefiles", pattern = "*.shx")
 ```
 This shows that there are four shapefiles for various stretches of the study, 2003-2008, 2009-2011, 2012-2014, and then 2015 and beyond. The 2015 is the result of moving a rain gauge during our 2014 visits. I will not be using that file for the data I have in hand.
+
 
 
 ```{r breakdown years by shapefiles}
