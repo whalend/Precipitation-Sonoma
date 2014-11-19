@@ -18,7 +18,7 @@ library(tidyr)
 ```
 
 NOT RUN: Manipulations of some single files that were not correctly formatted for opening in Excel. I later found a better way to do this using the CSV library in Python that allows relatively simple conversion of text/CSV files from one delimiter to another.
-```{r not run, eval=FALSE echo=FALSE}
+```{r not run, eval=FALSE, echo=FALSE}
 # d1 <- fread("Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
 # d1 <- separate(d1, date_time, c("date", "time"), sep=" ")
 # write.csv(d1, "Rain_Gauge/all_years_raw_exports/SDC_502836_2007_RG.csv")
@@ -49,7 +49,7 @@ NOT RUN: Manipulations of some single files that were not correctly formatted fo
 
 
 Summarizing independent files of four plots to daily and hourly because they were not in the .hobo or .dtf format of the Onset data logger files. Individual files for daily and hourly were then exported as CSV, so there are two files for these locations that will need to be merged into the full database.
-```{r not run 2, eval=FALSE echo=FALSE}
+```{r not run 2, eval=FALSE, echo=FALSE}
 library(xlsx)
 
 
@@ -175,7 +175,7 @@ write.csv(yahng_hourly, "Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv
 
 
 Files that were "special cases" because they did not have a HoboWare compatible data file. I am reading these into `R` and then creating two dataframes, one that is hourly and one that is daily. My plan is to break apart the larger dataframe read in below into a daily and hourly dataframe and then bind those to each of these.
-```{r Read in single files, echo=FALSE}
+```{r Read in single files, echo=FALSE, eval=FALSE}
 # Yahng 2009 files
 y_hr09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_hr_2009.csv") 
 y_dy09 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/yahng_day_2009.csv")
@@ -193,7 +193,7 @@ ba_hr04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_hr_2004.csv")
 ba_dy04 <- fread("Rain_Gauge/2_RG_EXPORTS/special_cases/badger_day_2004.csv")
 ```
 
-```{r bind special cases, echo=TRUE}
+```{r bind special cases, echo=FALSE, eval=FALSE}
 daily_special <- rbind.fill(list(y_dy09,s_dy07,sec_dy07,ba_dy04))
 tail(daily_special)
 daily_special <- daily_special[,-1]# Drop the first column as excess variable
@@ -208,8 +208,9 @@ hourly_special$date <- with(hourly_special, paste(month, day, year, sep="/"))
 hourly_special <- hourly_special %>% 
       select(id, date, year, month, day, hour, hourly_events, hourly_ppt)
 ```
+
 Remove the single file data frames from the environment
-```{r remove data frames, echo=FALSE}
+```{r remove data frames, eval=FALSE, echo=FALSE}
 rm(y_hr09)
 rm(y_dy09)
 rm(sec_hr07)
@@ -221,7 +222,7 @@ rm(ba_dy04)
 ```
 
 Make database by compiling all the files that were exported using the proprietary HoboWare software together. This will result in one large dataframe that contains hourly and daily events. I will then want to break this down further into separate hourly and daily dataframes
-```{r List files in working directory}
+```{r List files in working directory, eval=FALSE, echo=FALSE}
 #setwd("~/Documents/git_local/soco_ppt")
 files <- list.files("Rain_Gauge/2_RG_EXPORTS", pattern="*.csv", full.names=TRUE)
 # fnames <- sub("^([^.]*).*", "\\1", basename(files)) # create list of file basenames
@@ -289,6 +290,7 @@ dy_rg_data <- rg_data %>%
 dy_rg_data
 # class(dy_rg_data)
 ```
+
 Next, `rbind` this with the `daily_special` dataframe and save it as an R data source file
 ```{r join daily dataframes, echo=TRUE}
 dy_rg_data <- rbind(dy_rg_data, daily_special)
@@ -297,164 +299,3 @@ saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 dy_rg_data <- readRDS("dy_rg_data.rds")
 dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
 ```
-Looking at the summaries it appears something rather sketchy is going on. The maximum values are way above a realistic range, with a maximum daily precipitation of over 52 inches and a maximum of hourly precipitation of over 14 inches. **Just. Not. Possible.** 
-```{r dataframe summaries, echo=TRUE}
-dy_rg_data <- readRDS("dy_rg_data.rds")
-library(ggplot2)
-summary(dy_rg_data)
-qplot(id, daily_ppt, data=dy_rg_data) + theme_bw()
-
-hr_rg_data <- readRDS("hr_rg_data.rds")
-summary(hr_rg_data)
-qplot(date, hourly_ppt, data=hr_rg_data)
-```
-
-Exploring when and where these enormous anomalous values are coming from, first dealing with the daily events data frame. For reference, this pdf has some data on maximum rainfall recorded in California <http://www.cepsym.org/Sympro1994/goodridge_paper.pdf> Also more information here: <http://earthzine.org/2011/04/19/average-recurrence-interval-of-extreme-rainfall-in-real-time/> which I believe refers to the report from the first link.
-```{r explore outliers, echo=FALSE}
-filter(dy_rg_data, daily_ppt>6)
-filter(dy_rg_data, year==2007 & month==1 & day==28)
-filter(dy_rg_data, year==2007 & month==1 & day==27)
-filter(dy_rg_data, year==2008 & month==3 & day==15)
-filter(dy_rg_data, date=="1/27/2007")
-
-qplot(year, daily_ppt, data=dy_rg_data, facets= id ~.)
-qplot(id, daily_ppt, data=dy_rg_data  %>% filter(date=="3/15/2008"))
-
-
-qplot(hour, hourly_ppt, data=hr_rg_data %>% filter(date=="3/15/2008"), color=id)
-
-filter(hr_rg_data, hourly_ppt>1)
-filter(hr_rg_data, date=="3/15/2008" & id=="mitsui")
-filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
-
-```
-I was thinking I should replace the outlying values with the average of the remaining values for that day or hour.
-
-Francesco suggests that for aggregating to monthly, If more than 5 days of `NA`/missing for a month then treat entire month as missing. Maybe use a spline approach instead of regression kriging because of small number of points (FT, suggests thin plate spline).
-
-For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
-```{r outliers to NA, echo=TRUE}
-# Replace ppt values >= 6 with `NA`
-dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6] <- NA
-
-qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
-            group_by(id, date, year, month, day), color = id)
-
-#Replace hourly_ppt values >= 1
-hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=1]  <- NA
-
-qplot(month, monthly_ppt, data = hr_rg_data %>%
-      group_by(id, date, year, month) %>%
-            filter(year==2006) %>%
-            summarize(monthly_ppt=sum(hourly_ppt)), color = id,
-      main="Monthly total from hourly data - 2006") 
-```
-
-
-Francesco talking over the exploration with me
-```{r explore with francesco, eval=FALSE}
-test=dy_rg_data$date2[order(dy_rg_data$date2), ]
-test=dy_rg_data[order(dy_rg_data$date2), ]
-head(test)
-head(test,40)
-test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
-```
-
-```{r breakdown years by shapefiles}
-library(rgdal)
-ogrListLayers("shapefiles")
-rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
-str(rg_0308)
-rg_0308@data$NAME
-rg_0308@data$NAME <- tolower(rg_0308@data$NAME)
-rg_0308@data$NAME[rg_0308@data$NAME=="macki"] <- "mackie"
-rg_0308@data$NAME[rg_0308@data$NAME=="sdc"] <- "sec"
-rg_0308@data$NAME[rg_0308@data$NAME=="sugar"] <- "sugarloaf"
-unique(dy_rg_data$id)
-
-month_rg_0308 <- dy_rg_data %>%
-      group_by(id, year, month) %>% 
-      filter(year<=2008) %>%
-      summarise(monthly_ppt = sum(daily_ppt))
-month_rg_0308$id <- as.factor(month_rg_0308$id)
-summary(month_rg_0308)
-```
-
-```{r geostats}
-library(sp)
-library(raster)
-library(rgdal)
-elev <- raster("dem/sod15m.tif")
-str(elev)
-crs <- elev@crs
-rg_0308 <- spTransform(rg_0308, CRS=crs)
-str(rg_0308)
-spplot(elev, scales=list(draw=T), sp.layout=list("sp.points", rg_0308))
-
-rg_0308@data$elev <- extract(elev, rg_0308)
-str(rg_0308)
-#spplot(slope, scales=list(draw=T), sp.layout=list("sp.points", depth, pch="+"))
-```
-
-Joining monthly precipitation data to spatial points data frame
-```{r joining data}
-rg_0308@data <- inner_join(rg_0308@data, month_rg_0308, by = c("NAME" = "id"))
-str(month_rg_0308)
-str(rg_0308)
-summary(rg_0308)
-```
-
-Plotting precipitation against elevation for a subset of the data
-```{r plot elevation precip}
-rg08 <- filter(rg_0308@data, year==2008)
-qplot(rg_0308@data$elev, rg_0308@data$monthly_ppt)
-qplot(elev, monthly_ppt, data = rg08, facets = .~ month, color = NAME, main = "2008 Rain")
-qplot(elev, monthly_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rain") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-```
-
-Developing a linear modeling for kriging
-```{r rk model jan 2008}
-rg_0108 <- subset(rg_0308@data, year==2008 & month==1)
-#coordinates(rg_0108) = ~NORTHING+EASTING
-str(rg_0108)
-rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
-rg_0308 <- spTransform(rg_0308, CRS=crs)
-rg_0108@proj4string <- rg_0308@proj4string
-rg_0108 <- spTransform(rg_0108, CRS=crs)
-
-elev_ppt = overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-points overlay
-   # copy the slope values
-lm_rg_0108 <- lm(monthly_ppt ~ elev, rg_0108)
-summary(lm_rg_0108)
-```
-
-
-```{r thin plate spline}
-library(fields)
-loc_matrix <- cbind(rg_0108$NORTHING,rg_0108$EASTING)
-ppt <- c(rg_0108$monthly_ppt)
-jan08tps <- Tps(loc_matrix, ppt)
-summary(jan08tps)
-plot(jan08tps)
-surface(jan08tps)
-
-look <- predict(jan08tps, lambda = 2.0)
-look <- predict(jan08tps, df = 4)
-
-tps1 <- Tps(loc_matrix, ppt, df = 4)
-summary(tps1)
-set.panel(2,2)
-plot(tps1)
-set.panel()
-
-out_jan08 <- predictSurface(jan08tps)
-image(out_jan08)
-
-fit <- Tps(ozone$x, ozone$y)
-set.panel(2,2)
-plot(fit)
-
-```
-
-
-
