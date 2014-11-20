@@ -82,9 +82,32 @@ monthly_ppt
 # Split that dataframe on the month and year to create a list of data frames with the total precipitation and location id for each month and year combo
 df_list <- split(monthly_ppt, list(monthly_ppt$year, monthly_ppt$month))# 132 data frames
 ```
+
+I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on [Stack Overflow](http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes):
 ```{r unlist data frames into environment}
-# I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on Stack Overflow:
-list2env(df_list, .GlobalEnv))# http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes
+list2env(df_list, .GlobalEnv))
+```
+
+Trying to figure out a `plyr` approach with `assign` so that I can name the data frames, but not having much luck.
+```{r}
+ldply(df_list, function(i){
+      assign(df_list[i], df_list[[i]])
+})
+```
+Two commenters asked why you would even want to do this when you could just work on them as elements of the list. Can I match up the spatial data to the data frames in the list? Then can I also pass each data frame in that list to an interpolation function?
+
+```{r subset list using regular expression, echo=TRUE, eval=TRUE}
+# l <- subset(df_list, df_list["*"]<=df_list["*2008"])
+# Filter(function(x) length(x) > 3, l)
+
+# I want to match on 200* EXCEPT 2009*
+df_list_names <- names(df_list)
+l_names <- df_list_names[grep("200[^9]", df_list_names)]
+df_list_0408 <- df_list[grep("200[^9]", df_list_names)]
+
+# Then I want to match on 20* excepting a second 0, giving me the 2010-2014 data frames, or match on 2009* to include the 2009 data frames.
+l_names <- df_list_names[grep("20[^0]|2009", df_list_names)]
+df_list_0914 <- df_list[grep("20[^0]|2009", df_list_names)]
 ```
 
 
