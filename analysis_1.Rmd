@@ -96,20 +96,29 @@ ldply(df_list, function(i){
 ```
 Two commenters asked why you would even want to do this when you could just work on them as elements of the list. Can I match up the spatial data to the data frames in the list? Then can I also pass each data frame in that list to an interpolation function?
 
+I was working on trying to subset the named list of dataframes using wildcards/regular expressions (`regexp`). I wanted to break them up by year due to relocation of some rain gauges, so this is necessary to make sure the data is joined to the correct coordinates. Rain gauges typically were not moved very far, so it may not matter much, but I am being thorough.
+
+I figured out how to do it using regular expressions. 
 ```{r subset list using regular expression, echo=TRUE, eval=TRUE}
+# These first two lines didn't get me anywhere
 # l <- subset(df_list, df_list["*"]<=df_list["*2008"])
 # Filter(function(x) length(x) > 3, l)
 
-# I want to match on 200* EXCEPT 2009*
+
+
+# I want to match on 200* EXCEPT 2009*, so the expression is matching on strings with anything following 200 except skipping the string if the next character is a 9.
 df_list_names <- names(df_list)
-l_names <- df_list_names[grep("200[^9]", df_list_names)]
-df_list_0408 <- df_list[grep("200[^9]", df_list_names)]
+l_names <- df_list_names[grep("200[^9]", df_list_names)]# Testing syntax
+df_list_0408 <- df_list[grep("200[^9]", df_list_names)]# Making subsetted list
 
-# Then I want to match on 20* excepting a second 0, giving me the 2010-2014 data frames, or match on 2009* to include the 2009 data frames.
-l_names <- df_list_names[grep("20[^0]|2009", df_list_names)]
-df_list_0914 <- df_list[grep("20[^0]|2009", df_list_names)]
+# I want to get the 2009-2011 data frames. The `|` operates as "or" in the expression, so I am matching on either of these three strings
+l_names <- df_list_names[grep(grx, df_list_names)]# Testing syntax
+df_list_0911 <- df_list[grep("2009|2010|2011", df_list_names)]# Making subsetted list
+
+# And now the 2012-2014 data frames
+l_names <- df_list_names[grep("2012|2013|2014", df_list_names)]
+df_list_1214 <- df_list[grep("2012|2013|2014", df_list_names)]
 ```
-
 
 
 A couple of rain gauges have been moved to new locations near their established areas over the years, so I have shapefiles corresponding the move of one or more gauge stations.
