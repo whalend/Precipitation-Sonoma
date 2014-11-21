@@ -47,6 +47,29 @@ ggplot(data = dy_rg_data %>%
       geom_point(size=2, shape=3)
 ```
 
+Make data frame of monthly totals and plot across all years
+```{r monthly data plot, echo=TRUE, eval=FALSE}
+monthly_ppt <- dy_rg_data %>%
+      group_by(year, month, id) %>%# This grouping order causes reordering by year, month, then id
+      summarise(monthly_ppt = sum(daily_ppt))
+monthly_ppt
+monthly_ppt <- mutate(monthly_ppt, date = paste(year,"-",month, sep = ""))# Add date factor variable
+monthly_ppt$date <- as.Date(paste(monthly_ppt$date, "-01", sep=""))
+
+mp <- ggplot(data = monthly_ppt, 
+            #filter(id == "cook" | id == "kunde" | id == "sawi"),
+            #group_by(year, month, ),
+       aes(x = date, y = monthly_ppt)) + 
+      geom_point(size=2) +
+      ylab("Rainfall (inches)")
+       
+
+mp + geom_line()
+
+#mp + scale_x_date(date)
+
+```
+
 I also have data at an hourly resolution, but am not going to work with that for now
 ```{r hourly data, eval=FALSE, echo=TRUE}
 hr_rg_data <- readRDS("hr_rg_data.rds")
@@ -84,17 +107,19 @@ df_list <- split(monthly_ppt, list(monthly_ppt$year, monthly_ppt$month))# 132 da
 ```
 
 I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on [Stack Overflow](http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes):
-```{r unlist data frames into environment}
+```{r unlist data frames into environment, eval=FALSE}
 list2env(df_list, .GlobalEnv))
 ```
 
 Trying to figure out a `plyr` approach with `assign` so that I can name the data frames, but not having much luck.
-```{r}
+```{r plyr unlist (fail), echo=FALSE, eval=FALSE}
 ldply(df_list, function(i){
       assign(df_list[i], df_list[[i]])
 })
 ```
 Two commenters asked why you would even want to do this when you could just work on them as elements of the list. Can I match up the spatial data to the data frames in the list? Then can I also pass each data frame in that list to an interpolation function?
+
+I am leaving the data frames in the list for now.
 
 I was working on trying to subset the named list of dataframes using wildcards/regular expressions (`regexp`). I wanted to break them up by year due to relocation of some rain gauges, so this is necessary to make sure the data is joined to the correct coordinates. Rain gauges typically were not moved very far, so it may not matter much, but I am being thorough.
 
