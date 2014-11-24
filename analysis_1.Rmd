@@ -48,27 +48,39 @@ ggplot(data = dy_rg_data %>%
 ```
 
 Make data frame of monthly totals and plot across all years
-```{r monthly data plot, echo=TRUE, eval=FALSE}
+```{r summarise daily to monthly totals, echo=TRUE, eval=FALSE}
 monthly_ppt <- dy_rg_data %>%
       group_by(year, month, id) %>%# This grouping order causes reordering by year, month, then id
       summarise(monthly_ppt = sum(daily_ppt))
 monthly_ppt
-monthly_ppt <- mutate(monthly_ppt, date = paste(year,"-",month, sep = ""))# Add date factor variable
+# Add date factor variable
+monthly_ppt <- mutate(monthly_ppt, date = paste(year,"-",month, sep = ""))
+# Convert date factor to `date` format for plotting
 monthly_ppt$date <- as.Date(paste(monthly_ppt$date, "-01", sep=""))
-
-mp <- ggplot(data = monthly_ppt, 
-            #filter(id == "cook" | id == "kunde" | id == "sawi"),
-            #group_by(year, month, ),
-       aes(x = date, y = monthly_ppt)) + 
-      geom_point(size=2) +
-      ylab("Rainfall (inches)")
-       
-
-mp + geom_line()
-
-#mp + scale_x_date(date)
-
 ```
+
+Plot monthly rainfall data
+```{r plotting monthly data, echo=TRUE, eval=FALSE, fig.height=9, fig.width=6}
+mp <- ggplot(data = monthly_ppt %>%
+            filter(id == "cook" | id == "kunde" | id == "sawi" | 
+                         id == "mitsui"),
+            #group_by(id),
+       aes(x = date, y = monthly_ppt, color = id)) + 
+      geom_point(size=2) +
+      ylab("rainfall (inches)")
+mp + geom_line() + facet_grid(id ~ ., scales = "fixed") + 
+      theme_bw() + theme(legend.position = "none")
+mp + geom_boxplot()
+
+# Adjust the way the date is scaled on the x-axis
+#mp + scale_x_date(date)
+```
+
+```{r export plot to file, echo=TRUE, eval=TRUE}
+# `ggsave` exports the current `ggplot` object
+ggsave("figures/mp_id_facet.svg", width = 6, height = 10)
+```
+
 
 I also have data at an hourly resolution, but am not going to work with that for now
 ```{r hourly data, eval=FALSE, echo=TRUE}
