@@ -49,36 +49,67 @@ ggplot(data = dy_rg_data %>%
 
 Make data frame of monthly totals and plot across all years
 ```{r summarise daily to monthly totals, echo=TRUE, eval=FALSE}
-monthly_ppt <- dy_rg_data %>%
+# Monthly precipitation (ppt) by year, month, and gauge id
+monthly_ppt_id <- dy_rg_data %>%
       group_by(year, month, id) %>%# This grouping order causes reordering by year, month, then id
       summarise(monthly_ppt = sum(daily_ppt))
-monthly_ppt
+monthly_ppt_id
 # Add date factor variable
-monthly_ppt <- mutate(monthly_ppt, date = paste(year,"-",month, sep = ""))
+monthly_ppt_id <- mutate(monthly_ppt_id, date = paste(year,"-",month, sep = ""))
 # Convert date factor to `date` format for plotting
-monthly_ppt$date <- as.Date(paste(monthly_ppt$date, "-01", sep=""))
+monthly_ppt_id$date <- as.Date(paste(monthly_ppt_id$date, "-01", sep=""))
+
+
+# Aggregate to mean monthly precip across all gauges, so exclude id from the data frame `monthly_ppt_id`
+monthly_ppt <- monthly_ppt_id %>%
+      group_by(year, month, date) %>%
+      summarise(avg_monthly_ppt = mean(monthly_ppt))
+monthly_ppt
 ```
 
 Plot monthly rainfall data
 ```{r plotting monthly data, echo=TRUE, eval=FALSE, fig.height=9, fig.width=6}
-mp <- ggplot(data = monthly_ppt %>%
-            filter(id == "cook" | id == "kunde" | id == "sawi" | 
-                         id == "mitsui"),
+# Plot monthly rainfall grouped by plot ####
+mp_id <- ggplot(data = monthly_ppt_id %>%
+            filter(id == "cook" | id == "kunde" | id == "sawi"),
             #group_by(id),
        aes(x = date, y = monthly_ppt, color = id)) + 
       geom_point(size=2) +
       ylab("rainfall (inches)")
-mp + geom_line() + facet_grid(id ~ ., scales = "fixed") + 
-      theme_bw() + theme(legend.position = "none")
-mp + geom_boxplot()
 
+library(scales)
+mp_id + geom_line() + facet_grid(id ~ ., scales = "fixed") + 
+      theme_bw() + theme(legend.position = "none") +
+      scale_x_date(breaks = date_breaks("6 months"), 
+                   labels = date_format("%m/%y"),
+                   minor_breaks = "1 month") +
+      xlab("date (month/year)") + ggtitle("Total Monthly Rainfall 2004-2013")
+ggsave("figures/mp_id.svg", width = 7, height = 5, scale = 1.5)
+# mp + geom_boxplot()
 # Adjust the way the date is scaled on the x-axis
 #mp + scale_x_date(date)
+
+# Plot monthly data averaged across plots
+mp <- ggplot(data = monthly_ppt,
+            #filter(id == "cook" | id == "kunde" | id == "sawi"),
+            #group_by(id),
+       aes(x = date, y = avg_monthly_ppt)) + 
+      geom_point(size=2) +
+      ylab("rainfall (inches)")
+
+library(scales)
+mp + geom_line() +
+      theme_bw() + theme(legend.position = "none") +
+      scale_x_date(breaks = date_breaks("1 year"), 
+                   labels = date_format("%m/%y"),
+                   minor_breaks = "1 month") +
+      xlab("date (month/year)") + ggtitle("Average Monthly Rainfall 2004-2013")
+ggsave("figures/avg_mp.svg", width = 7, height = 5, scale = 1.5)
 ```
 
 ```{r export plot to file, echo=TRUE, eval=TRUE}
 # `ggsave` exports the current `ggplot` object
-ggsave("figures/mp_id_facet.svg", width = 6, height = 10)
+ggsave("figures/avg_mp.svg", width = 7, height = 5, scale = 1.5)
 ```
 
 
