@@ -1,6 +1,6 @@
 ## Precipitation Interpolation for Sonoma County
 
-Project location: P:\geospatial\Research\rkmeente\Workspaces\wwdillon\soco_ppt
+Project location: `P:\geospatial\Research\rkmeente\Workspaces\wwdillon\soco_ppt`
 
 #### Goal: summarize the precipitation events into hourly and daily values
 `Conversion factor: 1 event = 0.01 inches`
