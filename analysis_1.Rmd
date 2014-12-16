@@ -35,7 +35,7 @@ qplot(month, monthly_ppt, data = dy_rg_data %>%
             filter(year==2006) %>%
             group_by(id, year, month) %>%
             summarize(monthly_ppt=sum(daily_ppt)), 
-      color = id, geom = 5, main = "Monthly total from daily data - 2006") #+
+      color = id, geom = 5, main = "Monthly total from daily data - 2006") +
       geom_point(shape = 5, size = 1.5)
 
 # An implementation of the `qplot` above using `ggplot`
@@ -196,7 +196,6 @@ list.files("shapefiles", pattern = "*.shx")
 This shows that there are four shapefiles for various stretches of the study, 2003-2008, 2009-2011, 2012-2014, and then 2015 and beyond. The 2015 is the result of moving a rain gauge during our 2014 visits. I will not be using that file for the data I have in hand.
 
 
-
 ```{r breakdown years by shapefiles}
 library(rgdal)# GDAL bindings for R; I believe this requires GDAL installed for your operating system
 ogrListLayers("shapefiles")
@@ -226,6 +225,8 @@ str(elev)
 crs <- elev@crs
 rg_0308 <- spTransform(rg_0308, CRS=crs)
 str(rg_0308)
+plot(elev)
+plot(rg_0308, bg="transparent", add=TRUE)
 spplot(elev, scales=list(draw=T), sp.layout=list("sp.points", rg_0308))
 
 rg_0308@data$elev <- extract(elev, rg_0308)
@@ -249,7 +250,7 @@ qplot(elev, monthly_ppt, data = rg08, facets = .~ month, color = NAME, main = "2
 qplot(elev, monthly_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rain") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
 ```
 
-Developing a linear modeling for kriging
+Developing a linear model for kriging
 ```{r rk model jan 2008}
 rg_0108 <- subset(rg_0308@data, year==2008 & month==1)
 #coordinates(rg_0108) = ~NORTHING+EASTING
@@ -266,7 +267,7 @@ summary(lm_rg_0108)
 ```
 
 
-```{r thin plate spline}
+```{r thin plate spline example}
 library(fields)
 loc_matrix <- cbind(rg_0108$NORTHING,rg_0108$EASTING)
 ppt <- c(rg_0108$monthly_ppt)
@@ -290,5 +291,4 @@ image(out_jan08)
 fit <- Tps(ozone$x, ozone$y)
 set.panel(2,2)
 plot(fit)
-
 ```
