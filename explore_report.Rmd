@@ -47,8 +47,7 @@ NOT RUN: Manipulations of some single files that were not correctly formatted fo
 # write.csv(d1, "Rain_Gauge/all_years_raw_exports/MITSUI_502950_2006_RG.csv")
 ```
 
-
-Summarizing independent files of four plots to daily and hourly because they were not in the .hobo or .dtf format of the Onset data logger files. Individual files for daily and hourly were then exported as CSV, so there are two files for these locations that will need to be merged into the full database.
+NOT RUN: Summarizing independent files of four plots to daily and hourly because they were not in the .hobo or .dtf format of the Onset data logger files. Individual files for daily and hourly were then exported as CSV, so there are two files for these locations that will need to be merged into the full database.
 ```{r not run 2, eval=FALSE, echo=FALSE}
 library(xlsx)
 
@@ -222,7 +221,7 @@ rm(ba_dy04)
 ```
 
 Make database by compiling all the files that were exported using the proprietary HoboWare software together. This will result in one large dataframe that contains hourly and daily events. I will then want to break this down further into separate hourly and daily dataframes
-```{r List files in working directory, eval=FALSE, echo=FALSE}
+```{r List files in working directory, eval=TRUE, echo=TRUE}
 #setwd("~/Documents/git_local/soco_ppt")
 files <- list.files("Rain_Gauge/2_RG_EXPORTS", pattern="*.csv", full.names=TRUE)
 # fnames <- sub("^([^.]*).*", "\\1", basename(files)) # create list of file basenames
@@ -247,36 +246,46 @@ str(rg_data)
 Join `date` and `time` columns in `rg_data` and convert to POSIX
 ```{r POSIX time conversion}
 rg_data$date_time <- paste(rg_data$date, rg_data$time, sep=" ")
-rg_data$date_time <- strptime(rg_data$date_time, format="%m/%d/%Y %H:%M:%S", tz="America/Los_Angeles")
+rg_data$date_time <- strptime(rg_data$date_time, format="%m/%d/%Y %H:%M:%S", tz="UTC")
 ```
 
 Create year, month, day, and hour columns for grouping
 ```{r create date variables, echo=TRUE}
-rg_data$year <- year(rg_data$date_time)
-rg_data$month <- month(rg_data$date_time)
-rg_data$day <- mday(rg_data$date_time)
+rg_data$date1 <- as.Date(rg_data$date, format = "%m/%d/%Y")
+rg_data$year <- year(rg_data$date1)
+rg_data$month <- month(rg_data$date1)
+rg_data$day <- mday(rg_data$date1)
 rg_data$hour <- hour(rg_data$date_time)
 head(rg_data)
+summary(rg_data)
 class(rg_data$date_time)# Confirm POSIX format
 saveRDS(rg_data, file = "rg_data.rds")
+
+## Code used for troubleshooting date/time problems stemming from CSV files
+#d1 <- subset(rg_data, date1 == "0004-04-30")
+#unique(d1$id)
+#summary(rg_data$date1)
+#min(rg_data$year)
 ```
 
 Summarize `rg_data` into a data set with hourly resolution through April of 2014 by excluding any dates that are in month 5 AND the year 2014. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
 ```{r create hourly data set, echo=TRUE}
+library(dplyr)
 hr_rg_data <- rg_data %>% 
       select(id, date, year, month, day, hour, events) %>% 
       group_by(id, date, year, month, day, hour) %>%
-      filter(year<=2014 & month<=5) %>%
+      #filter(year<=2014 & month<=5) %>%
       summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
-
 hr_rg_data
 # class(hr_rg_data)
 summary(hr_rg_data)
 ```
-This grouping and summarization has eliminated `NA`s from the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe and save it as an R data source file
+
+This grouping and summarization has eliminated `NA`s from the precipiation variables in the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe and save it as an R data source file
 ```{r join hourly dataframes, echo=TRUE}
 hr_rg_data <- rbind(hr_rg_data, hourly_special)
 hr_rg_data
+summary(hr_rg_data)
 saveRDS(hr_rg_data, file = "hr_rg_data.rds")
 hr_rg_data <- readRDS("hr_rg_data.rds")
 ```
@@ -285,9 +294,11 @@ Now I have one dataframe with all the hourly events recorded across all of the r
 dy_rg_data <- rg_data %>% 
       select(id, date, year, month, day, events) %>% 
       group_by(id, date, year, month, day) %>%
-      filter(year<=2014 & month<=5) %>%
+      #filter(year<=2014 & month<=5) %>%
       summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
 dy_rg_data
+#dy_rg_data$date <- as.Date(dy_rg_data$date, format = "%m/%d/%Y")
+#arrange(dy_rg_data, desc(date))# there is a date getting formatted with a year of 0201. I need to replace that with year 2010.
 # class(dy_rg_data)
 ```
 
@@ -295,6 +306,7 @@ Next, `rbind` this with the `daily_special` dataframe and save it as an R data s
 ```{r join daily dataframes, echo=TRUE}
 dy_rg_data <- rbind(dy_rg_data, daily_special)
 dy_rg_data
+summary(dy_rg_data)
 saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 dy_rg_data <- readRDS("dy_rg_data.rds")
 dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
