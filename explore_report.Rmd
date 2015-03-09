@@ -271,11 +271,11 @@ saveRDS(rg_data, file = "rg_data.rds")
 Summarize `rg_data` into a data set with hourly resolution through April of 2014 by excluding any dates that are in month 5 AND the year 2014. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
 ```{r create hourly data set, echo=TRUE}
 library(dplyr)
+rg_data <- readRDS("rg_data.rds")
 hr_rg_data <- rg_data %>% 
-      select(id, date, year, month, day, hour, events) %>% 
-      group_by(id, date, year, month, day, hour) %>%
-      #filter(year<=2014 & month<=5) %>%
-      summarize(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+      select(id, year, month, day, hour, events, date) %>% 
+      group_by(id, year, month, day, hour, date) %>%
+      summarise(hourly_events=length(events), hourly_ppt=length(events)*0.01)
 hr_rg_data
 # class(hr_rg_data)
 summary(hr_rg_data)
@@ -288,13 +288,13 @@ hr_rg_data
 summary(hr_rg_data)
 saveRDS(hr_rg_data, file = "hr_rg_data.rds")
 hr_rg_data <- readRDS("hr_rg_data.rds")
+hr_rg_data$date <- as.Date(hr_rg_data$date, format = "%m/%d/%Y")
 ```
 Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
 ```{r create daily data set, echo=TRUE}
 dy_rg_data <- rg_data %>% 
-      select(id, date, year, month, day, events) %>% 
-      group_by(id, date, year, month, day) %>%
-      #filter(year<=2014 & month<=5) %>%
+      select(id, year, month, day, events, date) %>% 
+      group_by(id, year, month, day, date) %>%
       summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
 dy_rg_data
 #dy_rg_data$date <- as.Date(dy_rg_data$date, format = "%m/%d/%Y")
@@ -309,7 +309,7 @@ dy_rg_data
 summary(dy_rg_data)
 saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 dy_rg_data <- readRDS("dy_rg_data.rds")
-dy_rg_data$date2 <- strptime(dy_rg_data$date, format="%m/%d/%Y")
+dy_rg_data$date <- as.Date(dy_rg_data$date, format="%m/%d/%Y")
 ```
 
 
@@ -319,24 +319,27 @@ Exploring when and where these enormous anomalous values are coming from, first 
 ```{r explore outliers, eval=FALSE, echo=FALSE}
 library(plyr)
 library(dplyr)
-filter(dy_rg_data, daily_ppt>6)
+filter(dy_rg_data, daily_ppt>6.5)
 filter(dy_rg_data, year==2007 & month==1 & day==28)
 filter(dy_rg_data, year==2007 & month==1 & day==27)
 filter(dy_rg_data, year==2008 & month==3 & day==15)
-filter(dy_rg_data, date=="1/27/2007")
 
-qplot(year, daily_ppt, data=dy_rg_data, facets= id ~.)
-qplot(id, daily_ppt, data=dy_rg_data  %>% filter(date=="3/15/2008"))
+qplot(date, daily_ppt, data=dy_rg_data, color = id)
+qplot(date, daily_ppt, data=dy_rg_data %>% filter(daily_ppt < 6.5), color = id)
+qplot(date, hourly_ppt, data=hr_rg_data, color = id)
+qplot(date, hourly_ppt, data=hr_rg_data %>% filter(hourly_ppt < 2), color = id)
 
-
-qplot(hour, hourly_ppt, data=hr_rg_data %>% filter(date=="3/15/2008"), color=id)
-
-filter(hr_rg_data, hourly_ppt>1)
-filter(hr_rg_data, date=="3/15/2008" & id=="mitsui")
+filter(hr_rg_data, hourly_ppt>2)
 filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
 
+sr_data <- fread("http://web1.ci.santa-rosa.ca.us/pworks/other/weather/download%207-1-03%206-30-04.txt")
+head(sr_data)
+summary(sr_data)
+sum(sr_data$V15)
+sr_data$date <- as.Date(sr_data$V1, format = "%m/%d/%Y")
+qplot(date, daily_ppt, data = sr_data %>% group_by(date) %>% summarise(daily_ppt = sum(V15)))
 ```
-I was thinking I should replace the outlying values with the average of the remaining values for that day or hour.
+I was thinking that maybe I should replace the outlying values with the average of the remaining values for that day or hour...but maybe not.
 
 Francesco talking over the exploration with me
 ```{r explore with francesco, eval=FALSE, echo=FALSE}
@@ -349,21 +352,26 @@ test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
 
 Francesco suggests that for aggregating to monthly, If more than 5 days of `NA`/missing for a month then treat entire month as missing. Maybe use a spline approach instead of regression kriging because of small number of points (FT, suggests thin plate spline).
 
-For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
+For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1.5 inches.
 ```{r outliers to NA, eval=FALSE, echo=TRUE}
-# Replace ppt values >= 6 with `NA`
-dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6] <- NA
+library(ggplot2)
+library(dplyr)
+# Replace ppt values >= 6.5 with `NA`
+dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6.5] <- NA
+summary(dy_rg_data)
+saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
 
 qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
             group_by(id, year, month, day), color = id) # + 
       # geom_text(aes(label=id),hjust=-0.1, vjust=0)
+qplot(date, daily_ppt, data = dy_rg_data, color = id)
 
 # Looking at precipitation by month during 2006
 qplot(month, monthly_ppt, data = dy_rg_data %>% 
             filter(year==2006) %>%
             group_by(id, year, month) %>%
             summarize(monthly_ppt=sum(daily_ppt)), 
-      color = id, geom = 5, main = "Monthly total from daily data - 2006") #+
+      color = id, main = "Monthly total from daily data - 2006") #+
       geom_point(shape = 5, size = 1.5)
 
 # An implementation of the `qplot` above using `ggplot`
@@ -374,12 +382,18 @@ ggplot(data = dy_rg_data %>%
        aes(x = month, y = monthly_ppt, color = id)) +
       geom_point(size=2, shape=3)
 
-#Replace hourly_ppt values >= 1
-hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=1]  <- NA
+#Replace hourly_ppt values >= 2.5 
+hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=2]  <- NA
+summary(hr_rg_data)
+saveRDS(hr_rg_data, "hr_rg_data_corrected.rds")
+
+qplot(date, hourly_ppt, data = hr_rg_data, color = id)
 
 qplot(month, monthly_ppt, data = hr_rg_data %>%
-      filter(year==2006) %>%
             group_by(id, year, month) %>%
+            filter(year == 2006) %>%
             summarize(monthly_ppt=sum(hourly_ppt)), color = id,
       main="Monthly total from hourly data - 2006")
 ```
+
+

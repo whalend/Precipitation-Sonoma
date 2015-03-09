@@ -4,14 +4,14 @@
 # Conversion factor: 1 event = 0.01 inches
 #---
 
-#setwd("P:/geospatial/Research/rkmeente/Workspaces/wwdillon/soco_ppt")
+
 library(plyr)
 library(data.table)
 library(dplyr)
 library(tidyr)
 
 #### Download weather data from city of Santa Rosa
-sr <- fread("http://web1.ci.santa-rosa.ca.us/pworks/other/weather/download%207-1-06%206-30-07.txt", skip = 1, header=TRUE)
+sr_data <- fread("http://web1.ci.santa-rosa.ca.us/pworks/other/weather/download%207-1-06%206-30-07.txt", skip = 1, header=TRUE)
 head(sr)
 summary(sr)
 str(sr)
@@ -303,7 +303,7 @@ tail(rg_dt2)
 tables()
 mc_rg <- mc_data[hourly_rain]
 
-#####
+### Create data frames where precip is grouped monthly and daily
 monthly <- d1 %>% select(plotid, year, month, events) %>% 
       group_by(plotid, year, month) %>% 
       summarize(monthly_events=length(events))

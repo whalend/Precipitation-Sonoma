@@ -14,9 +14,9 @@ suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(dplyr))
 ```
 
-Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1 inch.
+Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement in these data sets I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches.
 ```{r read in daily data, echo=TRUE}
-dy_rg_data <- readRDS("dy_rg_data.rds")
+dy_rg_data <- readRDS("dy_rg_data_corrected.rds")
 summary(dy_rg_data)
 dy_rg_data$id <- as.factor(dy_rg_data$id)# change `id` from character to factor
 qplot(id, daily_ppt, data=dy_rg_data) + theme_bw()
@@ -128,7 +128,7 @@ qplot(month, monthly_ppt, data = hr_rg_data %>%
       main="Monthly total from hourly data - 2006")
 ```
 
-I want to group the daily data into data frames by month and year so that I can create and interpolation for precipitation for each unique month-year combination from each location. For example:
+I want to group the daily data into data frames by month and year so that I can create an interpolation for precipitation for each unique month-year combination from each location. For example:
 ```{r group by year month, echo=TRUE}
 ppt2004_01 <- dy_rg_data %>% #
       group_by(id, year, month) %>% 
