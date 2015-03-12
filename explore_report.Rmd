@@ -268,48 +268,79 @@ saveRDS(rg_data, file = "rg_data.rds")
 #min(rg_data$year)
 ```
 
-Summarize `rg_data` into a data set with hourly resolution through April of 2014 by excluding any dates that are in month 5 AND the year 2014. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
+Summarize `rg_data` into a data set with hourly resolution. There must be a way to do this based on the POSIX date/time format, which might be more efficient. This relies on `dplyr`
 ```{r create hourly data set, echo=TRUE}
 library(dplyr)
 rg_data <- readRDS("rg_data.rds")
+rg_data1  <- rg_data
+rg_data1[is.na(rg_data1)] <- 0
+
 hr_rg_data <- rg_data %>% 
-      select(id, year, month, day, hour, events, date) %>% 
-      group_by(id, year, month, day, hour, date) %>%
-      summarise(hourly_events=length(events), hourly_ppt=length(events)*0.01)
+      select(id, year, month, day, hour, hourly_events) %>% 
+      group_by(id, year, month, day, hour) %>%
+      summarise(hourly_ppt=sum(hourly_events, na.rm = TRUE) *0.01)
 hr_rg_data
 # class(hr_rg_data)
 summary(hr_rg_data)
+
+hr_rg_data1 <- rg_data1 %>%
+      select(id, year, month, day, hour, hourly_events) %>% 
+      group_by(id, year, month, day, hour) %>%
+      summarise(hourly_ppt=sum(hourly_events)*0.01)
+hr_rg_data1
+summary(hr_rg_data1)
+
+#fix(hr_rg_data1)
 ```
 
 This grouping and summarization has eliminated `NA`s from the precipiation variables in the resulting data frame. Next I will `rbind` it with the `hourly_special` dataframe and save it as an R data source file
 ```{r join hourly dataframes, echo=TRUE}
-hr_rg_data <- rbind(hr_rg_data, hourly_special)
+hr_special <- select(hourly_special, -date, -hourly_events)
+hr_rg_data <- rbind(hr_rg_data, hr_special)
 hr_rg_data
 summary(hr_rg_data)
 saveRDS(hr_rg_data, file = "hr_rg_data.rds")
 hr_rg_data <- readRDS("hr_rg_data.rds")
-hr_rg_data$date <- as.Date(hr_rg_data$date, format = "%m/%d/%Y")
+hr_rg_data$date <- as.Date(paste(hr_rg_data$year, hr_rg_data$month, hr_rg_data$day, sep = "/"), format = "%Y/%m/%d")
+summary(hr_rg_data)
+
+hr_rg_data1 <- rbind(hr_rg_data1, hr_special)
+hr_rg_data1$date <- as.Date(paste(hr_rg_data1$year, hr_rg_data1$month, hr_rg_data1$day, sep = "/"), format = "%Y/%m/%d")
+summary(hr_rg_data1)
 ```
 Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
 ```{r create daily data set, echo=TRUE}
 dy_rg_data <- rg_data %>% 
-      select(id, year, month, day, events, date) %>% 
-      group_by(id, year, month, day, date) %>%
-      summarize(daily_events=length(events), daily_ppt=length(events)*0.01)
+      select(id, year, month, day, hourly_events) %>% 
+      group_by(id, year, month, day) %>%
+      summarize(daily_ppt=sum(hourly_events, na.rm = TRUE)*0.01)
 dy_rg_data
+summary(dy_rg_data)
 #dy_rg_data$date <- as.Date(dy_rg_data$date, format = "%m/%d/%Y")
 #arrange(dy_rg_data, desc(date))# there is a date getting formatted with a year of 0201. I need to replace that with year 2010.
 # class(dy_rg_data)
+dy_rg_data1 <- rg_data1 %>%
+      select(id, year, month, day, hourly_events) %>% 
+      group_by(id, year, month, day) %>%
+      summarize(daily_ppt=sum(hourly_events)*0.01)
+dy_rg_data1
+summary(dy_rg_data1)
 ```
 
 Next, `rbind` this with the `daily_special` dataframe and save it as an R data source file
 ```{r join daily dataframes, echo=TRUE}
-dy_rg_data <- rbind(dy_rg_data, daily_special)
+dy_special <- select(daily_special, -date, -daily_events)
+dy_rg_data <- rbind(dy_rg_data, dy_special)
 dy_rg_data
 summary(dy_rg_data)
 saveRDS(dy_rg_data, file = "dy_rg_data.rds")
 dy_rg_data <- readRDS("dy_rg_data.rds")
-dy_rg_data$date <- as.Date(dy_rg_data$date, format="%m/%d/%Y")
+dy_rg_data$date <- as.Date(paste(dy_rg_data$year, dy_rg_data$month, dy_rg_data$day, sep = "/"), format="%Y/%m/%d")
+
+dy_rg_data1 <- rbind(dy_rg_data1, dy_special)
+dy_rg_data1$date <- as.Date(paste(dy_rg_data1$year, dy_rg_data1$month, dy_rg_data1$day, sep = "/"), format="%Y/%m/%d")
+dy_rg_data1
+summary(dy_rg_data1)
 ```
 
 
@@ -360,6 +391,8 @@ library(dplyr)
 dy_rg_data$daily_ppt[dy_rg_data$daily_ppt>=6.5] <- NA
 summary(dy_rg_data)
 saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
+dy_rg_data1$daily_ppt[dy_rg_data1$daily_ppt >= 6.5] <- NA
+summary(dy_rg_data1)
 
 qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
             group_by(id, year, month, day), color = id) # + 
@@ -372,7 +405,7 @@ qplot(month, monthly_ppt, data = dy_rg_data %>%
             group_by(id, year, month) %>%
             summarize(monthly_ppt=sum(daily_ppt)), 
       color = id, main = "Monthly total from daily data - 2006") #+
-      geom_point(shape = 5, size = 1.5)
+      #geom_point(shape = 5, size = 1.5)
 
 # An implementation of the `qplot` above using `ggplot`
 ggplot(data = dy_rg_data %>% 
@@ -386,6 +419,7 @@ ggplot(data = dy_rg_data %>%
 hr_rg_data$hourly_ppt[hr_rg_data$hourly_ppt>=2]  <- NA
 summary(hr_rg_data)
 saveRDS(hr_rg_data, "hr_rg_data_corrected.rds")
+hr_rg_data <- readRDS("hr_rg_data_corrected.rds")
 
 qplot(date, hourly_ppt, data = hr_rg_data, color = id)
 
