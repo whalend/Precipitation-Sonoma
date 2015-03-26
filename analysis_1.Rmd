@@ -198,25 +198,31 @@ This shows that there are four shapefiles for various stretches of the study, 20
 
 ```{r breakdown years by shapefiles}
 library(rgdal)# GDAL bindings for R; I believe this requires GDAL installed for your operating system
-ogrListLayers("shapefiles")
-rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
-str(rg_0308)
-rg_0308@data$NAME
-rg_0308@data$NAME <- tolower(rg_0308@data$NAME)
-rg_0308@data$NAME[rg_0308@data$NAME=="macki"] <- "mackie"
-rg_0308@data$NAME[rg_0308@data$NAME=="sdc"] <- "sec"
-rg_0308@data$NAME[rg_0308@data$NAME=="sugar"] <- "sugarloaf"
-unique(dy_rg_data$id)
+ogrListLayers("shapefiles")# shapefiles is the name of the subfolder
 
+library(dplyr)
 month_rg_0308 <- dy_rg_data %>%
       group_by(id, year, month) %>% 
       filter(year<=2008) %>%
       summarise(monthly_ppt = sum(daily_ppt))
 month_rg_0308$id <- as.factor(month_rg_0308$id)
 summary(month_rg_0308)
+day_rg_0308 <- dy_rg_data %>%
+      group_by(year, month, day, id) %>%
+      filter(year<=2008)
 ```
 
-```{r geostats}
+```{r read in shapefile(s), DEM}
+rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
+str(rg_0308)
+rg_0308@data$NAME
+unique(dy_rg_data$id)
+rg_0308@data$NAME <- tolower(rg_0308@data$NAME)
+rg_0308@data$NAME[rg_0308@data$NAME=="macki"] <- "mackie"
+rg_0308@data$NAME[rg_0308@data$NAME=="sdc"] <- "sec"
+rg_0308@data$NAME[rg_0308@data$NAME=="sugar"] <- "sugarloaf"
+
+
 library(sp)
 library(raster)
 library(rgdal)
@@ -226,37 +232,47 @@ crs <- elev@crs
 rg_0308 <- spTransform(rg_0308, CRS=crs)
 str(rg_0308)
 plot(elev)
-plot(rg_0308, bg="transparent", add=TRUE)
+plot(rg_0308, pch = 25, col = "blue", bg="transparent", add=TRUE)
 spplot(elev, scales=list(draw=T), sp.layout=list("sp.points", rg_0308))
 
-rg_0308@data$elev <- extract(elev, rg_0308)
+rg_0308@data$elev_ft <- extract(elev, rg_0308)
 str(rg_0308)
 #spplot(slope, scales=list(draw=T), sp.layout=list("sp.points", depth, pch="+"))
 ```
 
-Joining monthly precipitation data to spatial points data frame
+Joining daily precipitation data to spatial points data frame
 ```{r joining data}
-rg_0308@data <- inner_join(rg_0308@data, month_rg_0308, by = c("NAME" = "id"))
-str(month_rg_0308)
+rg_data_temp <- inner_join(rg_0308@data, day_rg_0308, by = c("NAME" = "id"))
+str(rg_data_temp)
+summary(rg_data_temp)
+rm(rg_data_temp)
+rg_0308@data <- inner_join(rg_0308@data, day_rg_0308, by = c("NAME" = "id"))
 str(rg_0308)
+rg_0308$elev_m <- rg_0308$elev_ft * .305
 summary(rg_0308)
 ```
 
 Plotting precipitation against elevation for a subset of the data
 ```{r plot elevation precip}
+library(ggplot2)
 rg08 <- filter(rg_0308@data, year==2008)
-qplot(rg_0308@data$elev, rg_0308@data$monthly_ppt)
-qplot(elev, monthly_ppt, data = rg08, facets = .~ month, color = NAME, main = "2008 Rain")
-qplot(elev, monthly_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rain") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
+qplot(rg_0308@data$elev, rg_0308@data$daily_ppt)
+qplot(elev_ft, daily_ppt, data = rg08, facets = month ~., color = NAME, main = "2008 Daily Rainfall")
+qplot(elev_ft, daily_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rainfall") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
+cor(rg_0308@data$elev, rg_0308@data$daily_ppt, use = "na.or.complete")
+
+
+rg06 <- filter(rg_0308@data, year==2006)
+
 ```
 
 Developing a linear model for kriging
 ```{r rk model jan 2008}
 rg_0108 <- subset(rg_0308@data, year==2008 & month==1)
-#coordinates(rg_0108) = ~NORTHING+EASTING
+coordinates(rg_0108) = ~NORTHING+EASTING
 str(rg_0108)
-rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
-rg_0308 <- spTransform(rg_0308, CRS=crs)
+#rg_0308 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
+#rg_0308 <- spTransform(rg_0308, CRS=crs)
 rg_0108@proj4string <- rg_0308@proj4string
 rg_0108 <- spTransform(rg_0108, CRS=crs)
 
@@ -264,6 +280,11 @@ elev_ppt = overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-po
    # copy the slope values
 lm_rg_0108 <- lm(monthly_ppt ~ elev, rg_0108)
 summary(lm_rg_0108)
+plot(lm_rg_0108)
+plot(rg_0108$elev, rg_0108$daily_ppt)
+lm_rg_0108a <- lm(monthly_ppt ~ I(elev*100), data = rg_0108@data %>% filter(NAME != "backman"))
+summary(lm_rg_0108a)
+
 ```
 
 
