@@ -51,7 +51,6 @@ NOT RUN: Summarizing independent files of four plots to daily and hourly because
 ```{r not run 2, eval=FALSE, echo=FALSE}
 library(xlsx)
 
-
 badg <- read.xlsx("Rain_Gauge/all_years_raw/BADGER_669845_2004_RG_B.xlsx", 1)
 head(badg)
 badg$date_time2 <- strptime(badg$date_time, format = "%m/%d/%y %H:%M")
@@ -363,6 +362,7 @@ qplot(date, hourly_ppt, data=hr_rg_data %>% filter(hourly_ppt < 2), color = id)
 filter(hr_rg_data, hourly_ppt>2)
 filter(hr_rg_data, year==2008 & month==3 & day==15 & hour==18)
 
+library(data.table)
 sr_data <- fread("http://web1.ci.santa-rosa.ca.us/pworks/other/weather/download%207-1-03%206-30-04.txt")
 head(sr_data)
 summary(sr_data)
@@ -383,7 +383,7 @@ test=dy_rg_data[order(dy_rg_data$date2,dy_rg_data$id), ]
 
 Francesco suggests that for aggregating to monthly, If more than 5 days of `NA`/missing for a month then treat entire month as missing. Maybe use a spline approach instead of regression kriging because of small number of points (FT, suggests thin plate spline).
 
-For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6 inches, and an hourly precipitation threshold of greater than or equal to 1.5 inches.
+For outlier replacement I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches.
 ```{r outliers to NA, eval=FALSE, echo=TRUE}
 library(ggplot2)
 library(dplyr)
@@ -430,4 +430,39 @@ qplot(month, monthly_ppt, data = hr_rg_data %>%
       main="Monthly total from hourly data - 2006")
 ```
 
+```{r FOP weather data 1997-2005}
+fop <- read.csv("FOP_weather_data_1997_2005.csv", na.strings = c(".", "", ". "))
+summary(fop)
+str(fop)
+fop$date <- as.Date(fop$Date, format = "%m/%d/%Y")
+library(data.table)
+fop$year <- year(fop$date)
+fop$month <- month(fop$date)
+fop$day <- mday(fop$date)
+str(fop)
+library(dplyr)
+fop <- as.tbl(fop)
+fop$id <- "fop"
 
+fop_ppt <- fop %>%
+      select(id, year, month, day, Precip_cm, Remarks, date)
+str(fop_ppt)
+fop_ppt$daily_ppt <- fop_ppt$Precip_cm*0.39370 #convert precip in cm to inches
+fop_ppt$daily_ppt[fop_ppt$daily_ppt >= 6.5] <- NA #presumed outliers to NA
+filter(fop_ppt, Remarks != "snow")
+fop_ppt$daily_ppt[fop_ppt$Remarks != "snow"] <- NA
+summary(fop_ppt)
+
+fop_ppt_2003_2005 <- fop_ppt %>% 
+      select(-Precip_cm, -Remarks) %>% 
+      filter(year > 2002)
+summary(fop_ppt_2003_2005)
+# Match column order to daily rain gauge data from all other locations
+dy_rg_data 
+fop_ppt_2003_2005 <- select(fop_ppt_2003_2005, id, year, month, day, daily_ppt, date)
+summary(fop_ppt_2003_2005)
+# Add FOP rainfall data to all other daily data
+dy_rg_data <- rbind(dy_rg_data, fop_ppt_2003_2005)
+summary(dy_rg_data)
+saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
+```
