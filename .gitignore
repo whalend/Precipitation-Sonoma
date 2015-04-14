@@ -2,5 +2,3 @@
 .Rhistory
 .RData
 packrat/lib*/
-Rain_Gauge/Rainfall_interpolation/
-Rain_Gauge/Rainfall_Kriging
