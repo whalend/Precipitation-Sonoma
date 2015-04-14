@@ -1,1 +1,2 @@
 load("/Users/wwdillon/Documents/git_local/soco_ppt/dy_rg_data.rds")
+load("/Users/wwdillon/Documents/soco_ppt/dy_rg_data_corrected.rds")
