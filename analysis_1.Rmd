@@ -220,7 +220,6 @@ rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="macki"] <- "mackie"
 rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="sdc"] <- "sec"
 rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="sugar"] <- "sugarloaf"
 
-
 library(sp)
 library(raster)
 library(rgdal)
@@ -257,7 +256,7 @@ rg08 <- filter(rg_2003_2008@data, year==2008)
 qplot(rg_2003_2008@data$elev, rg_2003_2008@data$daily_ppt)
 qplot(elev_ft, daily_ppt, data = rg08, facets = month ~., color = NAME, main = "2008 Daily Rainfall")
 qplot(elev_ft, daily_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rainfall") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-cor(rg_2003_2008@data$elev, rg_2003_2008@data$daily_ppt, use = "na.or.complete")
+cor(rg_2003_2008@data$elev_ft, rg_2003_2008@data$daily_ppt, use = "na.or.complete")
 
 
 rg06 <- filter(rg_2003_2008@data, year==2006)
@@ -276,13 +275,13 @@ rg_0108 <- spTransform(rg_0108, CRS=crs)
 
 elev_ppt = overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-points overlay
    # copy the slope values
-lm_rg_0108 <- lm(monthly_ppt ~ elev, rg_0108)
+lm_rg_0108 <- lm(daily_ppt ~ elev_m, rg_0108)# This is certainly incorrect b/c precipitation constrained to be >= 0 
 summary(lm_rg_0108)
 plot(lm_rg_0108)
-plot(rg_0108$elev, rg_0108$daily_ppt)
-lm_rg_0108a <- lm(monthly_ppt ~ I(elev*100), data = rg_0108@data %>% filter(NAME != "backman"))
-summary(lm_rg_0108a)
 
+plot(rg_0108$elev_m, rg_0108$daily_ppt)
+lm_rg_0108a <- lm(daily_ppt ~ I(elev_m*100), data = rg_0108@data %>% filter(NAME != "backman"))
+summary(lm_rg_0108a)
 ```
 
 
