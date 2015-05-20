@@ -30,7 +30,7 @@ data_squared <- NULL
 
 ```
 ##    user  system elapsed 
-##   0.150   0.005   0.155
+##   0.267   0.073   0.345
 ```
 
 ```r
