@@ -29,14 +29,6 @@ qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>%
       # geom_text(aes(label=id),hjust=-0.1, vjust=0)
 
 # Looking at precipitation by month during 2006
-qplot(month, monthly_ppt, data = dy_rg_data %>% 
-            filter(year==2006) %>%
-            group_by(id, year, month) %>%
-            summarize(monthly_ppt=sum(daily_ppt)), 
-      color = id, geom = 5, main = "Monthly total from daily data - 2006") +
-      geom_point(shape = 5, size = 1.5)
-
-# An implementation of the `qplot` above using `ggplot`
 ggplot(data = dy_rg_data %>% 
             filter(year==2006) %>%
             group_by(id, year, month) %>%
@@ -154,9 +146,9 @@ list2env(df_list, .GlobalEnv))
 
 Trying to figure out a `plyr` approach with `assign` so that I can name the data frames, but not having much luck.
 ```{r plyr unlist (fail), echo=FALSE, eval=FALSE}
-ldply(df_list, function(i){
-      assign(df_list[i], df_list[[i]])
-})
+# ldply(df_list, function(i){
+#       assign(df_list[i], df_list[[i]])
+# })
 ```
 Two commenters asked why you would even want to do this when you could just work on them as elements of the list. Can I match up the spatial data to the data frames in the list? Then can I also pass each data frame in that list to an interpolation function?
 
@@ -178,7 +170,6 @@ l_names <- df_list_names[grep("200[^9]", df_list_names)]# Testing syntax
 df_list_0408 <- df_list[grep("200[^9]", df_list_names)]# Making subsetted list
 
 # I want to get the 2009-2011 data frames. The `|` operates as "or" in the expression, so I am matching on either of these three strings
-l_names <- df_list_names[grep(grx, df_list_names)]# Testing syntax
 df_list_0911 <- df_list[grep("2009|2010|2011", df_list_names)]# Making subsetted list
 
 # And now the 2012-2014 data frames
@@ -210,7 +201,7 @@ day_rg_2003_2008 <- dy_rg_data %>%
       filter(year<=2008)
 ```
 
-```{r read in shapefile(s), DEM}
+```{r read in shapefile(s) and DEM}
 rg_2003_2008 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
 str(rg_2003_2008)
 rg_2003_2008@data$NAME
@@ -253,8 +244,9 @@ Plotting precipitation against elevation for a subset of the data
 ```{r plot elevation precip}
 library(ggplot2)
 rg08 <- filter(rg_2003_2008@data, year==2008)
-qplot(rg_2003_2008@data$elev, rg_2003_2008@data$daily_ppt)
+
 qplot(elev_ft, daily_ppt, data = rg08, facets = month ~., color = NAME, main = "2008 Daily Rainfall")
+
 qplot(elev_ft, daily_ppt, data = rg08 %>% filter(month==1), color = NAME, main = "January 2008 Rainfall") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
 cor(rg_2003_2008@data$elev_ft, rg_2003_2008@data$daily_ppt, use = "na.or.complete")
 
@@ -273,7 +265,7 @@ str(rg_0108)
 rg_0108@proj4string <- rg_2003_2008@proj4string
 rg_0108 <- spTransform(rg_0108, CRS=crs)
 
-elev_ppt = overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-points overlay
+# elev_ppt <- overlay(as(elev, "SpatialGridDataFrame"), rg_0108)   # create grid-points overlay
    # copy the slope values
 lm_rg_0108 <- lm(daily_ppt ~ elev_m, rg_0108)# This is certainly incorrect b/c precipitation constrained to be >= 0 
 summary(lm_rg_0108)
@@ -288,7 +280,7 @@ summary(lm_rg_0108a)
 ```{r thin plate spline example}
 library(fields)
 loc_matrix <- cbind(rg_0108$NORTHING,rg_0108$EASTING)
-ppt <- c(rg_0108$monthly_ppt)
+ppt <- (rg_0108$daily_ppt)
 jan08tps <- Tps(loc_matrix, ppt)
 summary(jan08tps)
 plot(jan08tps)
@@ -306,7 +298,35 @@ set.panel()
 out_jan08 <- predictSurface(jan08tps)
 image(out_jan08)
 
-fit <- Tps(ozone$x, ozone$y)
-set.panel(2,2)
-plot(fit)
+# fit <- Tps(ozone$x, ozone$y)
+# set.panel(2,2)
+# plot(fit)
 ```
+
+```{r Thiessen Polygons}
+
+# From jbaums comment here: http://w3facility.org/question/how-to-create-thiessen-polygons-from-points-using-r-packages/
+
+# Carson's Voronoi polygons function
+voronoipolygons <- function(x) {
+  require(deldir)
+  if (.hasSlot(x, 'coords')) {
+    crds <- x@coords  
+  } else crds <- x
+  z <- deldir(crds[,1], crds[,2])
+  w <- tile.list(z)
+  polys <- vector(mode='list', length=length(w))
+  require(sp)
+  for (i in seq(along=polys)) {
+    pcrds <- cbind(w[[i]]$x, w[[i]]$y)
+    pcrds <- rbind(pcrds, pcrds[1,])
+    polys[[i]] <- Polygons(list(Polygon(pcrds)), ID=as.character(i))
+  }
+  SP <- SpatialPolygons(polys)
+  voronoi <- SpatialPolygonsDataFrame(SP, data=data.frame(x=crds[,1],
+    y=crds[,2], row.names=sapply(slot(SP, 'polygons'), 
+    function(x) slot(x, 'ID'))))
+}
+
+```
+
