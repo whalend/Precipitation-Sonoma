@@ -525,8 +525,10 @@ unique(ppt_other$station)
 names(dy_rg_data)
 
 ppt_other$date <- as.Date(ppt_other$Date)
-ppt_other <- mutate(ppt_other, daily_ppt = Precip_mm*25.4)
+ppt_other <- mutate(ppt_other, daily_ppt = Precip_mm/25.4)
 str(ppt_other)
+summary(ppt_other)
+
 ppt_other <- ppt_other %>% select(station, date, daily_ppt)
 
 library(lubridate)
