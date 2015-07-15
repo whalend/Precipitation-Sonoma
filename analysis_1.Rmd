@@ -467,11 +467,11 @@ rainy08; plot(rainy08)
 
 all.equal(rainy08@bbox, rainy07@bbox, rainy06@bbox, rainy05@bbox, rainy04@bbox)
 
-writeOGR(rainy04, dsn = "shapefiles/", "rain_gauges04.shp", driver = "ESRI Shapefile", overwrite_layer = T)
-writeOGR(rainy05, dsn = "shapefiles/", "rain_gauges05.shp", driver = "ESRI Shapefile", overwrite_layer = T)
-writeOGR(rainy06, dsn = "shapefiles/", "rain_gauges06.shp", driver = "ESRI Shapefile", overwrite_layer = T)
-writeOGR(rainy07, dsn = "shapefiles/", "rain_gauges07.shp", driver = "ESRI Shapefile", overwrite_layer = T)
-writeOGR(rainy08, dsn = "shapefiles/", "rain_gauges08.shp", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy04, dsn = "shapefiles/", layer = "rain_gauges04", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy05, dsn = "shapefiles/", layer = "rain_gauges05", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy06, dsn = "shapefiles/", layer = "rain_gauges06", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy07, dsn = "shapefiles/", layer = "rain_gauges07", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy08, dsn = "shapefiles/", layer = "rain_gauges08", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
 ```{r nearest point neighbor }
@@ -522,32 +522,35 @@ pairs(rainy05@data %>% select(-NAME), lower.panel = panel.cor)
 
 
 ```{r create season Thiessen polys}
-library(dismo)
-rainy04 <- voronoi(rainy04)
-rainy05 <- voronoi(rainy05)
-rainy06 <- voronoi(rainy06)
-rainy07 <- voronoi(rainy07)
-rainy08 <- voronoi(rainy08)
-plot(rainy08); rainy08@bbox
+library(rgdal); library(dismo)
+rainy04v <- voronoi(rainy04 <- readOGR(dsn = "shapefiles", layer = "rain_gauges04"))
+rainy05v <- voronoi(rainy05 <- readOGR(dsn = "shapefiles", layer = "rain_gauges05"))
+rainy06v <- voronoi(rainy06 <- readOGR(dsn = "shapefiles", layer = "rain_gauges06"))
+rainy07v <- voronoi(rainy07 <- readOGR(dsn = "shapefiles", layer = "rain_gauges07"))
+rainy08v <- voronoi(rainy08 <- readOGR(dsn = "shapefiles", layer = "rain_gauges08"))
+plot(rainy08v); rainy08v@bbox
 ```
 
 Overlay Thiessen polygons and plot locations
 ```{r overlay plots and Thiessen polys}
+library(rgdal)
 plts <- readOGR(dsn = "shapefiles", layer = "soco_plots_metric")
 str(plts)
 str(rainy04)
 plts <- spTransform(plts, CRS=crs)
-all.equal.default(proj4string(plts), proj4string(rainy04), proj4string(rainy05))
-plot(elev); plot(rainy04, axes = TRUE, add=T); plot(plts, add = TRUE) 
+all.equal.default(proj4string(plts), proj4string(rainy04v), proj4string(rainy05v))
+plot(elev); plot(plts, add = TRUE, pch = 21); plot(rainy04v, axes = TRUE, add=T) 
 
-rainy04@bbox; plts@bbox; rg_2003_2008@bbox; elev@extent
+rainy04v@bbox; plts@bbox; rg_2003_2008@bbox; elev@extent
 
-str(rainy05)
-plot(rainy05, axes = TRUE); plot(plts, add = TRUE)
+str(rainy05v)
+plot(rainy05v, axes = TRUE, main = "2005 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy05, add = T, col = "blue", pch = 25)
 
-plot(rainy06, axes = TRUE, main = "2006 Rain Thiessen"); plot(plts, add = TRUE)
-plot(rainy07, axes = TRUE, main = "2007 Rain Thiessen"); plot(plts, add = TRUE)
-plot(rainy08, axes = TRUE, main = "2008 Rain Thiessen"); plot(plts, add = TRUE)
+plot(rainy06v, axes = TRUE, main = "2006 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy06, add = T, col = "blue", pch = 25)
+
+plot(rainy07v, axes = TRUE, main = "2007 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy07, add = T, col = "blue", pch = 25)
+
+plot(rainy08v, axes = TRUE, main = "2008 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy08, add = T, col = "blue", pch = 25)
 ```
 
 
