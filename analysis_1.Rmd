@@ -12,22 +12,20 @@ Load libraries I plan to use for data manipulation (`dplyr`) and plotting (`ggpl
 library(ggplot2)
 library(plyr)
 library(dplyr)
-library(rgdal)
 ```
 
 Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement in these data sets I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches.
 ```{r read in daily data, echo=TRUE}
 dy_rg_data <- readRDS("dy_rg_data_corrected.rds")
 summary(dy_rg_data)
-dy_rg_data$id <- as.factor(dy_rg_data$id)# change `id` from character to factor
-qplot(id, daily_ppt, data=dy_rg_data) + theme_bw()
-dy_rg_data <- ungroup(dy_rg_data)
 str(dy_rg_data)
+ggplot(data = dy_rg_data, aes(x = date, y = daily_ppt)) +
+      geom_point()
 ```
 
 
 ```{r Exploratory plotting}
-qplot(as.numeric(year), daily_ppt, data = dy_rg_data %>% 
+qplot(year, daily_ppt, data = dy_rg_data %>% 
             group_by(id, year, month, day), color = id) # + 
       # geom_text(aes(label=id),hjust=-0.1, vjust=0)
 
