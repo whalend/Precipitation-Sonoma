@@ -466,3 +466,83 @@ dy_rg_data <- rbind(dy_rg_data, fop_ppt_2003_2005)
 summary(dy_rg_data)
 saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
 ```
+
+Examine/add precipitation data from other stations in Sonoma County. These data are station summaries from the [Community Collaborative Rain, Hail, and Snow Network](http://www.cocorahs.org). I need to overlay them on the elevation grid to see if they reasonably fall within our study area.
+
+```{r precip other stations}
+library(readxl)
+ppt_other <- read_excel("ppt_other_stations.xlsx", 1)
+summary(ppt_other)
+str(ppt_other)
+
+library(rgdal)
+ppt_other_sp <- SpatialPointsDataFrame(
+    as.matrix(ppt_other[, c("lon","lat")]), as.data.frame(ppt_other),
+    proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+elev <- raster("dem/sod15m.tif")
+crs <- elev@crs
+
+ppt_other_sp <- spTransform(ppt_other_sp, CRS=crs)
+
+str(ppt_other_sp)
+plot(elev)
+plot(ppt_other_sp, add = T, pch = 25, col="blue")
+# plot(plts, add = T, pch = 0)
+```
+
+It looks like the Rohnert Park & Santa Rosa stations are outside the area, so I create a shape file with the locations of the Glen Ellen rain gauges.
+
+```{r other ppt create shapefile}
+library(dplyr)
+ppt_other <- filter(ppt_other, station == "GlenEllen" | station == "GlenEllenWNW")
+unique(ppt_other$station)
+summary(ppt_other)
+
+ppt_other_sp <- ppt_other_sp[ppt_other_sp$station == "GlenEllen" | ppt_other_sp$station == "GlenEllenWNW",]
+names(ppt_other_sp)[1:3] <- c("station", "date", "precip_mm")
+summary(ppt_other_sp)
+ppt_other_sp@data <- select(ppt_other_sp@data, station, date, precip_mm, lat, lon)
+str(ppt_other_sp@data)
+ppt_other_sp@data$date <- as.Date(ppt_other_sp@data$date)
+summary(ppt_other_sp)
+
+plot(elev)
+plot(ppt_other_sp, add = T, pch = 25, col = "blue")
+plot(rg_2003_2008, add = T, pch = 20, col = "green")
+plot(rainy06, add = T, pch = 5, col = "black")
+plot(plts, add = T, pch = 0)
+
+writeOGR(ppt_other_sp, "shapefiles/", "GlenEllen_ppt_2009-2015", driver = "ESRI Shapefile", overwrite_layer = T)
+```
+
+Now I'm going to create a data frame of the Glen Ellen stations formatted to merge with the `dy_rg_data` data frame
+
+```{r Glen Ellen data frame}
+summary(ppt_other)
+unique(ppt_other$station)
+names(dy_rg_data)
+
+ppt_other$date <- as.Date(ppt_other$Date)
+ppt_other <- mutate(ppt_other, daily_ppt = Precip_mm*25.4)
+str(ppt_other)
+ppt_other <- ppt_other %>% select(station, date, daily_ppt)
+
+library(lubridate)
+ppt_other$year <- year(ppt_other$date)
+ppt_other$month <- month(ppt_other$date)
+ppt_other$day <- day(ppt_other$date)
+detach("package:lubridate", unload=TRUE)
+
+ppt_other
+dy_rg_data
+ppt_other <- ppt_other %>% 
+      select(station, year, month, day, daily_ppt) %>% 
+      mutate(date = as.Date(paste(year, month, day, sep = "-"))) %>%
+      rename(id = station)
+ppt_other$id <- tolower(ppt_other$id)
+dy_rg_data <- rbind(dy_rg_data, ppt_other)
+saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
+```
+
