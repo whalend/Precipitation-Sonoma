@@ -499,22 +499,23 @@ library(dplyr)
 ppt_other <- filter(ppt_other, station == "GlenEllen" | station == "GlenEllenWNW")
 unique(ppt_other$station)
 summary(ppt_other)
+glen_ellen_sp <- ppt_other %>% distinct(station) %>% select(station, lat, lon)
 
-ppt_other_sp <- ppt_other_sp[ppt_other_sp$station == "GlenEllen" | ppt_other_sp$station == "GlenEllenWNW",]
-names(ppt_other_sp)[1:3] <- c("station", "date", "precip_mm")
-summary(ppt_other_sp)
-ppt_other_sp@data <- select(ppt_other_sp@data, station, date, precip_mm, lat, lon)
-str(ppt_other_sp@data)
-ppt_other_sp@data$date <- as.Date(ppt_other_sp@data$date)
-summary(ppt_other_sp)
+glen_ellen_rg <- SpatialPointsDataFrame(
+    as.matrix(glen_ellen_sp[, c("lon","lat")]), 
+    as.data.frame(glen_ellen_sp),
+    proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+glen_ellen_rg <- spTransform(glen_ellen_rg, CRS=crs)
+summary(glen_ellen_rg)
 
 plot(elev)
-plot(ppt_other_sp, add = T, pch = 25, col = "blue")
+plot(glen_ellen_rg, add = T, pch = 25, col = "blue")
 plot(rg_2003_2008, add = T, pch = 20, col = "green")
-plot(rainy06, add = T, pch = 5, col = "black")
-plot(plts, add = T, pch = 0)
+# plot(rainy06, add = T, pch = 5, col = "black")
+# plot(plts, add = T, pch = 0)
 
-writeOGR(ppt_other_sp, "shapefiles/", "GlenEllen_ppt_2009-2015", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(glen_ellen_rg, "shapefiles/", "GlenEllen_ppt_2009-2015", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
 Now I'm going to create a data frame of the Glen Ellen stations formatted to merge with the `dy_rg_data` data frame
