@@ -447,16 +447,17 @@ fop$id <- "fop"
 fop_ppt <- fop %>%
       select(id, year, month, day, Precip_cm, Remarks, date)
 str(fop_ppt)
-fop_ppt$daily_ppt <- fop_ppt$Precip_cm*0.39370 #convert precip in cm to inches
-fop_ppt$daily_ppt[fop_ppt$daily_ppt >= 6.5] <- NA #presumed outliers to NA
-filter(fop_ppt, Remarks != "snow")
-fop_ppt$daily_ppt[fop_ppt$Remarks != "snow"] <- NA
 summary(fop_ppt)
+fop_ppt$daily_ppt <- fop_ppt$Precip_cm/2.54 #convert precip in cm to inches
+fop_ppt$daily_ppt[fop_ppt$daily_ppt >= 6.5] <- NA #presumed outliers to NA
 
 fop_ppt_2003_2005 <- fop_ppt %>% 
-      select(-Precip_cm, -Remarks) %>% 
       filter(year > 2002)
 summary(fop_ppt_2003_2005)
+filter(fop_ppt_2003_2005, Remarks == "no data available")
+fop_ppt_2003_2005 <- droplevels(fop_ppt_2003_2005)
+filter(fop_ppt_2003_2005, daily_ppt>4)
+
 # Match column order to daily rain gauge data from all other locations
 dy_rg_data 
 fop_ppt_2003_2005 <- select(fop_ppt_2003_2005, id, year, month, day, daily_ppt, date)
