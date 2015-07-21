@@ -399,13 +399,13 @@ rainy05@data; summary(rainy05)
 
 rainy06 <- rg_2003_2008[,c("station", "lat", "lon", "rain06_dys", "rain06_avg", "rain06_tot", "elev_m")]
 rainy06@data # In 2006 there are some NAs and also some very small values (<2 inches) that seem extremely unreliable compared to the other measurements. I'm not really sure what to do about those
-rainy06 <- rainy06[rainy06$station == "annadel" | rainy06$station == "cook" | rainy06$station == "fop" | rainy06$station == "mackie" | rainy06$station == "spaulding" | rainy06$station == "votruba" | rainy06$station == "yahng",]
+rainy06 <- rainy06[rainy06$station == "cook" | rainy06$station == "mackie" | rainy06$station == "spaulding" | rainy06$station == "votruba" | rainy06$station == "yahng",]
 rainy06@data; summary(rainy06); plot(rainy06)
 # This results in essentially zero coverage in the southeastern part of the study area
 
 rainy07 <- rg_2003_2008[,c("station", "lat", "lon", "rain07_dys", "rain07_avg", "rain07_tot", "elev_m")]
 rainy07@data # Again some NAs and values that don't seem very reliable
-rainy07 <- rainy07[rainy07$station != "mitsui" & rainy07$station != "fop" & rainy07$station != "kunde" & rainy07$station != "spaulding",]
+rainy07 <- rainy07[rainy07$station != "mitsui" & rainy07$station != "fop" & rainy07$station != "kunde" & rainy07$station != "spaulding" & rainy07$station != "mackie" & rainy07$station != "sugarloaf" & rainy07$station != "votruba" & rainy07$station != "cook",]
 rainy07@data; summary(rainy07); plot(rainy07)
 
 rainy08 <- rg_2003_2008[,c("station", "lat", "lon", "rain08_dys", "rain08_avg", "rain08_tot", "elev_m")]
@@ -453,46 +453,8 @@ writeOGR(rainy14, dsn = "shapefiles/", layer = "rain_gauges14", driver = "ESRI S
 ```
 
 
-Plotting precipitation against elevation for a subset of the data
-```{r plot elevation vs precip}
-library(ggplot2)
-
-qplot(elev_ft, rain08_tot, data = rg_2003_2008@data, main = "2008 Rainfall") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-qplot(elev_ft, rain04_tot, data = rg_2003_2008@data, color = NAME, main = "2004 Rainfall")
-
-qplot(elev_ft, rain05_tot, data = rg_2003_2008@data, color = NAME, main = "2005 Rainfall") + geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-cor(rg_2003_2008@data$elev_ft, rg_2003_2008@data$rain08_tot, use = "na.or.complete")
-```
-
-This shows minimal correlation between elevation and rainfall, however, I wonder how much the distance to coast is affecting this relationship. It is likely that these data may be bimodal in the precipitation~elevation relationship due to the rainshadowing of the Sonoma Valley and possibly to some extent the Mayacamas by Sonoma Mountain.
-
-Here I am exploring the relationship between precipitation and longitude, assuming longitude as a proxy for distance to the coast in this case.
-```{r plot longitude vs precip}
-qplot(lon, rain04_tot, data = rg_2003_2008@data, main = "2004 Rainfall vs Distance to Coast") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-qplot(lon, rain05_tot, data = rg_2003_2008@data, main = "2005 Rainfall vs Distance to Coast") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-qplot(lon, rain06_tot, data = rg_2003_2008@data, main = "2006 Rainfall vs Distance to Coast") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-qplot(date, daily_ppt, data = dy_rg_data %>% filter(year==2006), facets = id ~ ., main = "Daily Rainfall - 2006")
-
-qplot(lon, rain07_tot, data = rg_2003_2008@data, main = "2007 Rainfall vs Distance to Coast") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-qplot(lon, rain08_tot, data = rg_2003_2008@data, main = "2008 Rainfall vs Distance to Coast") +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-
-qplot(lon, elev_ft, data = rg_2003_2008@data) +
-      geom_text(aes(label=NAME),hjust=-0.1, vjust=0)
-```
-
-``` {r panel functions for pairs}
-
+```{r seasonal pairs plots and linear models}
+library(MuMIn)
 panel.hist <- function(x, ...){
     usr <- par("usr"); on.exit(par(usr))
     par(usr = c(usr[1:2], 0, 1.5) )
@@ -511,17 +473,130 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){
     text(0.5, 0.5, txt, cex = cex.cor * r)
 }
 
-cor(rg_2003_2008@data$EASTING, rg_2003_2008@data$rain08_tot, use = "na.or.complete")
-pairs(na.omit(rg_2003_2008@data %>% select(-starts_with("N")), -elev_m), diag.panel = panel.hist, lower.panel = panel.cor, upper.panel = panel.smooth)
+pairs(rainy04@data %>% select(-station, -elev_ft), lower.panel = panel.cor, diag.panel = panel.hist, main = "2004 Season") # strongest relationship between lon & total rainfall (0.63); total rainfall looks maybe slightly right skewed and is about equally correlated with lat & elev
+lm04a <- lm(rain04_tot ~ lon + lat + elev_m, data = rainy04@data, na.action = "na.fail")
+summary(lm04a)
+par(mfrow = c(2,2)); plot(lm04a)
+lm04sel <- dredge(lm04a, extra =  list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm04sel
+# Including elevation improves adjusted R-squared by about 9% and essentially has no change to AICc (0.4)
+
+
+pairs(rainy05@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2005 Season") # strongest relationship between lat & total rainfall (0.61); of note: lat & rainy days (0.70), lon & average rainfall(0.66)
+lm05a <- lm(rain05_tot ~ lat + elev_m + lon, data = rainy05@data, na.action = "na.fail")
+summary(lm05a)
+par(mfrow = c(2,2)); plot(lm05a)
+lm05sel <- dredge(lm05a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm05sel
+# Best explanatory power and AICc with just latitude for this year
+
+pairs(rainy06@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2006 Season") # strongest relationship between lat & total rainfall (0.68), lon & total rainfall (0.67), elev & total rainfall (0.29); lat & lon (0.66), but I think this is because of the limited coverage being clustered to the NW quadrant of study area. Distributions are pretty uniform and there is not much variation within the measurements for this much reduced data.
+lm06a <- lm(rain06_tot ~ lat + lon + elev_m, data = rainy06@data, na.action = "na.fail")
+summary(lm06a)
+par(mfrow = c(2,2)); plot(lm06a) # These diagnostic plots look terrible
+lm06sel <- dredge(lm06a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm06sel
+# 
+
+
+pairs(rainy07@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2007 Season") # strongest relationship between elev & total rainfall (0.52), though total rainfall looks like it has some negative skew;
+lm07a <- lm(rain07_tot^4 ~ lat + lon + elev_m, data = rainy07@data, na.action = "na.fail")
+summary(lm07a)
+par(mfrow = c(2,2)); plot(lm07a) # Poor fitting model with adjusted r-squared negative
+lm07sel <- dredge(lm07a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm07sel
+# Best fit of a set of poor choices is elevation as only predictor. Transforming total rainfall by raising to the 4th power improves r-squared, but does not improve on the null model when AICc is compared (it's actually a little worse than the null model).
+
+pairs(rainy08@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2008 Season") # strongest relationship between lat & total rainfall (0.33)
+lm08a <- lm(rain08_tot ~ lat + lon + elev_m, data = rainy08@data, na.action = "na.fail")
+summary(lm08a)
+par(mfrow = c(2,2)); plot(lm08a) # Poor model with adjusted r-squared negative
+lm08sel <- dredge(lm08a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm08sel
+# Latitude is best predictor of set of crappy models, but not better than the null model, i.e. no better than the average
+
+pairs(rainy09@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2009 Season") # weak correlation between total rainfall & lat/lon
+lm09a <- lm(rain09_tot ~ lat + lon + elev_m, data = rainy09@data, na.action = "na.fail")
+summary(lm09a)
+par(mfrow = c(2,2)); plot(lm09a) # Poor model with adjusted r-squared negative
+lm09sel <- dredge(lm09a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm09sel
+# Again, latitude is best from a set of crappy models, but adjusted r-squared is negative, so not better than the null model, i.e. the population average
+
+pairs(rainy10@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2010 Season") # correlation between total rainfall & lat (0.51)
+lm10a <- lm(rain10_tot ~ lat + lon + log(elev_m), data = rainy10@data, na.action = "na.fail")
+summary(lm10a)
+par(mfrow = c(2,2)); plot(lm10a) # Substantial explanatory power in this model
+lm10sel <- dredge(lm10a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm10sel
+# Best model combined AICc & adj.Rsquared (0.65) has elevation & latitude when elevation is log-transformed
+
+pairs(rainy11@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2011 Season") # Correlation between total rainfall & elevation 0.25
+lm11a <- lm(rain11_tot ~ lat + lon + elev_m, data = rainy11@data, na.action = "na.fail")
+summary(lm11a)
+par(mfrow = c(2,2)); plot(lm11a) # Poor model with adjusted r-squared negative
+lm11sel <- dredge(lm11a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm11sel
+# Nothing any better than the null model, all adjusted R-squared are negative
+
+pairs(rainy12@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2012 Season") # weak correlation between total rainfall & elevation
+lm12a <- lm(rain12_tot ~ lat + lon + elev_m, data = rainy12@data, na.action = "na.fail")
+summary(lm12a)
+par(mfrow = c(2,2)); plot(lm12a) # Poor model with adjusted r-squared negative
+lm12sel <- dredge(lm12a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm12sel
+# Nothing any better than the null model, all adjusted R-squared are negative
+
+pairs(rainy14@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2014 Season") # correlation between total rainfall & elev (0.70), total rainfall & lon (0.48)
+lm14a <- lm(log(rain14_tot) ~ log(elev_m) + lon + lat, data = rainy14@data, na.action = "na.fail")
+summary(lm14a)
+par(mfrow = c(2,2)); plot(lm14a) # Poor model with small sample size
+lm14sel <- dredge(lm14a, extra = list("*" = function(x) {
+        s <- summary(x)
+        c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
+            F = s$fstatistic[[1]])
+    })); lm14sel
+# Best adjusted R-squared is with log(elevation), lat, lon (0.61) and total rainfall log-transformed, however, this is sample size of 5 stations. The variation of total rainfall is pretty limited.
 ```
 
+It is likely that these data may be bimodal in the precipitation~elevation relationship due to the rainshadowing of the Sonoma Valley and possibly to some extent the Mayacamas by Sonoma Mountain. 
+
+
+
 Create Thiessen Polygon surfaces with rainfall values
-```{r Thiessen Polygons}
+```{r Thiessen polygons test}
 # The `voronoi function from the `dismo` package, which was adapted from the code by Carson Farmer
 library(dismo)
 v1 <- voronoi(rg_2003_2008)
 summary(v1)
-v1@data$NAME
+v1@data$station
 (v1@data)
 plot(v1, axes = TRUE)
 
@@ -557,54 +632,7 @@ voronoipolygons <- function(x) {
 # plot(rg0911, add = TRUE)
 ```
 
-Proof that it works, but I think I need to subset for each season so that only points with observations are used. I should end up with 10 surfaces with varying numbers of polygons depending on how many sites were `NA` for that season.
-
-```{r nearest point neighbor }
-plts <- readOGR(dsn = "shapefiles", layer = "soco_plots_metric")
-str(plts)
-str(rainy04)
-plts <- spTransform(plts, CRS=crs)
-writeOGR(plts, dsn = "shapefiles/", layer = "soco_plots_lcc.shp", driver = "ESRI Shapefile", overwrite_layer = T)
-
-lm04a <- lm(rain04_tot ~ EASTING + NORTHING + elev_ft, data = rainy04@data)
-summary(lm04a)
-par(mfrow = c(2,2))
-plot(lm04a)
-
-lm04b <- lm(rain04_dys ~ elev_ft + EASTING + NORTHING, data = rainy04@data)
-summary(lm04b)
-plot(lm04b)
-
-lm04c <- lm(rain04_avg ~ elev_ft + EASTING, data = rainy04@data)
-summary(lm04c)
-plot(lm04c)
-
-cor(rainy04@data$rain04_dys, rainy04@data$rain04_tot)
-cor(rainy04@data$rain04_dys, rainy04@data$rain04_avg)
-cor(rainy04@data$rain04_avg, rainy04@data$rain04_tot)
-
-panel.hist <- function(x, ...){
-    usr <- par("usr"); on.exit(par(usr))
-    par(usr = c(usr[1:2], 0, 1.5) )
-    h <- hist(x, plot = FALSE)
-    breaks <- h$breaks; nB <- length(breaks)
-    y <- h$counts; y <- y/max(y)
-    rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
-}
-panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){
-    usr <- par("usr"); on.exit(par(usr))
-    par(usr = c(0, 1, 0, 1))
-    r <- abs(cor(x, y))
-    txt <- format(c(r, 0.123456789), digits = digits)[1]
-    txt <- paste0(prefix, txt)
-    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
-    text(0.5, 0.5, txt, cex = cex.cor * r)
-}
-
-pairs(rainy04@data %>% select(-NAME), lower.panel = panel.cor)
-pairs(rainy05@data %>% select(-NAME), lower.panel = panel.cor)
-```
-
+Proof that it works, but I think I need to do this to the subset for each season so that only points with observations are used. I should end up with 10 surfaces with varying numbers of polygons depending on how many sites were `NA` or removed b/c outliers for that season.
 
 ```{r create season Thiessen polys}
 library(rgdal); library(dismo)
@@ -625,7 +653,6 @@ str(rainy04)
 plts <- spTransform(plts, CRS=crs)
 all.equal.default(proj4string(plts), proj4string(rainy04v), proj4string(rainy05v))
 plot(elev); plot(plts, add = TRUE, pch = 21); plot(rainy04v, axes = TRUE, add=T) 
-
 rainy04v@bbox; plts@bbox; rg_2003_2008@bbox; elev@extent
 
 str(rainy05v)
