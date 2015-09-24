@@ -9,4 +9,72 @@ The "spatial.RData" has spatial points data frames and data frames with daily an
 ```{r load data}
 load("spatial.RData")
 ```
+```{r load libraries, echo=FALSE, message=FALSE}
+library(ggplot2); library(rgdal); library(dplyr); library(tidyr)
+```
+
+Generate a wide formatted data frame of monthly precipitation totals (in millimeters) for each station, i.e.:
+station|nov03|dec03
+---|---|---
+annadel|100|80
+beltane|50|60
+
+```{r create wide data frame}
+monthly
+
+wide_monthly <- ungroup(monthly) %>% select(id, date, monthly_ppt_mm) %>%
+      filter(date >= "2003-11-01" & date <= "2014-05-01") %>% 
+      spread(date, monthly_ppt_mm)
+wide_monthly
+names(wide_monthly)
+
+names(wide_monthly)[2:ncol(wide_monthly)] <- c(
+      "ppt_nov03","ppt_dec03",
+      "ppt_jan04","ppt_feb04","ppt_mar04","ppt_apr04","ppt_may04","ppt_jun04","ppt_jul04","ppt_aug04","ppt_sep04","ppt_oct04","ppt_nov04","ppt_dec04",
+      "ppt_jan05","ppt_feb05","ppt_mar05","ppt_apr05","ppt_may05","ppt_jun05","ppt_jul05","ppt_aug05","ppt_sep05","ppt_oct05","ppt_nov05","ppt_dec05",
+      "ppt_jan06","ppt_feb06","ppt_mar06","ppt_apr06","ppt_may06","ppt_jun06","ppt_jul06","ppt_aug06","ppt_sep06","ppt_oct06","ppt_nov06","ppt_dec06",
+      "ppt_jan07","ppt_feb07","ppt_mar07","ppt_apr07","ppt_may07","ppt_jun07","ppt_jul07","ppt_aug07","ppt_sep07","ppt_oct07","ppt_nov07","ppt_dec07",
+      "ppt_jan08","ppt_feb08","ppt_mar08","ppt_apr08","ppt_may08","ppt_jun08","ppt_jul08","ppt_aug08","ppt_sep08","ppt_oct08","ppt_nov08","ppt_dec08",
+      "ppt_jan09","ppt_feb09","ppt_mar09","ppt_apr09","ppt_may09","ppt_jun09","ppt_jul09","ppt_aug09","ppt_sep09","ppt_oct09","ppt_nov09","ppt_dec09",
+      "ppt_jan10","ppt_feb10","ppt_mar10","ppt_apr10","ppt_may10","ppt_jun10","ppt_jul10","ppt_aug10","ppt_sep10","ppt_oct10","ppt_nov10","ppt_dec10",
+      "ppt_jan11","ppt_feb11","ppt_mar11","ppt_apr11","ppt_may11","ppt_jun11","ppt_jul11","ppt_aug11","ppt_sep11","ppt_oct11","ppt_nov11","ppt_dec11",
+      "ppt_jan12","ppt_feb12","ppt_mar12","ppt_apr12","ppt_may12","ppt_jun12","ppt_jul12","ppt_aug12","ppt_sep12","ppt_oct12","ppt_nov12","ppt_dec12",
+      "ppt_jan13","ppt_feb13","ppt_mar13","ppt_apr13","ppt_may13","ppt_jun13","ppt_jul13","ppt_aug13","ppt_sep13","ppt_oct13","ppt_nov13","ppt_dec13",
+      "ppt_jan14","ppt_feb14","ppt_mar14","ppt_apr14","ppt_may14")
+wide_monthly
+```
+ 
+Join monthly totals to spatial data frames that cover multiple years
+```{r read in spatial data frames}
+stations_0308 <- readOGR("shapefiles", "RainGauges2003_2008")
+stations_0911 <- readOGR("shapefiles", "RainGauges2009_2011")
+stations_1214 <- readOGR("shapefiles", "RainGauges2012_2014")
+
+stations_0308@data <- stations_0308@data %>% 
+      select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
+stations_0308$station <- tolower(stations_0308$station)
+
+stations_0911@data <- stations_0911@data %>% 
+      select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
+stations_0911$station <- tolower(stations_0911$station)
+
+stations_1214@data <- stations_1214@data %>% 
+      select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
+stations_1214$station <- tolower(stations_1214$station)
+```
+
+```{r join data}
+summary(stations_0308)
+stations_0308@data <- left_join(stations_0308@data, select(wide_monthly, id, ppt_nov03:ppt_may08), by = c("station" = "id"))
+summary(stations_0308)
+
+summary(stations_0911)
+stations_0911@data <- left_join(stations_0911@data, select(wide_monthly, id, ppt_jun08:ppt_may11), by = c("station" = "id"))
+summary(stations_0911)
+
+summary(stations_1214)
+stations_1214@data <- left_join(stations_1214@data, select(wide_monthly, id, ppt_jun11:ppt_may14), by = c("station" = "id"))
+summary(stations_1214)
+```
+
 
