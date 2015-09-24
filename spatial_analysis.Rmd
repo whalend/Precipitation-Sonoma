@@ -1,0 +1,12 @@
+---
+title: "Spatial Exploration Analysis"
+author: "Whalen Dillon"
+date: "September 24, 2015"
+output: html_document
+---
+
+The "spatial.RData" has spatial points data frames and data frames with daily and monthly precipitation data for each station.
+```{r load data}
+load("spatial.RData")
+```
+
