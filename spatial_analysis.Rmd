@@ -2,7 +2,7 @@
 title: "Spatial Exploration Analysis"
 author: "Whalen Dillon"
 date: "September 24, 2015"
-output: html_document
+output: pdf_document
 ---
 
 The "spatial.RData" has spatial points data frames and data frames with daily and monthly precipitation data for each station.
@@ -10,7 +10,8 @@ The "spatial.RData" has spatial points data frames and data frames with daily an
 load("spatial.RData")
 ```
 ```{r load libraries, echo=FALSE, message=FALSE}
-library(ggplot2); library(rgdal); library(dplyr); library(tidyr)
+library(plyr); library(ggplot2); library(rgdal); library(dplyr); 
+library(tidyr); library(rgeos); library(maptools)
 ```
 
 Generate a wide formatted data frame of monthly precipitation totals (in millimeters) for each station, i.e.:
@@ -53,14 +54,35 @@ stations_1214 <- readOGR("shapefiles", "RainGauges2012_2014")
 stations_0308@data <- stations_0308@data %>% 
       select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
 stations_0308$station <- tolower(stations_0308$station)
+stations_0308@data$station[stations_0308@data$station=="macki"] <- "mackie"
+stations_0308@data$station[stations_0308@data$station=="sdc"] <- "sec"
+stations_0308@data$station[stations_0308@data$station=="sugar"] <- "sugarloaf"
+
 
 stations_0911@data <- stations_0911@data %>% 
       select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
 stations_0911$station <- tolower(stations_0911$station)
+stations_0911@data$station[stations_0911@data$station=="macki"] <- "mackie"
+stations_0911@data$station[stations_0911@data$station=="sdc"] <- "sec"
+stations_0911@data$station[stations_0911@data$station=="sugar"] <- "sugarloaf"
+
 
 stations_1214@data <- stations_1214@data %>% 
       select(-NUM) %>% rename(station = NAME, lat_utm = NORTHING, lon_utm = EASTING)
 stations_1214$station <- tolower(stations_1214$station)
+stations_1214@data$station[stations_1214@data$station=="macki"] <- "mackie"
+stations_1214@data$station[stations_1214@data$station=="sdc"] <- "sec"
+stations_1214@data$station[stations_1214@data$station=="sugar"] <- "sugarloaf"
+
+
+glen_ellen_rg <- spTransform(glen_ellen_rg, CRSobj = proj4string(stations_0308))
+str(glen_ellen_rg)
+glen_ellen_rg@data$lon_utm <- glen_ellen_rg@coords[,1]
+glen_ellen_rg@data$lat_utm <- glen_ellen_rg@coords[,2]
+
+      
+stations_0911 <- spRbind(stations_0911, glen_ellen_rg)
+stations_1214 <- spRbind(stations_1214, glen_ellen_rg)
 ```
 
 ```{r join data}
@@ -77,4 +99,179 @@ stations_1214@data <- left_join(stations_1214@data, select(wide_monthly, id, ppt
 summary(stations_1214)
 ```
 
+```{r seasonal rain gauge PRISM correlation}
+summary(rainy04)
+rs04 <- select(rainy04@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2004)
+rs05 <- select(rainy05@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2005)
+rs06 <- select(rainy06@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2006)
+rs07 <- select(rainy07@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2007)
+rs08 <- select(rainy08@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2008)
+rs09 <- select(rainy09@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2009)
+rs10 <- select(rainy10@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2010)
+
+rs_totals <- rbind(rs04, rs05, rs06, rs07, rs08, rs09, rs10)
+correlations <- select(rs_totals, totppt_mm, psm_totppt, year) %>% 
+      group_by(year) %>% 
+      summarise(corr = round(cor(totppt_mm, psm_totppt), 4)) %>% 
+      mutate(label = paste("Pearson's R: ", as.character(corr)))
+
+ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm)) +
+      geom_point(aes(color = as.factor(year)), size = 5) +
+      xlab("PRISM precipitation (mm)") +
+      ylab("Rain gauge precipitation (mm)") +
+      ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation")
+cor(rs_totals$psm_totppt, rs_totals$totppt_mm)
+
+rs_totals.cor <- ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm))
+rs_totals.cor + 
+      geom_point() +
+      geom_smooth(method ="lm", size = 0.5, se = F) +
+      facet_grid(year ~ ., scales = "free_x", space = "free_x") +
+      # scale_x_continuous(breaks = seq(500, 2000, 500)) +
+      geom_text(aes(x = 500, y = 1000, label = label), data = correlations, 
+                hjust = 0, vjust = 0) +
+      xlab("PRISM precipitation (mm)") +
+      ylab("Rain gauge precipitation (mm)") +
+      ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation") +
+      theme_bw()
+```
+
+
+EDA, spatial data visualization, and variogram analysis following methods in section 2.5 *Hierarchical Modeling and Analysis for Spatial Data* (p. 44). 
+
+Tutorial from the book:
+```{r tutorial EDA and visualization, echo=F, eval=F}
+library(spBayes); library(classInt); library(RColorBrewer)
+
+data("WEF.dat")
+summary(WEF.dat)
+# (WEF.dat[!apply(WEF.dat[,c("East_m", "North_m", "DBH_cm", "Tree_height_m", "ELEV_m")], 1, function(x)any(is.na(x))),])
+
+WEF.dat <- (filter(WEF.dat, East_m != "NA" & North_m != "NA" & DBH_cm != "NA" & Tree_height_m != "NA" & ELEV_m != "NA"))
+
+dbh <- WEF.dat$DBH_cm
+ht <- WEF.dat$Tree_height_m
+coords <- as.matrix(WEF.dat[,c("East_m", "North_m")])
+plot(coords, pch = 1, cex = sqrt(dbh)/10, col = "darkgreen", xlab = "Easting (m)", ylab = "Northing (m)")
+leg.vals <- round(quantile(dbh), 0)
+legend("topleft", pch = 1, legend = leg.vals, col = "darkgreen", pt.cex = sqrt(leg.vals)/10, bty = "n", title = "DBH (cm)")
+
+# Color ramp palette interpolates over given set of colors
+col.br <- colorRampPalette(c("blue", "cyan", "yellow", "red"))
+col.pal <- col.br(5)
+
+fixed <- classIntervals(dbh, n = 4, style = "fixed", fixedBreaks = c(0, 12.7, 30.48, 60, max(dbh) + 1))
+fixed.col <- findColours(fixed, col.pal)
+
+plot(coords, col = fixed.col, pch = 19, cex = 0.5, 
+     main = "Forestry tree size classes",
+     xlab = "Easting (m)", ylab = "Northing (m)")
+legend("topleft", fill = attr(fixed.col, "palette"),
+       legend = c("sapling", "poletimber", "sawtimber", "large sawtimber"),
+       bty = "n")
+```
+
+```{r tutorial variogram analysis, echo=F, eval=F}
+library(geoR)
+max.dist <- 0.25 * max(iDist(coords))
+bins <- 50 # Set number of bins
+
+# Compute omnidirectional variogram
+vario.DBH <- variog(coords = coords, data = dbh, 
+                    uvec = (seq(0, max.dist, length = bins)))
+
+# Use nonlinear least squares to fit exponential variogram model
+fit.DBH <- variofit(vario.DBH, ini.cov.pars = c(600, 200/-log(0.05)),
+                    cov.model = "exponential", minimisation.function = "nls",
+                    weights = "equal")
+## estimates sill, range, nugget parameters for specified covar model
+```
+
+```{r fit tutorial variogram to OLS residuals, echo=F, eval=F}
+lm.dbh <- lm(dbh ~ Species, data = WEF.dat)
+summary(lm.dbh)
+
+dbh.resid <- resid(lm.dbh)
+vario.dbh.resid <- variog(coords = coords, data = dbh.resid, 
+                          uvec = (seq(0, max.dist, length = bins)))
+fit.dbh.resid <- variofit(vario.dbh.resid, ini.cov.pars = c(300, 200/-log(.05)), cov.model = "exponential", minimisation.function = "nls", weights = "equal")
+```
+
+```{r plot tutorial variograms, echo=F, eval=F}
+par(mfrow = c(1, 2))
+plot(vario.DBH, ylim = c(200, 1200), main = "DBH")
+lines(fit.DBH)
+abline(h = fit.DBH$nugget, col = "blue")
+abline(h = fit.DBH$cov.pars[1] + fit.DBH$nugget, col = "green")
+abline(v = -log(.05) * fit.DBH$cov.pars[2], col = "red3")
+
+plot(vario.dbh.resid, ylim = c(200, 500), main = "DBH residuals")
+lines(fit.dbh.resid)
+abline(h = fit.dbh.resid$nugget, col = "blue")
+abline(h = fit.dbh.resid$cov.pars[1] + fit.dbh.resid$nugget, col = "green")
+abline(v = -log(.05) * fit.dbh.resid$cov.pars[2], col = "red3")
+```
+
+Checking for possible anisotropic patterns in spatial dependence can be done using `geoR` or `gstat` packages. The `variogram` function in `gstat` allows specification of a linear regression model within the function. It also enables conducting a variogram analysis on the residuals without needing to collect them explicitly. 
+
+Tutorial variogram analysis using `gstat`.
+```{r variogram analysis with gstat tutorial}
+library(gstat)
+elev_m <- WEF.dat$ELEV_m
+sp.dat <- as.data.frame(cbind(dbh, ht, coords, elev_m))
+coordinates(sp.dat) <- c("East_m", "North_m")
+vario.DBH <- variogram(dbh ~ elev_m, data = sp.dat, cutoff = max.dist,
+                       width = 5, alpha = (0:3) * 45)
+fit.DBH <- fit.variogram(vario.DBH, vgm(1000, "Exp", 200/-log(.05), 600))
+print(plot(vario.DBH, fit.DBH))
+rm(coords); rm(fit.DBH); rm(vario.DBH); rm(fit.dbh.resid); rm(vario.dbh.resid)
+rm(WEF.dat); rm(dbh); rm(dbh.resid); rm(ht); rm(sp.dat)
+```
+
+Variogram analysis of precipitation data
+```{r precipitation variogram}
+library(gstat); library(geoR)
+summary(stations_0308)
+
+library(raster)
+elev <- raster("dem/sod15m.tif")
+elev
+stations_0308$elev_m <- extract(elev * .3048, stations_0308)
+detach("package:raster", unload=TRUE)
+
+ppt_nov03.sp <- stations_0308[, c("station", "lat_utm", "lon_utm", "elev_m", "ppt_nov03")]
+ppt_nov03.sp <- ppt_nov03.sp[!is.na(ppt_nov03.sp$ppt_nov03), ]
+summary(ppt_nov03.sp)
+ppt_nov03.sp@data
+ppt_nov03.sp <- ppt_nov03.sp[ppt_nov03.sp$station != "fop", ]
+ppt_nov03.sp@data
+
+plot(ppt_nov03.sp, pch = 1, cex = sqrt(ppt_nov03.sp$ppt_nov03))
+
+ppt_nov03.lm <- lm(ppt_nov03 ~ lat_utm, data = ppt_nov03.sp)
+summary(ppt_nov03.lm)
+
+max.dist <- 0.25 * max(iDist(ppt_nov03.sp@coords))
+bins <- 50
+
+vario_ppt_nov03 <- variog(coords = ppt_nov03.sp@coords, 
+                          data = ppt_nov03.sp$ppt_nov03)
+plot(vario_ppt_nov03)
+str(vario_ppt_nov03)
+mean(vario_ppt_nov03$v)
+
+fit_ppt_nov03 <- variofit(vario_ppt_nov03,
+                          ini.cov.pars = c(862, 1000) ,
+                          cov.model = "exponential",
+                          minimisation.function = "nls",
+                          weights = "equal")
+
+vario_ppt_nov03 <- variogram(ppt_nov03 ~ elev_m, data = ppt_nov03.sp,
+                             # cutoff = max.dist, 
+                             # width = 5
+                             )
+fit_ppt_nov03 <- fit.variogram(vario_ppt_nov03, vgm(psill = 1000, model = "Exp", 100/-log(.05), 600))
+
+plot(vario_ppt_nov03, fit_ppt_nov03)
+```
 
