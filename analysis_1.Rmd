@@ -8,10 +8,8 @@ output: html_document
 Outliers have been replaced with `NA` (see `explore_report.Rmd` for details). Here I load the datasets with the `NA`s inserted and start setting things up for analyses - thin plate spline and/or regression kriging.
 
 Load libraries I plan to use for data manipulation (`dplyr`) and plotting (`ggplot2`).
-```{r load basic libraries, echo=TRUE, message=FALSE}
-library(ggplot2)
-library(plyr)
-library(dplyr)
+```{r load libraries, echo=TRUE, message=FALSE}
+library(ggplot2); library(plyr); library(dplyr)
 ```
 
 Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement in these data sets I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches.
@@ -19,65 +17,55 @@ Read-in the data sets, one daily and one hourly, and then plot. For outlier repl
 dy_rg_data <- readRDS("dy_rg_data_corrected.rds")
 summary(dy_rg_data)
 str(dy_rg_data)
+summary(filter(dy_rg_data, is.na(daily_ppt)))
 ggplot(data = dy_rg_data, aes(x = date, y = daily_ppt)) +
       geom_point()
 ```
 
 
-```{r Exploratory plotting}
-qplot(date, daily_ppt, data = dy_rg_data %>% 
-            group_by(id, year, month, day), color = id) # + 
-      # geom_text(aes(label=id),hjust=-0.1, vjust=0)
-
-# Looking at precipitation by month during 2006
-ggplot(data = dy_rg_data %>% 
-            filter(year==2006) %>%
-            group_by(id, year, month) %>%
-            summarize(monthly_ppt=sum(daily_ppt)),
-       aes(x = month, y = monthly_ppt, color = id)) +
-      geom_point(size=2, shape=3)
-```
-
 Make data frame of monthly totals and plot across all years
 ```{r summarise daily to monthly totals, echo=TRUE, eval=FALSE}
 # Monthly precipitation (ppt) by year, month, and gauge id
-monthly_ppt_id <- dy_rg_data %>% 
-      group_by(year, month, id) %>%# This grouping order causes reordering by year, month, then id
-      summarise(monthly_ppt = sum(daily_ppt))
-monthly_ppt_id
+monthly <- dy_rg_data %>% 
+      group_by(id, year, month) %>%# This grouping order causes reordering by year, month, then id
+      summarise(monthly_ppt = sum(daily_ppt), 
+                monthly_ppt_mm = sum(daily_ppt) * 25.4)
+monthly
 # Add date factor variable
-monthly_ppt_id <- mutate(monthly_ppt_id, date = paste(year,"-",month, sep = ""))
+monthly <- mutate(monthly, date = paste(year,"-",month, sep = ""))
 # Convert date factor to `date` format for plotting
-monthly_ppt_id$date <- as.Date(paste(monthly_ppt_id$date, "-01", sep=""))
-
+monthly$date <- as.Date(paste(monthly$date, "-01", sep=""))
+monthly
 
 # Aggregate to mean monthly precip across all gauges, so exclude id from the data frame `monthly_ppt_id`
-monthly_ppt <- monthly_ppt_id %>%
+monthly_ppt <- monthly %>%
       group_by(year, month, date) %>%
       summarise(avg_monthly_ppt = mean(monthly_ppt, na.rm=TRUE))
 summary(monthly_ppt)
 filter(monthly_ppt, is.na(avg_monthly_ppt))
-filter(monthly_ppt_id, year == 2003, month == 4 | month == 1)
 ```
 
-Plot monthly rainfall data
+Plot total monthly rainfall data
 ```{r plotting monthly data, echo=TRUE, eval=FALSE, fig.height=9, fig.width=6}
 # Plot monthly rainfall grouped by plot ####
-mp_id <- ggplot(data = monthly_ppt_id %>%
-            filter(id == "cook" | id == "kunde" | id == "sawi"),
-            #group_by(id),
-       aes(x = date, y = monthly_ppt, color = id)) + 
+# monthly_ppt <- ungroup(monthly_ppt)
+mp_id <- ggplot(data = monthly, #%>%
+            # filter(id == "cook" | id == "kunde" | id == "sawi"),
+            # group_by(id),
+       aes(x = date, y = monthly_ppt)) + 
       geom_point(size=2) +
       ylab("rainfall (inches)")
 
 library(scales)
-mp_id + facet_grid(id ~ ., scales = "fixed") + 
-      theme_bw() + theme(legend.position = "none") +
+mp_id + 
+      facet_grid(id ~ .) +
+      theme_bw() + 
+      theme(legend.position = "none") +
       scale_x_date(breaks = date_breaks("6 months"), 
                    labels = date_format("%m/%y"),
                    minor_breaks = "1 month") +
-      xlab("date (month/year)") + ggtitle("Total Monthly Rainfall 2004-2013")
-ggsave("figures/mp_id.svg", width = 7, height = 5, scale = 1.5)
+      xlab("date (month/year)") + ggtitle("Total Monthly Rainfall by Station 2004-2013")
+ggsave("figures/mp_id.png", width = 7, height = 5, scale = 1.5)
 # mp + geom_boxplot()
 # Adjust the way the date is scaled on the x-axis
 #mp + scale_x_date(date)
@@ -87,7 +75,7 @@ mp <- ggplot(data = monthly_ppt,
             #filter(id == "cook" | id == "kunde" | id == "sawi"),
             #group_by(id),
        aes(x = date, y = avg_monthly_ppt)) + 
-      geom_point(size=2) +
+      geom_point(size=2) + geom_line() +
       ylab("rainfall (inches)")
 
 library(scales)
@@ -96,13 +84,13 @@ mp + geom_line() +
       scale_x_date(breaks = date_breaks("1 year"), 
                    labels = date_format("%m/%y"),
                    minor_breaks = "1 month") +
-      xlab("date (month/year)") + ggtitle("Average Monthly Rainfall 2004-2013")
-ggsave("figures/avg_mp.svg", width = 7, height = 5, scale = 1.5)
+      xlab("date (month/year)") + ggtitle("Average Monthly Rainfall Across All Plots 2004-2013")
+ggsave("figures/avg_mp.png", width = 7, height = 5, scale = 1.5)
 ```
 
 ```{r export plot to file, echo=TRUE, eval=TRUE}
 # `ggsave` exports the current `ggplot` object
-ggsave("figures/avg_mp.svg", width = 7, height = 5, scale = 1.5)
+ggsave("figures/avg_mp.png", width = 7, height = 5, scale = 1.5)
 ```
 
 
@@ -125,21 +113,15 @@ I want to group the daily data into data frames by month and year so that I can 
 ```{r group by year month, echo=TRUE}
 ppt2004_01 <- dy_rg_data %>% #
       group_by(id, year, month) %>% 
-      filter(year==2004, month==1) %>%
+      #filter(year==2004, month==1) %>%
       summarise(monthly_ppt = sum(daily_ppt))
 ppt2004_01
 ```
 
 This is how I need each data frame to be structured, but I want to find a faster way to create the whole set of month-year combinations
 ```{r list of data frames split by month-year, echo=TRUE}
-# Make a data frame of monthly totals for each year-month-location combination
-monthly_ppt <- dy_rg_data %>%
-      group_by(year, month, id) %>%
-      summarise(monthly_ppt = sum(daily_ppt))
-monthly_ppt
-
-# Split that dataframe on the month and year to create a list of data frames with the total precipitation and location id for each month and year combo
-df_list <- split(monthly_ppt, list(monthly_ppt$year, monthly_ppt$month))# 132 data frames
+# Split `monthly` dataframe with year-month-location on the month and year to create a list of data frames with the total precipitation and location id for each month and year combo
+df_list <- split(monthly, list(monthly$year, monthly$month))# 132 data frames
 ```
 
 I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on [Stack Overflow](http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes):
@@ -183,7 +165,7 @@ A couple of rain gauges have been moved to new locations near their established 
 ```{r list rain gague shapefiles}
 list.files("shapefiles", pattern = "*.shp")
 ```
-This shows that there are four shapefiles for various stretches of the study, 2003-2008, 2009-2011, 2012-2014, and then 2015 and beyond. The 2015 is the result of moving a rain gauge during our 2014 visits. I will not be using that file for the data I have in hand.
+This shows that there are four shapefiles for various stretches of the study, 2003-2008, 2009-2011, 2012-2014, and then 2015_2016. The 2015 is the result of moving a rain gauge during our 2014 visits. I will not be using that file for the data I have in hand.
 
 Develop variables of rainfall for each rainy season: number of days with rain `rainXX_dys`, average daily rainfall `rainXX_avg`, and total rainfall `rainXX_tot`.
 ```{r breakdown daily into seasonal aggregation, message=FALSE}
@@ -263,7 +245,6 @@ filter(dys_rain, rain05_tot > 70)
 select(dys_rain, id, rain05_tot)
 ```
 
-
 ```{r monthly data 2003-2008}
 month_rg_2003_2008 <- dy_rg_data %>%
       group_by(id, year, month) %>% 
@@ -277,7 +258,6 @@ day_rg_2003_2008 <- dy_rg_data %>%
       filter(year<=2008)
 summary(day_rg_2003_2008)
 ```
-
 
 ```{r read in shapefile(s) and DEM}
 library(sp)
@@ -390,55 +370,63 @@ rg_2003_2008@data
 # mackie was missing from 2004, corresponding to row 10
 rainy04 <- rg_2003_2008[rg_2003_2008$station != "mackie",]# remove mackie
 rainy04@data <- rainy04@data %>% select(station, elev_ft, lat, lon, elev_m, starts_with("rain04"))
+rainy04@data$totppt_mm <- rainy04@data$rain04_tot * 25.4
 rainy04; summary(rainy04)
 
 # None missing in 2005, but removed "beltane" (row 4) and "fop" (row 7) because severe positive outliers, recording > 70 and 109 inches of rain. The next highest was 44 inches
 rainy05 <- rg_2003_2008[,c("station", "lat", "lon", "rain05_dys", "rain05_avg", "rain05_tot", "elev_m")]
 rainy05 <- rainy05[rainy05$station != "beltane" & rainy05$station != "fop",]
+rainy05@data$totppt_mm <- rainy05@data$rain05_tot * 25.4
 rainy05@data; summary(rainy05)
 
 rainy06 <- rg_2003_2008[,c("station", "lat", "lon", "rain06_dys", "rain06_avg", "rain06_tot", "elev_m")]
 rainy06@data # In 2006 there are some NAs and also some very small values (<2 inches) that seem extremely unreliable compared to the other measurements. I'm not really sure what to do about those
 rainy06 <- rainy06[rainy06$station == "cook" | rainy06$station == "mackie" | rainy06$station == "spaulding" | rainy06$station == "votruba" | rainy06$station == "yahng",]
+rainy06@data$totppt_mm <- rainy06@data$rain06_tot * 25.4
 rainy06@data; summary(rainy06); plot(rainy06)
 # This results in essentially zero coverage in the southeastern part of the study area
 
 rainy07 <- rg_2003_2008[,c("station", "lat", "lon", "rain07_dys", "rain07_avg", "rain07_tot", "elev_m")]
 rainy07@data # Again some NAs and values that don't seem very reliable
 rainy07 <- rainy07[rainy07$station != "mitsui" & rainy07$station != "fop" & rainy07$station != "kunde" & rainy07$station != "spaulding" & rainy07$station != "mackie" & rainy07$station != "sugarloaf" & rainy07$station != "votruba" & rainy07$station != "cook",]
+rainy07@data$totppt_mm <- rainy07@data$rain07_tot * 25.4
 rainy07@data; summary(rainy07); plot(rainy07)
 
 rainy08 <- rg_2003_2008[,c("station", "lat", "lon", "rain08_dys", "rain08_avg", "rain08_tot", "elev_m")]
 rainy08@data
-rainy08 <- rainy08[rainy08$station != "badger" & rainy08$station != "fop" & rainy08$station != "kunde" & rainy08$station != "spaulding",]
+rainy08 <- rainy08[rainy08$station != "backman" & rainy08$station != "badger" & rainy08$station != "fop" & rainy08$station != "kunde" & rainy08$station != "spaulding",]
+rainy08@data$totppt_mm <- rainy08@data$rain08_tot * 25.4
 rainy08@data; summary(rainy08); plot(rainy08)
 
 rainy09 <- rg_2009_2011[,c("station", "lat", "lon", "rain09_dys", "rain09_avg", "rain09_tot", "elev_m")]
 rainy09@data
 rainy09 <- rainy09[rainy09$station != "backman" & rainy09$station != "beltane" & rainy09$station != "mitsui" & rainy09$station != "cook",]
+rainy09@data$totppt_mm <- rainy09@data$rain09_tot * 25.4
 rainy09@data; summary(rainy09); plot(rainy09)
 
 rainy10 <- rg_2009_2011[,c("station", "lat", "lon", "rain10_dys", "rain10_avg", "rain10_tot", "elev_m")]
 rainy10@data
 rainy10 <- rainy10[rainy10$station != "backman" & rainy10$station != "sugarloaf" & rainy10$station != "mitsui" & rainy10$station != "sec" & rainy10$station != "spaulding" & rainy10$station != "annadel",]
+rainy10@data$totppt_mm <- rainy10@data$rain10_tot * 25.4
 rainy10@data; summary(rainy10); plot(rainy10)
 
 rainy11 <- rg_2009_2011[,c("station", "lat", "lon", "rain11_dys", "rain11_avg", "rain11_tot", "elev_m")]
 rainy11@data
 rainy11 <- rainy11[rainy11$station != "beltane" & rainy11$station != "sugarloaf" & rainy11$station != "mitsui" & rainy11$station != "votruba" & rainy11$station != "yahng",]
+rainy11@data$totppt_mm <- rainy11@data$rain11_tot * 25.4
 rainy11@data; summary(rainy11); plot(rainy11)
 
 rainy12 <- rg_2012_2014[,c("station", "lat", "lon", "rain12_dys", "rain12_avg", "rain12_tot", "elev_m")]
 rainy12@data
-rainy12 <- rainy12[rainy12$station != "annadel" & rainy12$station != "backman" & rainy12$station != "kunde" & rainy12$station != "mitsui" & rainy12$station != "sugarloaf",]
+rainy12 <- rainy12[rainy12$station != "annadel" & rainy12$station != "backman" & rainy12$station != "kunde" & rainy12$station != "mitsui" & rainy12$station != "sugarloaf" & rainy12$station != "spaulding" & rainy12$station != "sec" & rainy12$station != "secret" & rainy12$station != "cook",]
+rainy12@data$totppt_mm <- rainy12@data$rain12_tot * 25.4
 rainy12@data; summary(rainy12); plot(rainy12)
 
 rainy14 <- rg_2012_2014[,c("station", "lat", "lon", "rain14_dys", "rain14_avg", "rain14_tot", "elev_m")]
 rainy14@data
 rainy14 <- rainy14[rainy14$station == "backman" | rainy14$station == "mackie" | rainy14$station == "sec" | rainy14$station == "glenellen" | rainy14$station == "glenellenwnw",]
+rainy14@data$totppt_mm <- rainy14@data$rain14_tot * 25.4
 rainy14@data; summary(rainy14); plot(rainy14)
-
-extent(rainy14); extent(rainy05); extent(elev) # note that extents are variable
 
 writeOGR(rainy04, dsn = "shapefiles/", layer = "rain_gauges04", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy05, dsn = "shapefiles/", layer = "rain_gauges05", driver = "ESRI Shapefile", overwrite_layer = T)
@@ -453,7 +441,30 @@ writeOGR(rainy14, dsn = "shapefiles/", layer = "rain_gauges14", driver = "ESRI S
 ```
 
 
-```{r seasonal pairs plots and linear models}
+#### Pairs plots and linear models of seasonally aggregated data
+```{r read in spatial data frames}
+library(rgdal)
+shp_list <- list.files("shapefiles", pattern = "^[rain_]")
+shp_list <- grep(".shp$", shp_list, value = TRUE)
+shp_list <- shp_list[1:10]
+
+shp_list <- strsplit(shp_list, ".shp")
+tmp <- strsplit(unlist(shp_list), "rain_gauges")
+tmp <- unlist(tmp)
+tmp <- tmp[seq(2, 20, 2)]
+
+n = 4
+for(shp in shp_list){
+      assign(paste("rainy", "0", n, sep = ""), 
+             readOGR(dsn = "shapefiles", layer = shp))
+      n = n + 1
+}
+rainy10 <- rainy010; rainy11 <- rainy011 
+rainy12 <- rainy012; rainy14 <- rainy013
+rm(list = ls(pattern = "01"))
+```
+
+```{r pairs plots & linear models}
 library(MuMIn)
 panel.hist <- function(x, ...){
     usr <- par("usr"); on.exit(par(usr))
@@ -474,16 +485,16 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){
 }
 
 pairs(rainy04@data %>% select(-station, -elev_ft), lower.panel = panel.cor, diag.panel = panel.hist, main = "2004 Season") # strongest relationship between lon & total rainfall (0.63); total rainfall looks maybe slightly right skewed and is about equally correlated with lat & elev
+
 lm04a <- lm(rain04_tot ~ lon + lat + elev_m, data = rainy04@data, na.action = "na.fail")
 summary(lm04a)
 par(mfrow = c(2,2)); plot(lm04a)
-lm04sel <- dredge(lm04a, extra =  list("*" = function(x) {
+lm04sel <- dredge(lm04a, extra =  list("*" = function(x){
         s <- summary(x)
         c(Rsq = s$r.squared, adjRsq = s$adj.r.squared,
             F = s$fstatistic[[1]])
     })); lm04sel
 # Including elevation improves adjusted R-squared by about 9% and essentially has no change to AICc (0.4)
-
 
 pairs(rainy05@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2005 Season") # strongest relationship between lat & total rainfall (0.61); of note: lat & rainy days (0.70), lon & average rainfall(0.66)
 lm05a <- lm(rain05_tot ~ lat + elev_m + lon, data = rainy05@data, na.action = "na.fail")
@@ -506,7 +517,6 @@ lm06sel <- dredge(lm06a, extra = list("*" = function(x) {
             F = s$fstatistic[[1]])
     })); lm06sel
 # 
-
 
 pairs(rainy07@data %>% select(-station), lower.panel = panel.cor, diag.panel = panel.hist, main = "2007 Season") # strongest relationship between elev & total rainfall (0.52), though total rainfall looks like it has some negative skew;
 lm07a <- lm(rain07_tot^4 ~ lat + lon + elev_m, data = rainy07@data, na.action = "na.fail")
@@ -586,8 +596,15 @@ lm14sel <- dredge(lm14a, extra = list("*" = function(x) {
 # Best adjusted R-squared is with log(elevation), lat, lon (0.61) and total rainfall log-transformed, however, this is sample size of 5 stations. The variation of total rainfall is pretty limited.
 ```
 
-It is likely that these data may be bimodal in the precipitation~elevation relationship due to the rainshadowing of the Sonoma Valley and possibly to some extent the Mayacamas by Sonoma Mountain. 
+There are some cases where the data have good coverage and a good fitting model and other seasons where nothing predicts better than the null model. So, I'm not sure if there are some years where I might be able to, or should, try and model a surface. The many factors that influence rainfall measurements over space and time 
 
+  - wind speed and direction (difficult to measure everywhere)
+  - gauge placement (human error)
+  - elevation/topography
+  
+Due to the randomness of rainfall over even small areas, the best-practice approach for rainfall modeling is to sample an area as densely as possible and then apply Thiessen polygons. Or, I could try to do a nearest point data extraction for each plot. I think this works for years when there is data from stations throughout the study area (good spatial coverage), but I don't think this would work well when coverage is for only part, or very minimal of the study area. I need to read and understand more about thin plate splines to see if that might be applicable to these data.
+
+(It seems that there is the possibility that these data are bimodal in the precipitation~elevation relationship due to the rainshadowing of the Sonoma Valley and possibly to some extent the Mayacamas by Sonoma Mountain.)
 
 
 Create Thiessen Polygon surfaces with rainfall values
@@ -641,7 +658,12 @@ rainy05v <- voronoi(rainy05 <- readOGR(dsn = "shapefiles", layer = "rain_gauges0
 rainy06v <- voronoi(rainy06 <- readOGR(dsn = "shapefiles", layer = "rain_gauges06"))
 rainy07v <- voronoi(rainy07 <- readOGR(dsn = "shapefiles", layer = "rain_gauges07"))
 rainy08v <- voronoi(rainy08 <- readOGR(dsn = "shapefiles", layer = "rain_gauges08"))
-plot(rainy08v); rainy08v@bbox
+
+rainy09v <- voronoi(rainy09 <- readOGR(dsn = "shapefiles", layer = "rain_gauges09"))
+rainy10v <- voronoi(rainy10 <- readOGR(dsn = "shapefiles", layer = "rain_gauges10"))
+rainy11v <- voronoi(rainy11 <- readOGR(dsn = "shapefiles", layer = "rain_gauges11"))
+rainy12v <- voronoi(rainy12 <- readOGR(dsn = "shapefiles", layer = "rain_gauges12"))
+rainy14v <- voronoi(rainy14 <- readOGR(dsn = "shapefiles", layer = "rain_gauges14"))
 ```
 
 Overlay Thiessen polygons and plot locations
@@ -652,18 +674,47 @@ str(plts)
 str(rainy04)
 plts <- spTransform(plts, CRS=crs)
 all.equal.default(proj4string(plts), proj4string(rainy04v), proj4string(rainy05v))
-plot(elev); plot(plts, add = TRUE, pch = 21); plot(rainy04v, axes = TRUE, add=T) 
-rainy04v@bbox; plts@bbox; rg_2003_2008@bbox; elev@extent
 
-str(rainy05v)
-plot(rainy05v, axes = TRUE, main = "2005 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy05, add = T, col = "blue", pch = 25)
+plot(elev, main = "2004 Rain Thiessens"); plot(plts, add = T, pch = 21); plot(rainy04, add = T, pch = 25, col = "blue"); plot(rainy04v, axes = T, add=T) 
 
-plot(rainy06v, axes = TRUE, main = "2006 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy06, add = T, col = "blue", pch = 25)
+summary(rainy05v)
+plot(rainy05v, axes = T, main = "2005 Rain Thiessens"); plot(plts, add = T); plot(rainy05, add = T, col = "blue", pch = 25)
 
-plot(rainy07v, axes = TRUE, main = "2007 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy07, add = T, col = "blue", pch = 25)
+plot(rainy06v, axes = T, main = "2006 Rain Thiessens"); plot(plts, add = T); plot(rainy06, add = T, col = "blue", pch = 25)
 
-plot(rainy08v, axes = TRUE, main = "2008 Rain Thiessens"); plot(plts, add = TRUE); plot(rainy08, add = T, col = "blue", pch = 25)
+plot(rainy07v, axes = T, main = "2007 Rain Thiessens"); plot(plts, add = T); plot(rainy07, add = T, col = "blue", pch = 25)
+
+plot(rainy08v, axes = T, main = "2008 Rain Thiessens"); plot(plts, add = T); plot(rainy08, add = T, col = "blue", pch = 25)
+
+plot(rainy09v, axes = T, main = "2009 Rain Thiessens"); plot(plts, add = T); plot(rainy09, add = T, col = "blue", pch = 25)
+
+plot(rainy10v, axes = T, main = "2010 Rain Thiessens"); plot(plts, add = T); plot(rainy10, add = T, col = "blue", pch = 25)
+
+plot(rainy11v, axes = T, main = "2011 Rain Thiessens"); plot(plts, add = T); plot(rainy11, add = T, col = "blue", pch = 25)
+
+plot(rainy12v, axes = T, main = "2012 Rain Thiessens"); plot(plts, add = T); plot(rainy12, add = T, col = "blue", pch = 25)
+
+plot(rainy14v, axes = T, main = "2014 Rain Thiessens"); plot(plts, add = T); plot(rainy14, add = T, col = "blue", pch = 25)
 ```
+
+The voronoi (Thiessen) polygons don't extend to the edges of the extent as it is shrunk when the rain gauge station dataset is reduced around the edges. The bounding box appears to be based on the min-max of the `x` and `y` coordinates. It looks like none of them quite cover all of the plot point locations, but they would all be covered by the elevation surface.  
+
+How do I extend the `bbox` of the point shapefiles to the elevation surface extent and have that captured by the `voronoi` function?
+
+```{r extend bbox}
+bbox(elev)
+bbox(rainy04)
+all.equal(proj4string(elev), proj4string(rainy04))
+elev@extent
+new_bbox <- bbox(elev)
+rainy04@bbox <- new_bbox
+bbox(rainy04)
+test <- voronoi(rainy04)
+plot(test); plot(plts, add = T)
+extent(rainy04)
+```
+
+Since the `voronoi` function pulls the point coordinates explicitly it is apparent that this won't work the way I want it to.
 
 
 Developing a linear model for kriging
