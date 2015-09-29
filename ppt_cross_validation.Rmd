@@ -1,0 +1,397 @@
+---
+title: "ppt_cross_validation"
+author: "Whalen Dillon"
+date: "September 15, 2015"
+output: html_document
+---
+
+Examine the outputs from the cross-validation procedure in `v.surf.rast` (2-dimensional interpolation) and `v.vol.rast` (3-dimensional interpolation) from GRASS-GIS. Like any cross-validation procedure, the goal is to estimate the predictive error for a given set of input parameters. I use scripts written by Jaro Hofierka and freely available on the [GRASS Book website](grassbook.org) to iterate through multiple combinations of tension and smoothing. While appearing as integer in these outputs, the smoothing value actually ranges from 0.1 to 0.9, i.e. a smoothing value of 10 equals 0.10.
+
+In these cases, it is a leave-one-out cross-validation procedure, where each point in the dataset is excluded and the surface estimated from the remaining points. Then the difference between the actual and estimated value for each point is recorded. The root-mean square error and/or mean absolute error are two metrics that indicate how well the model performs in terms of accurate prediction using the given settings, with lower values indicating better accuracy.
+
+The measurements were recorded in inches, so the values reported here are in inches.
+
+# Cross-validation 
+```{r load packages, echo=F}
+library(plyr); library(dplyr); library(ggplot2)
+```
+
+```{r load 2D files, echo=FALSE}
+files <- list.files("cross_validation_grass/surf_rst/", full.names = T)
+ppt2d_cv <- ldply(files, function(i){read.csv(i)})
+```
+
+```{r load 3D files, echo=FALSE}
+files <- list.files("cross_validation_grass/vol_rst/", full.names = T)
+ppt3d_cv <- ldply(files, function(i){read.csv(i)})
+
+files <- list.files("cross_validation_grass/vol_zrst/", full.names = T)
+ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
+```
+
+```{r remove dataframes, echo=F}
+# rm(list = ls(pattern = "^rain"))
+```
+
+```{r load rain gauge shapefiles, echo=F}
+library(rgdal)
+shp_list <- list.files("shapefiles", pattern = "^[rain_]")
+shp_list <- grep(".shp$", shp_list, value = TRUE)
+shp_list <- shp_list[1:10]
+
+shp_list <- strsplit(shp_list, ".shp")
+tmp <- strsplit(unlist(shp_list), "rain_gauges")
+tmp <- unlist(tmp)
+tmp <- tmp[seq(2, 20, 2)]
+
+n = 4
+for(shp in shp_list){
+      assign(paste("rainy", "0", n, sep = ""), 
+             readOGR(dsn = "shapefiles", layer = shp))
+      n = n + 1
+}
+
+rainy10 <- rainy010; rainy11 <- rainy011 
+rainy12 <- rainy012; rainy14 <- rainy013
+rm(list = ls(pattern = "01"))
+rm(list = "tmp","shp","files","f","i","n","fname","shp_list")
+```
+
+## Visualize cross-validation values from `v.surf.rast`
+```{r 2D}
+head(ppt2d_cv)
+summary(ppt2d_cv)
+ppt2d_cv$smoothing <- ppt2d_cv$smoothing/100
+
+##### 
+ppt2d_cvmin <- rbind(
+      filter(ppt2d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+)
+ppt2d_cvmin
+#####
+
+ggplot(filter(ppt2d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2004), digits = 7)
+# minimum MAE parameters
+filter(ppt2d_cv, year == 2004, tension>10) %>% filter(mean_abs == min(mean_abs))
+
+# find mean MAE parameters
+filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 199.7, 200.2))
+# mae=199.78 t=30 s=0.8
+
+# find median MAE parameters
+filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 192, 192.3))
+# t=140 s=0.8; t=50 s=0.9
+
+# find ~1st Qu. MAE parameters
+filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 190.7, 190.8))
+# 190.745 t=80 s=0.6
+
+# find ~3rd Qu. MAE parameters
+filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 204, 206))
+# 204.2 t=30 s=0.4
+
+# maximum MAE parameters
+filter(ppt2d_cv, year == 2004) %>% filter(mean_abs == max(mean_abs))
+# t=10 s=10
+
+ggplot(filter(ppt2d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2005 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2005), digits = 7)
+filter(ppt2d_cv, year == 2005, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2005) %>% filter(mean_abs <= mean(mean_abs))
+filter(ppt2d_cv, year == 2005, tension == 60)
+
+ggplot(filter(ppt2d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2006 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2006), digits = 7)
+filter(ppt2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2006, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+
+
+ggplot(filter(ppt2d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2007 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2007))
+filter(ppt2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2007, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+
+ggplot(filter(ppt2d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2008 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2008))
+filter(ppt2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2008, tension >= 9) %>% filter(mean_abs == min(mean_abs))
+
+ggplot(filter(ppt2d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2009 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2009))
+filter(ppt2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2009, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+
+
+ggplot(filter(ppt2d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2010 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2010))
+filter(ppt2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2010, tension < 20) %>% filter(mean_abs == min(mean_abs))
+
+
+ggplot(filter(ppt2d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2011 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2011))
+filter(ppt2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2011, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+
+ggplot(filter(ppt2d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2012 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2012))
+filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
+filter(ppt2d_cv, year == 2012, tension < 30) %>% filter(mean_abs == min(mean_abs))
+
+
+ggplot(filter(ppt2d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2014 Rainy Season (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2014))
+filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+```
+
+## Visualize cross-validation values from `v.vol.rast`
+```{r summarize 3D, echo=F}
+head(ppt3d_cv)
+summary(ppt3d_cv)
+ppt3d_cv$smoothing <- ppt3d_cv$smoothing/100
+
+# Create dataframe of each year's minimum MAE
+ppt3d_cvmin <- rbind(
+      filter(ppt3d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs)),
+      filter(ppt3d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+)
+ppt3d_cvmin
+
+head(ppt3d_cvz)
+summary(ppt3d_cvz)
+ppt3d_cvz$smoothing <- ppt3d_cvz$smoothing/100
+```
+
+#### Cross-validation v.vol.rst: 2004
+```{r plot 3d 2004 CV}
+ggplot(filter(ppt3d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst)") +
+      theme_bw()
+ggplot(filter(ppt3d_cv, year == 2004, tension <= 10), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 10, 1)) +
+      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst), t=1-10") +
+      theme_bw()
+# summary(filter(ppt3d_cv, year == 2004))
+```
+```{r 2004 3d MAE minimums}
+filter(ppt3d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2004, tension == 1)
+filter(ppt3d_cv, year == 2004, tension == 2) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2004, tension == 3) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2004, tension == 4) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2004, tension == 5) %>% filter(mean_abs == min(mean_abs))
+```
+
+#### Cross-validation v.vol.rst: 2005
+```{r plot 3d 2005 CV}
+ggplot(filter(ppt3d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2005 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2005))
+filter(ppt3d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2005, tension > 3) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2005, tension < 3) %>% filter(mean_abs == min(mean_abs))
+```
+
+#### Cross-validation v.vol.rst: 2006
+```{r plot 3d 2006 CV}
+ggplot(filter(ppt3d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2006 Rainy Season (v.vol.rst)") +
+      theme_bw()
+
+ggplot(filter(ppt3d_cvz, year == 2006), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~ .) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("z Cross-validation 2004 Rainy Season (v.vol.rst)") +
+      theme_bw()
+      
+      
+# summary(filter(ppt3d_cv, year == 2006))
+```
+```{r 2006 3d MAE minimums}
+filter(ppt3d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cvz, year == 2006) %>% filter(mean_abs == min(mean_abs))
+
+filter(ppt3d_cv, year == 2006, tension <= 10) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2006, tension == 10) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2006, tension == 20) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2006, tension == 30) %>% filter(mean_abs == min(mean_abs))
+```
+
+
+#### Cross-validation v.vol.rst: 2007
+```{r plot 3d 2007 CV}
+ggplot(filter(ppt3d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2007 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2007))
+filter(ppt3d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2007, tension ) %>% filter(mean_abs == min(mean_abs))
+# produced only "overshoot" results; >100mm off of the given measurements
+
+
+ggplot(filter(ppt3d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2008 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2008))
+filter(ppt3d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2008) %>% filter(mean_abs < 5.513)
+
+ggplot(filter(ppt3d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error") +
+      ggtitle("2009 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2009))
+filter(ppt3d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2009) %>% filter(mean_abs < 9.56)
+
+ggplot(filter(ppt3d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error") +
+      ggtitle("2010 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2010))
+filter(ppt3d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2010) %>% filter(mean_abs < 6.594)
+
+ggplot(filter(ppt3d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error") +
+      ggtitle("2011 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2011))
+filter(ppt3d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2011) %>% filter(mean_abs < 12.85)
+
+ggplot(filter(ppt3d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error") +
+      ggtitle("2012 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2012))
+filter(ppt3d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2012) %>% filter(mean_abs < 4.932)
+
+ggplot(filter(ppt3d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error") +
+      ggtitle("2014 Rainy Season (v.vol.rst)") +
+      theme_bw()
+summary(filter(ppt3d_cv, year == 2014))
+filter(ppt3d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+filter(ppt3d_cv, year == 2014) %>% filter(mean_abs < 8.735)
+```
+
+## PRISM Comparison to Measured Values
+```{r prism comparison}
+summary(rainy04)
+plot(totppt_mm ~ psm_totppt, data = rainy04@data, main = 2004)
+cor(rainy04@data$totppt_mm, rainy04@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy05@data, main = 2005)
+cor(rainy05@data$totppt_mm, rainy05@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy06@data, main = 2006)
+cor(rainy06@data$totppt_mm, rainy06@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy07@data, main = 2007)
+cor(rainy07@data$totppt_mm, rainy07@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy08@data, main = 2008)
+cor(rainy08@data$totppt_mm, rainy08@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy09@data, main = 2009)
+cor(rainy09@data$totppt_mm, rainy09@data$psm_totppt)
+
+plot(totppt_mm ~ psm_totppt, data = rainy10@data, main = 2010)
+cor(rainy10@data$totppt_mm, rainy10@data$psm_totppt)
+```
+
