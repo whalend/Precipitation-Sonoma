@@ -74,15 +74,26 @@ stations_1214@data$station[stations_1214@data$station=="macki"] <- "mackie"
 stations_1214@data$station[stations_1214@data$station=="sdc"] <- "sec"
 stations_1214@data$station[stations_1214@data$station=="sugar"] <- "sugarloaf"
 
+glen_ellen_rg <- readOGR("shapefiles", "GlenEllen_ppt_2009_2015")
+summary(glen_ellen_rg)
 
-glen_ellen_rg <- spTransform(glen_ellen_rg, CRSobj = proj4string(stations_0308))
-str(glen_ellen_rg)
-glen_ellen_rg@data$lon_utm <- glen_ellen_rg@coords[,1]
-glen_ellen_rg@data$lat_utm <- glen_ellen_rg@coords[,2]
+prj <- proj4string(stations_1214)
 
-      
+glen_ellen_rg <- spTransform(glen_ellen_rg, CRSobj = prj)
+stations_0308 <- spTransform(stations_0308, CRSobj = prj)
+stations_0911 <- spTransform(stations_0911, CRSobj = prj)
+
+glen_ellen_rg@data$lon <- glen_ellen_rg@coords[,1]
+glen_ellen_rg@data$lat <- glen_ellen_rg@coords[,2]
+glen_ellen_rg@data <- glen_ellen_rg@data %>% 
+      rename(lat_utm = lat, lon_utm = lon)
+
+summary(glen_ellen_rg)
+summary(stations_0911)
+summary(stations_1214)
+
 stations_0911 <- spRbind(stations_0911, glen_ellen_rg)
-stations_1214 <- spRbind(stations_1214, glen_ellen_rg)
+stations_1214 <- spRbind(stations_1214, glen_ellen_rg[, c("station", "lat_utm", "lon_utm")])
 ```
 
 ```{r join data}
@@ -110,10 +121,6 @@ rs09 <- select(rainy09@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %
 rs10 <- select(rainy10@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2010)
 
 rs_totals <- rbind(rs04, rs05, rs06, rs07, rs08, rs09, rs10)
-correlations <- select(rs_totals, totppt_mm, psm_totppt, year) %>% 
-      group_by(year) %>% 
-      summarise(corr = round(cor(totppt_mm, psm_totppt), 4)) %>% 
-      mutate(label = paste("Pearson's R: ", as.character(corr)))
 
 ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm)) +
       geom_point(aes(color = as.factor(year)), size = 5) +
@@ -121,6 +128,18 @@ ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm)) +
       ylab("Rain gauge precipitation (mm)") +
       ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation")
 cor(rs_totals$psm_totppt, rs_totals$totppt_mm)
+
+correlations <- select(rs_totals, totppt_mm, psm_totppt, year) %>% 
+      group_by(year) %>% 
+      summarise(corr = round(cor(totppt_mm, psm_totppt), 4),
+                avg_dev = mean(psm_totppt - totppt_mm),
+                avg_abs_dev = mean(abs(psm_totppt - totppt_mm))) %>%
+      mutate(label = paste("Pearson's R: ", as.character(corr)))
+
+deviation <- select(rs_totals, station, totppt_mm, psm_totppt, year) %>% 
+      group_by(station, year) %>% 
+      summarise(abs_dev = abs(psm_totppt - totppt_mm))
+summary(deviation)
 
 rs_totals.cor <- ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm))
 rs_totals.cor + 
@@ -135,6 +154,86 @@ rs_totals.cor +
       ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation") +
       theme_bw()
 ```
+
+
+## Monthly precip correlation: rain gauges vs. PRISM
+
+I added monthly rainfall totals from our rain gauges and extracted values from the downscaled PRISM surfaces into `stations_0308` and `stations_0911` data frames. I now want to convert the wide formatted monthly PRISM data to long format so that it is easier to plot across months and years using `ggplot` functionality.
+```{r convert PRISM wide to long}
+stations_0308
+stations_0911
+
+monthly_prism.wide <- stations_0308@data %>% 
+      select(station, starts_with("prsm"))
+# monthly_rg.wide <- stations_0308@data %>% select(station, starts_with("ppt"))
+
+tmp <- head(monthly_prism.wide %>% 
+                  gather(key = year, value = prism_ppt, -station)) %>%
+      separate(col = year, into = c("year", "month"), sep = "_")
+gsub("prsm", "20", tmp$year)
+
+monthly_prism.long <- monthly_prism.wide %>%
+      gather(key = year, value = prism_ppt, -station) %>%
+      separate(col = year, into = c("year", "month"), sep = "_")
+monthly_prism.long$year <- gsub("prsm", "20", monthly_prism.long$year)
+```
+
+Join the long formatted PRISM monthly data to the long formatted monthly data from our rain gauges:
+```{r join long PRISM to long RG}
+monthly
+head(monthly_prism.long)
+monthly_prism.long$date <- as.Date(
+      paste(monthly_prism.long$year, 
+            monthly_prism.long$month, "01", sep = "-"))
+
+monthly$month <- months(monthly$date, abbreviate = T)
+monthly_prism.long$month <- months(monthly_prism.long$date, abbreviate = T)
+monthly_prism.long$year <- as.numeric(monthly_prism.long$year)
+
+prism_rg <- left_join(
+      select(monthly, id, monthly_ppt_mm, year, month, date),
+      select(monthly_prism.long, station, prism_ppt, year, month),
+      by = c("id" = "station", "year", "month"))
+prism_rg
+summary(prism_rg)
+```
+
+PRISM rainfall data only goes through 2010, so that is why there are 456 `NAs` for that column. To do the correlation I am going to drop the rows with `NA` for the PRISM data, and then omit any of the remaining rows that have `NA` for our rain gauge data when I do the correlation.
+```{r monthly data corr}
+summary(prism_rg)
+prism_rg <- filter(prism_rg, !is.na(prism_ppt))
+prism_rg <- filter(prism_rg, !is.na(monthly_ppt_mm))
+str(prism_rg)
+prism_rg$month <- factor(months(prism_rg$date), levels = month.name)
+
+monthly.cor <- select(prism_rg, monthly_ppt_mm, prism_ppt, year, month, date) %>% 
+      group_by(year, date, month) %>% 
+      summarise(corr = round(cor(monthly_ppt_mm, prism_ppt), 4),
+                avg_dev = mean(prism_ppt - monthly_ppt_mm),
+                avg_abs_dev = mean(abs(prism_ppt - monthly_ppt_mm))) %>%
+      mutate(label = paste("Pearson's R: ", as.character(corr)))
+summary(monthly.cor)
+```
+
+The `NAs` introduced into the correlatin are due to zero values for some of monthly precipitation values. Now to make a plot of the correlations by month and year.
+
+```{r plot monthly precip correlations}
+ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
+      geom_point() +
+      geom_smooth(method ="lm", size = 0.5, se = F) +
+      facet_grid(month ~ year) +
+      geom_text(aes(x = 200, y = 500, label = label), data = monthly.cor) +
+      xlab("PRISM Precipitation (mm)") +
+      ylab("Rain gauge precipitation (mm)") +
+      ggtitle("Rain Gauges vs. PRISM Precipitation") +
+      theme_bw()
+```
+
+```{r monthly data deviation}
+monthly.dev <- prism_rg %>% group_by(id, year, date) %>% 
+      summarise(abs_dev = abs(prism_ppt - monthly_ppt_mm))
+```
+
 
 
 EDA, spatial data visualization, and variogram analysis following methods in section 2.5 *Hierarchical Modeling and Analysis for Spatial Data* (p. 44). 
@@ -274,4 +373,6 @@ fit_ppt_nov03 <- fit.variogram(vario_ppt_nov03, vgm(psill = 1000, model = "Exp",
 
 plot(vario_ppt_nov03, fit_ppt_nov03)
 ```
+
+
 
