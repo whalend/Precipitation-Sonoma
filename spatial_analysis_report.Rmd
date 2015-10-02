@@ -1,0 +1,57 @@
+---
+title: "spatial_analysis_report"
+author: "Whalen Dillon"
+date: "October 2, 2015"
+output: html_document
+---
+
+## Report to summarize some of the spatial analysis
+This reports on some of the exploratory analysis of spatial relationships in the precipitation data, as well as a comparison of our rain gauge data to estimates from downscaled PRISM data. 
+(These code chunks are mostly pulled from the `spatial_analysis.Rmd`)
+
+```{r load spatial .Rdata, echo=FALSE}
+load("~/Documents/soco_ppt/spatial_201510.RData")
+```
+
+#### Comparing Rainy Season Totals from PRISM & Rain Gauges
+```{r rainy season correlation}
+rs_totals.cor <- ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm))
+rs_totals.cor + 
+      geom_point() +
+      geom_smooth(method ="lm", size = 0.5, se = F) +
+      geom_abline(intercept = 0) +
+      facet_grid(year ~ ., scales = "free_x", space = "free_x") +
+      # scale_x_continuous(breaks = seq(500, 2000, 500)) +
+      geom_text(aes(x = 500, y = 1000, label = label), data = correlations, 
+                hjust = 0, vjust = 0) +
+      xlab("PRISM precipitation (mm)") +
+      ylab("Rain gauge precipitation (mm)") +
+      ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation") +
+      theme_bw()
+```
+
+Table of rainy season aggregations correlations and deviations 
+```{r rainy season cor table}
+library(xtable)
+xtable(correlations)
+```
+
+#### Comparing Monthly Totals from PRISM & Rain Gauges
+```{r monthly correlation}
+monthly.cor <- ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm))
+monthly.cor +
+      geom_point() +
+      geom_smooth(method ="lm", size = 0.5, se = F) +
+      geom_abline(intercept = 0) +
+      facet_grid(month ~ year) +
+      geom_text(aes(x = 200, y = 500, label = label), data = monthly.cor) +
+      xlab("PRISM Precipitation (mm)") +
+      ylab("Rain gauge precipitation (mm)") +
+      ggtitle("Monthly Totals Rain Gauges vs. PRISM Precipitation") +
+      theme_bw()
+```
+
+```{r}
+monthly.cor
+```
+
