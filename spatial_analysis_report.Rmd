@@ -177,7 +177,7 @@ kable(monthly_dev.avg)
 ___
 
 #### Linear Regression Modeling: Rainy Season Totals
-Here I show pairs plots of precipitation, location (latitude,longitude), and elevation, plus results from linear regression models of precipitation against elevation for each rainy season. The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 rainy season. The plots indicate that the spatial location (latitude or longitude, sometimes both) is more often more strongly correlated with the precipitation recorded at the rain gauges.
+Here I show pairs plots of precipitation, location (latitude,longitude), and elevation, plus results from linear regression models of precipitation against elevation for each rainy season. The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 and 2014 rainy seasons. The plots indicate that the spatial location (latitude or longitude, sometimes both) is more often more strongly correlated with the precipitation recorded at the rain gauges.
 
 Unsurprisingly, the pairs plots show a strong correlation between the PRISM estimate and elevation because elevation is a key parameter in the PRISM and downscaling modeling methods. 
 
@@ -239,4 +239,49 @@ pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt),
 rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
 summary(rs10rg_elev.lm)
 ```
+```{r 2011 pairs elev ols, echo=F}
+pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2011 Rainy Season")
+rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
+summary(rs11rg_elev.lm)
+```
+```{r 2012 pairs elev ols, echo=F}
+pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2012 Rainy Season")
+rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
+summary(rs12rg_elev.lm)
+```
+```{r 2014 pairs elev ols, echo=F}
+pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2014 Rainy Season")
+rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
+summary(rs14rg_elev.lm)
+```
 
+#### Rain Gauge Distance to Coast
+```{r dist 2 pacific coast, echo=F}
+pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
+all.equal(proj4string(pac_coast), proj4string(stations_0308))
+cal_bnd <- readOGR("shapefiles/", "CA_BOUNDARY", verbose = F)
+(cal_bnd)
+all.equal(proj4string(cal_bnd), proj4string(stations_0308))
+plot(cal_bnd); plot(stations_0308, add = T)
+plot(pac_coast); plot(stations_0308, add = T)
+
+library(rgeos)
+stations_0308@data$d2pacific <- gDistance(pac_coast, stations_0308, byid = T)
+stations_0308@data$d2coast <- gDistance(cal_bnd, stations_0308, byid = F)
+
+names(stations_0308@data)
+cor(stations_0308@data$d2pacific, stations_0308@data$d2coast)
+
+```
+
+
+```{r convert Rmd to R, echo=F}
+source("~/Documents/Rscratch/convertRmd2R.r")
+rmd2rscript("spatial_analysis_report.Rmd")
+```

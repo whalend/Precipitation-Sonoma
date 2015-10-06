@@ -2,7 +2,7 @@
 title: "Spatial Exploration Analysis"
 author: "Whalen Dillon"
 date: "September 24, 2015"
-output: pdf_document
+output: html_document
 ---
 
 The "spatial.RData" has spatial points data frames and data frames with daily and monthly precipitation data for each station.
@@ -110,15 +110,61 @@ stations_1214@data <- left_join(stations_1214@data, select(wide_monthly, id, ppt
 summary(stations_1214)
 ```
 
+#### Rain Gauge Distance to Coast
+```{r calculate distance to coast}
+library(rgeos)
+cal_bnd <- readOGR("shapefiles/", "ca_border", verbose = F)
+pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
+stations_0308@data$d2pacific <- apply(gDistance(pac_coast, stations_0308, byid = T), MARGIN = 1, FUN = min)
+stations_0308@data$d2coast <- apply(gDistance(cal_bnd, stations_0308, byid = T), MARGIN = 1, FUN = min)
+stations_0911@data$d2pacific <- apply(gDistance(pac_coast, stations_0911, byid = T), MARGIN = 1, FUN = min)
+stations_0911@data$d2coast <- apply(gDistance(cal_bnd, stations_0911, byid = T), MARGIN = 1, FUN = min)
+stations_1214@data$d2pacific <- apply(gDistance(pac_coast, stations_1214, byid = T), MARGIN = 1, FUN = min)
+stations_1214@data$d2coast <- apply(gDistance(cal_bnd, stations_1214, byid = T), MARGIN = 1, FUN = min)
+
+rainy04 <- spTransform(rainy04, CRSobj = proj4string(cal_bnd))
+rainy05 <- spTransform(rainy05, CRSobj = proj4string(cal_bnd))
+rainy06 <- spTransform(rainy06, CRSobj = proj4string(cal_bnd))
+rainy07 <- spTransform(rainy07, CRSobj = proj4string(cal_bnd))
+rainy08 <- spTransform(rainy08, CRSobj = proj4string(cal_bnd))
+rainy09 <- spTransform(rainy09, CRSobj = proj4string(cal_bnd))
+rainy10 <- spTransform(rainy10, CRSobj = proj4string(cal_bnd))
+rainy11 <- spTransform(rainy11, CRSobj = proj4string(cal_bnd))
+rainy12 <- spTransform(rainy12, CRSobj = proj4string(cal_bnd))
+rainy14 <- spTransform(rainy14, CRSobj = proj4string(cal_bnd))
+
+rainy04@data$d2pacific <- apply(gDistance(pac_coast, rainy04, byid = T), MARGIN = 1, FUN = min)
+rainy05@data$d2pacific <- apply(gDistance(pac_coast, rainy05, byid = T), MARGIN = 1, FUN = min)
+rainy06@data$d2pacific <- apply(gDistance(pac_coast, rainy06, byid = T), MARGIN = 1, FUN = min)
+rainy07@data$d2pacific <- apply(gDistance(pac_coast, rainy07, byid = T), MARGIN = 1, FUN = min)
+rainy08@data$d2pacific <- apply(gDistance(pac_coast, rainy08, byid = T), MARGIN = 1, FUN = min)
+rainy09@data$d2pacific <- apply(gDistance(pac_coast, rainy09, byid = T), MARGIN = 1, FUN = min)
+rainy10@data$d2pacific <- apply(gDistance(pac_coast, rainy10, byid = T), MARGIN = 1, FUN = min)
+rainy11@data$d2pacific <- apply(gDistance(pac_coast, rainy11, byid = T), MARGIN = 1, FUN = min)
+rainy12@data$d2pacific <- apply(gDistance(pac_coast, rainy12, byid = T), MARGIN = 1, FUN = min)
+rainy14@data$d2pacific <- apply(gDistance(pac_coast, rainy14, byid = T), MARGIN = 1, FUN = min)
+
+rainy04@data$d2coast <- apply(gDistance(cal_bnd, rainy04, byid = T), MARGIN = 1, FUN = min)
+rainy05@data$d2coast <- apply(gDistance(cal_bnd, rainy05, byid = T), MARGIN = 1, FUN = min)
+rainy06@data$d2coast <- apply(gDistance(cal_bnd, rainy06, byid = T), MARGIN = 1, FUN = min)
+rainy07@data$d2coast <- apply(gDistance(cal_bnd, rainy07, byid = T), MARGIN = 1, FUN = min)
+rainy08@data$d2coast <- apply(gDistance(cal_bnd, rainy08, byid = T), MARGIN = 1, FUN = min)
+rainy09@data$d2coast <- apply(gDistance(cal_bnd, rainy09, byid = T), MARGIN = 1, FUN = min)
+rainy10@data$d2coast <- apply(gDistance(cal_bnd, rainy10, byid = T), MARGIN = 1, FUN = min)
+rainy11@data$d2coast <- apply(gDistance(cal_bnd, rainy11, byid = T), MARGIN = 1, FUN = min)
+rainy12@data$d2coast <- apply(gDistance(cal_bnd, rainy12, byid = T), MARGIN = 1, FUN = min)
+rainy14@data$d2coast <- apply(gDistance(cal_bnd, rainy14, byid = T), MARGIN = 1, FUN = min)
+```
+
+
 ```{r seasonal rain gauge PRISM correlation}
-summary(rainy04)
-rs04 <- select(rainy04@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2004)
-rs05 <- select(rainy05@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2005)
-rs06 <- select(rainy06@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2006)
-rs07 <- select(rainy07@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2007)
-rs08 <- select(rainy08@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2008)
-rs09 <- select(rainy09@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2009)
-rs10 <- select(rainy10@data, station, lat, lon, elev_m, totppt_mm, psm_totppt) %>% mutate(year = 2010)
+rs04 <- select(rainy04@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2004)
+rs05 <- select(rainy05@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2005)
+rs06 <- select(rainy06@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2006)
+rs07 <- select(rainy07@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2007)
+rs08 <- select(rainy08@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2008)
+rs09 <- select(rainy09@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2009)
+rs10 <- select(rainy10@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2010)
 
 rs_totals <- rbind(rs04, rs05, rs06, rs07, rs08, rs09, rs10)
 
@@ -232,7 +278,6 @@ ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
 monthly.dev <- prism_rg %>% group_by(id, year, date) %>% 
       summarise(abs_dev = abs(prism_ppt - monthly_ppt_mm))
 ```
-
 
 ## Tutorial: Spatial data exploration, visualization, and variogram analysis
 EDA, spatial data visualization, and variogram analysis following methods in section 2.5 *Hierarchical Modeling and Analysis for Spatial Data* (p. 44). 
