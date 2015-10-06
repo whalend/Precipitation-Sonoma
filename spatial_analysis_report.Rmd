@@ -1,49 +1,158 @@
 ---
-title: "spatial_analysis_report"
+title: "Rain Gauge and PRISM Data Report"
 author: "Whalen Dillon"
-date: "October 2, 2015"
+date: "October 5, 2015"
 output: html_document
 ---
 
-## Report to summarize some of the spatial analysis
-This reports on some of the exploratory analysis of spatial relationships in the precipitation data, as well as a comparison of our rain gauge data to estimates from downscaled PRISM data. 
-(These code chunks are mostly pulled from the `spatial_analysis.Rmd`)
+## Precipitation and Spatial Locations of Rain Gauges
+This reports on some of the exploratory analysis of spatial relationships in the precipitation data, including a comparison of our rain gauge data to estimates from downscaled PRISM data (from 800m to 100m). (These code chunks are mostly pulled from my `spatial_analysis.Rmd` file, but this should function as a stand alone with the `spatial_201510.RData` file.)
 
-```{r load spatial .Rdata, echo=FALSE}
+```{r load spatial data, echo=FALSE, message=FALSE}
 load("~/Documents/soco_ppt/spatial_201510.RData")
 ```
 
+```{r rain gauges elevation, echo=FALSE, message=FALSE}
+library(raster); library(rgdal)
+elev <- raster("dem/sod15m.tif")
+sod_plots <- readOGR("shapefiles/", "soco_plots_metric", verbose = F)
+
+plot(elev, main = "Rain Gauge Locations")
+plot(spTransform(stations_0308, CRSobj = proj4string(elev)), pch = 6, col = "blue", bg="transparent", add=TRUE)
+plot(spTransform(sod_plots, CRSobj = proj4string(elev)), pch = 20, cex = .3, add = T)
+```
+
+This figure summarizes the elevation gradient, maximum number of rain gagues and locations relative to the locations of the sudden oak death disease monitoring plots. Elevation is reported in feet. The point-down triangles are the rain gauges and the black dots are the plot locations.
+
+____
+
+#### Voronoi surfaces with rain gauge locations
+These figures of the voronoi polygons for the rain gauge locations show how the available data changes, sometimes dramatically from year to year. Rain gauge locations are the point-down triangles, and the dots are the locations of the disease monitoring plots. 
+
+___
+
+```{r plot voronoi surfaces, echo=FALSE, message=FALSE, fig.height=4.5, fig.width=10}
+library(rgdal); library(plyr)
+
+# Read in voronoi polygon shapefiles
+vpolys <- list.files("shapefiles/", pattern = "_vpolys.shp")
+# vpoly_names <- strsplit(vpolys, ".sp")
+for(vpoly in vpolys){
+      assign(paste(strsplit(vpoly, ".shp")), readOGR("shapefiles/", paste(strsplit(vpoly, ".shp")), verbose = F))
+}
+# Read in shapefile with plot locations
+sod_plots <- readOGR("shapefiles/", "soco_plots_metric", verbose = F)
+
+par(mfrow = c(2,5), mar = c(2,2,2,2))
+
+plot(rg04_vpolys, axes = T)
+title(main = "2004 Rain Gauges", line = 1)
+plot(spTransform(rainy04, CRSobj = proj4string(rg04_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg05_vpolys, axes = T)
+title(main = "2005 Rain Gauges", line = 1)
+plot(spTransform(rainy05, CRSobj = proj4string(rg05_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg06_vpolys, axes = T)
+title(main = "2006 Rain Gauges", line = 1)
+plot(spTransform(rainy06, CRSobj = proj4string(rg06_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg07_vpolys, axes = T)
+title(main = "2007 Rain Gauges", line = 1)
+plot(spTransform(rainy07, CRSobj = proj4string(rg07_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg08_vpolys, axes = T)
+title(main = "2008 Rain Gauges", line = 1)
+plot(spTransform(rainy08, CRSobj = proj4string(rg08_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg09_vpolys, axes = T)
+title(main = "2009 Rain Gauges", line = 1)
+plot(spTransform(rainy09, CRSobj = proj4string(rg09_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg10_vpolys, axes = T)
+title(main = "2010 Rain Gauges", line = 1)
+plot(spTransform(rainy10, CRSobj = proj4string(rg10_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg11_vpolys, axes = T)
+title(main = "2011 Rain Gauges", line = 1)
+plot(spTransform(rainy11, CRSobj = proj4string(rg11_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg12_vpolys, axes = T)
+title(main = "2012 Rain Gauges", line = 1)
+plot(spTransform(rainy12, CRSobj = proj4string(rg12_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+
+plot(rg14_vpolys, axes = T)
+title(main = "2014 Rain Gauges", line = 1)
+plot(spTransform(rainy14, CRSobj = proj4string(rg14_vpolys)), pch = 6, col = "blue", add = T)
+plot(sod_plots, pch = 20, cex = .3, add = T)
+```
+
+___
+
 #### Comparing Rainy Season Totals from PRISM & Rain Gauges
-```{r rainy season correlation}
+I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004.
+
+___
+
+```{r rainy season correlation, echo=FALSE, message=FALSE, fig.width=12, fig.height=12}
+library(ggplot2); library(dplyr)
+
 rs_totals.cor <- ggplot(data = rs_totals, aes(x = psm_totppt, y = totppt_mm))
 rs_totals.cor + 
       geom_point() +
       geom_smooth(method ="lm", size = 0.5, se = F) +
       geom_abline(intercept = 0) +
-      facet_grid(year ~ ., scales = "free_x", space = "free_x") +
-      # scale_x_continuous(breaks = seq(500, 2000, 500)) +
-      geom_text(aes(x = 500, y = 1000, label = label), data = correlations, 
+      facet_wrap(~ year) +
+      # facet_grid(year ~ .) +
+      # coord_fixed(1) +
+      theme(aspect.ratio = 1) +
+      # scale_x_continuous(expand = c(0,0), breaks = seq(0, 1500, 500)) +
+      # scale_y_continuous(expand = c(0,0), breaks = seq(0, 1500, 500)) +
+      geom_text(aes(x = 50, y = 900, label = label), data = correlations, 
                 hjust = 0, vjust = 0) +
       xlab("PRISM precipitation (mm)") +
       ylab("Rain gauge precipitation (mm)") +
-      ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation") +
+      ggtitle("Rainy Season Totals Rain Gauge Precipitation vs. PRISM Precipiation") +
       theme_bw()
 ```
 
-Table of rainy season aggregations correlations and deviations 
-```{r rainy season cor table}
-library(xtable)
-xtable(correlations)
+The blue line is the fit of a linear model between the PRISM and rain gauge data. The black line is the 1:1 fit, which is where the points would fall if the PRISM and rain gauge data lined up perfectly. Nearly all the records from the rain gauges are less than the estimates from the PRISM data.
+
+____
+
+**Table of rainy season aggregations correlations and deviations**
+```{r rainy season cor table, echo=FALSE}
+library(knitr)
+cor.table <- select(correlations, -label) %>% 
+      rename(Correlation = corr, "Avg Deviation" = avg_dev, "Mean Absolute Deviation" = avg_abs_dev)
+kable(cor.table)
 ```
 
+____
+
 #### Comparing Monthly Totals from PRISM & Rain Gauges
-```{r monthly correlation}
-monthly.cor <- ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm))
-monthly.cor +
+
+The highest temporal resolution we have for PRISM data is monthly rainfall totals, so I did a comparison by plotting the values for total rainfall from PRISM and our rain gauges for each month from 2003-2010. The final years is 2010 because that is the last year of downscaled PRISM data. Similarly to the seasonal aggregation the records from the rain gauges are nearly always less than the estimates from the PRISM data. 
+
+```{r monthly correlation, echo=FALSE, fig.width=16, fig.height=20}
+ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
       geom_point() +
       geom_smooth(method ="lm", size = 0.5, se = F) +
       geom_abline(intercept = 0) +
       facet_grid(month ~ year) +
+      # coord_fixed(1) +
+      # theme(aspect.ratio = 1) +
+      scale_x_continuous(breaks = seq(0, 600, 200)) +
+      scale_y_continuous(breaks = seq(0, 600, 200)) +
       geom_text(aes(x = 200, y = 500, label = label), data = monthly.cor) +
       xlab("PRISM Precipitation (mm)") +
       ylab("Rain gauge precipitation (mm)") +
@@ -51,7 +160,83 @@ monthly.cor +
       theme_bw()
 ```
 
-```{r}
-monthly.cor
+____
+
+The black line is the 1:1 fit and the blue line is the fit from a linear model. Month-year combinations where the correlation is "NA" results from having only 1 or 0 records from the rain gauge data.
+
+I am unsure about how to summarize these monthly data into a table, or if that even makes sense. I could do a summary of the average of the monthly deviations for each year, i.e.:
+
+```{r average monthly deviation, echo=F, eval=T}
+monthly_dev.avg <- monthly.dev %>% filter(date >= 2004) %>% 
+      select(year, abs_dev) %>% 
+      group_by(year) %>% 
+      summarise("Absolute Mean of Monthly Deviations" = mean(abs_dev))
+kable(monthly_dev.avg)
+```
+
+___
+
+#### Linear Regression Modeling: Rainy Season Totals
+Here I show pairs plots of precipitation, location (latitude,longitude), and elevation, plus results from linear regression models of precipitation against elevation for each rainy season. The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 rainy season. The plots indicate that the spatial location (latitude or longitude, sometimes both) is more often more strongly correlated with the precipitation recorded at the rain gauges.
+
+Unsurprisingly, the pairs plots show a strong correlation between the PRISM estimate and elevation because elevation is a key parameter in the PRISM and downscaling modeling methods. 
+
+```{r load packages, echo=F}
+# library(broom)
+source("~/Documents/Rscratch/panel_cor.R")
+```
+
+```{r 2004 pairs elev ols, echo=F}
+pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2004 Rainy Season")
+rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
+# formula(rs04rg_elev.lm)
+# tidy(rs04rg_elev.lm)
+# glance(rs04rg_elev.lm)
+summary(rs04rg_elev.lm)
+```
+```{r 2005 pairs elev ols, echo=F}
+pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2005 Rainy Season")
+rs05rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy05)
+summary(rs05rg_elev.lm)
+```
+```{r 2006 pairs elev ols, echo=F}
+pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2006 Rainy Season")
+rs06rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy06)
+summary(rs06rg_elev.lm)
+```
+```{r 2007 pairs elev ols, echo=F}
+pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2007 Rainy Season")
+rs07rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy07)
+summary(rs07rg_elev.lm)
+```
+```{r 2008 pairs elev ols, echo=F}
+pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2008 Rainy Season")
+rs08rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy08)
+summary(rs08rg_elev.lm)
+```
+```{r 2009 pairs elev ols, echo=F}
+pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2009 Rainy Season")
+# summary(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt))
+rs09rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy09)
+summary(rs09rg_elev.lm)
+```
+```{r 2010 pairs elev ols, echo=F}
+pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2010 Rainy Season")
+rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
+summary(rs10rg_elev.lm)
 ```
 
