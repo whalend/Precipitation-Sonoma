@@ -131,10 +131,10 @@ cor(rs_totals$psm_totppt, rs_totals$totppt_mm)
 
 correlations <- select(rs_totals, totppt_mm, psm_totppt, year) %>% 
       group_by(year) %>% 
-      summarise(corr = round(cor(totppt_mm, psm_totppt), 4),
+      summarise(corr = round(cor(totppt_mm, psm_totppt), 2),
                 avg_dev = mean(psm_totppt - totppt_mm),
                 avg_abs_dev = mean(abs(psm_totppt - totppt_mm))) %>%
-      mutate(label = paste("Pearson's R: ", as.character(corr)))
+      mutate(label = paste("R = ", as.character(corr)))
 
 deviation <- select(rs_totals, station, totppt_mm, psm_totppt, year) %>% 
       group_by(station, year) %>% 
@@ -147,7 +147,7 @@ rs_totals.cor +
       geom_smooth(method ="lm", size = 0.5, se = F) +
       facet_grid(year ~ ., scales = "free_x", space = "free_x") +
       # scale_x_continuous(breaks = seq(500, 2000, 500)) +
-      geom_text(aes(x = 500, y = 1000, label = label), data = correlations, 
+      geom_text(aes(x = 1, y = 1000, label = label), data = correlations, 
                 hjust = 0, vjust = 0) +
       xlab("PRISM precipitation (mm)") +
       ylab("Rain gauge precipitation (mm)") +
@@ -157,7 +157,6 @@ rs_totals.cor +
 
 
 ## Monthly precip correlation: rain gauges vs. PRISM
-
 I added monthly rainfall totals from our rain gauges and extracted values from the downscaled PRISM surfaces into `stations_0308` and `stations_0911` data frames. I now want to convert the wide formatted monthly PRISM data to long format so that it is easier to plot across months and years using `ggplot` functionality.
 ```{r convert PRISM wide to long}
 stations_0308
@@ -208,10 +207,10 @@ prism_rg$month <- factor(months(prism_rg$date), levels = month.name)
 
 monthly.cor <- select(prism_rg, monthly_ppt_mm, prism_ppt, year, month, date) %>% 
       group_by(year, date, month) %>% 
-      summarise(corr = round(cor(monthly_ppt_mm, prism_ppt), 4),
+      summarise(corr = round(cor(monthly_ppt_mm, prism_ppt), 2),
                 avg_dev = mean(prism_ppt - monthly_ppt_mm),
                 avg_abs_dev = mean(abs(prism_ppt - monthly_ppt_mm))) %>%
-      mutate(label = paste("Pearson's R: ", as.character(corr)))
+      mutate(label = paste("R = ", as.character(corr)))
 summary(monthly.cor)
 ```
 
@@ -235,7 +234,7 @@ monthly.dev <- prism_rg %>% group_by(id, year, date) %>%
 ```
 
 
-
+## Tutorial: Spatial data exploration, visualization, and variogram analysis
 EDA, spatial data visualization, and variogram analysis following methods in section 2.5 *Hierarchical Modeling and Analysis for Spatial Data* (p. 44). 
 
 Tutorial from the book:
@@ -327,7 +326,119 @@ rm(coords); rm(fit.DBH); rm(vario.DBH); rm(fit.dbh.resid); rm(vario.dbh.resid)
 rm(WEF.dat); rm(dbh); rm(dbh.resid); rm(ht); rm(sp.dat)
 ```
 
-Variogram analysis of precipitation data
+## Variogram analysis of precipitation data
+
+#### OLS Models of precipitation
+I am going to make a serious of OLS regression models of precipitation values for the rainy season and monthly aggregations. I will fit separte models for the rain gauge measurements and the estimates from the downscaled PRISM data using only elevation, latitude, and longitude as predictor variables.
+```{r rainy season OLS models}
+# source custom panel functions for `pairs`
+source("~/Documents/Rscratch/panel_cor.R")
+library(MuMIn)
+options(na.action = "na.fail")
+
+pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2004 Rainy Season")
+rs04rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy04)
+rs04psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy04)
+rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
+summary(rs04rg.lm)
+# dredge(rs04rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs04psm.lm)
+summary(rs04rg_elev.lm)
+
+pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2005 Rainy Season")
+rs05rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy05)
+rs05psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy05)
+rs05rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy05)
+summary(rs05rg.lm)
+# dredge(rs05rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs05psm.lm)
+summary(rs05rg_elev.lm)
+
+pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2006 Rainy Season")
+rs06rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy06)
+rs06psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy06)
+rs06rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy06)
+summary(rs06rg.lm)
+# dredge(rs06rg.lm, extra = c("adjR^2", "R^2")
+summary(rs06psm.lm)
+summary(rs06rg_elev.lm)
+
+pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2007 Rainy Season")
+rs07rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy07)
+rs07psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy07)
+rs07rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy07)
+summary(rs07rg.lm)
+# dredge(rs07rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs07psm.lm)
+summary(rs07rg_elev.lm)
+
+pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2008 Rainy Season")
+rs08rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy08)
+rs08psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy08)
+rs08rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy08)
+summary(rs08rg.lm)
+# dredge(rs08rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs08psm.lm)
+summary(rs08rg_elev.lm)
+
+pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2009 Rainy Season")
+rs09rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy09)
+rs09psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy09)
+rs09rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy09)
+summary(rs09rg.lm)
+# dredge(rs09rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs09psm.lm)
+summary(rs09rg_elev.lm)
+
+pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2010 Rainy Season")
+rs10rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy10)
+rs10psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy10)
+rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
+summary(rs10rg.lm)
+# dredge(rs10rg.lm, extra = c("adjR^2", "R^2"))
+summary(rs10psm.lm)
+summary(rs10rg_elev.lm)
+
+pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2011 Rainy Season")
+rs11rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy11)
+rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
+summary(rs11rg.lm)
+summary(rs11rg_elev.lm)
+
+pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2012 Rainy Season")
+rs12rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy12)
+rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
+summary(rs12rg.lm)
+summary(rs12rg_elev.lm)
+
+pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2014 Rainy Season")
+rs14rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy14)
+rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
+summary(rs14rg.lm)
+summary(rs14rg_elev.lm)
+```
+
+
 ```{r precipitation variogram}
 library(gstat); library(geoR)
 summary(stations_0308)
@@ -336,7 +447,13 @@ library(raster)
 elev <- raster("dem/sod15m.tif")
 elev
 stations_0308$elev_m <- extract(elev * .3048, stations_0308)
+stations_0911$elev_m <- extract(elev * .3048, stations_0911)
+stations_1214$elev_m <- extract(elev * .3048, stations_1214)
+rm(elev)
 detach("package:raster", unload=TRUE)
+save.image("~/Documents/soco_ppt/spatial_201510.RData")
+
+
 
 ppt_nov03.sp <- stations_0308[, c("station", "lat_utm", "lon_utm", "elev_m", "ppt_nov03")]
 ppt_nov03.sp <- ppt_nov03.sp[!is.na(ppt_nov03.sp$ppt_nov03), ]
