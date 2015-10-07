@@ -26,7 +26,7 @@ This figure summarizes the elevation gradient, maximum number of rain gagues and
 
 ____
 
-#### Voronoi surfaces with rain gauge locations
+### Voronoi surfaces with rain gauge locations
 These figures of the voronoi polygons for the rain gauge locations show how the available data changes, sometimes dramatically from year to year. Rain gauge locations are the point-down triangles, and the dots are the locations of the disease monitoring plots. 
 
 ___
@@ -98,7 +98,7 @@ plot(sod_plots, pch = 20, cex = .3, add = T)
 
 ___
 
-#### Comparing Rainy Season Totals from PRISM & Rain Gauges
+### Comparing Rainy Season Totals from PRISM & Rain Gauges
 I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004.
 
 ___
@@ -139,7 +139,7 @@ kable(cor.table)
 
 ____
 
-#### Comparing Monthly Totals from PRISM & Rain Gauges
+### Comparing Monthly Totals from PRISM & Rain Gauges
 
 The highest temporal resolution we have for PRISM data is monthly rainfall totals, so I did a comparison by plotting the values for total rainfall from PRISM and our rain gauges for each month from 2003-2010. The final years is 2010 because that is the last year of downscaled PRISM data. Similarly to the seasonal aggregation the records from the rain gauges are nearly always less than the estimates from the PRISM data. 
 
@@ -176,108 +176,157 @@ kable(monthly_dev.avg)
 
 ___
 
-#### Linear Regression Modeling: Rainy Season Totals
+### Linear Regression Modeling: Rainy Season Totals
 Here I show pairs plots of precipitation, location (latitude,longitude), and elevation, plus results from linear regression models of precipitation against elevation for each rainy season. The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 and 2014 rainy seasons. The plots indicate that the spatial location (latitude or longitude, sometimes both) is more often more strongly correlated with the precipitation recorded at the rain gauges.
 
 Unsurprisingly, the pairs plots show a strong correlation between the PRISM estimate and elevation because elevation is a key parameter in the PRISM and downscaling modeling methods. 
+
+#### Rain Gauge Distance to Coast
+
+I wanted to illustrate why I calculated to measures for distance to coastline. In this figure the Pacific Ocean proper is to the left of the green line, but the northern shore of the San Pablo bay also forms a significant coastline near the study area. So, I calculated the distance to coastline as the distance to the Pacific Ocean proper, and to the nearest coastline, which I believe was the north shore of the San Pablo Bay for all the rain gauge locations based on estimates with the measuring tool in GIS. Each of these metrics correlate closely with latitude (distance to coast `d2coast`) or longitude (distance to Pacific Ocean `d2pacific`).
+
+```{r plot border and rain gauges, echo=F}
+pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
+# all.equal(proj4string(pac_coast), proj4string(stations_0308))
+cal_bnd <- readOGR("shapefiles/", "ca_border", verbose = F)
+# str(cal_bnd)
+# summary(cal_bnd)
+# all.equal(proj4string(cal_bnd), proj4string(stations_0308))
+plot(pac_coast, col = "green", lwd = 2)
+plot(stations_0308, pch = 6, cex = .5, col = "blue", add = T)
+plot(cal_bnd, add = T)
+```
 
 ```{r load packages, echo=F}
 # library(broom)
 source("~/Documents/Rscratch/panel_cor.R")
 ```
 
-```{r 2004 pairs elev ols, echo=F}
-pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2004 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
-rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
+
+rs04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
+rs04.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy04)
+rs04.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
+rs04.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy04)
+
+summary(rs04.lm1); summary(rs04.lm2); summary(rs04.lm3); summary(rs04.lm4)
+
 # formula(rs04rg_elev.lm)
 # tidy(rs04rg_elev.lm)
 # glance(rs04rg_elev.lm)
-summary(rs04rg_elev.lm)
 ```
-```{r 2005 pairs elev ols, echo=F}
-pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2005 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2005 Rainy Season")
-rs05rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy05)
-summary(rs05rg_elev.lm)
+
+rs05.lm1 <- lm(totppt_mm ~ elev_m, data = rainy05)
+rs05.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
+rs05.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy05)
+rs05.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
+
+summary(rs05.lm1); summary(rs05.lm2); summary(rs05.lm3); summary(rs05.lm4)
 ```
-```{r 2006 pairs elev ols, echo=F}
-pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2006 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2006 Rainy Season")
-rs06rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy06)
-summary(rs06rg_elev.lm)
+
+rs06.lm1 <- lm(totppt_mm ~ elev_m, data = rainy06)
+rs06.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy06)
+rs06.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy06)
+rs06.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy06)
+rs06.lm5 <- lm(totppt_mm ~ d2coast, data = rainy06)
+
+summary(rs06.lm1); summary(rs06.lm2); summary(rs06.lm3); summary(rs06.lm4)
+summary(rs06.lm5)
 ```
-```{r 2007 pairs elev ols, echo=F}
-pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2007 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2007 Rainy Season")
-rs07rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy07)
-summary(rs07rg_elev.lm)
+
+rs07.lm1 <- lm(totppt_mm ~ elev_m, data = rainy07)
+rs07.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy07)
+rs07.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy07)
+rs07.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy07)
+
+summary(rs07.lm1); summary(rs07.lm2); summary(rs07.lm3); summary(rs07.lm4)
 ```
-```{r 2008 pairs elev ols, echo=F}
-pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2008 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2008 Rainy Season")
-rs08rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy08)
-summary(rs08rg_elev.lm)
+
+rs08.lm1 <- lm(totppt_mm ~ elev_m, data = rainy08)
+rs08.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy08)
+rs08.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy08)
+rs08.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy08)
+
+summary(rs08.lm1); summary(rs08.lm2); summary(rs08.lm3); summary(rs08.lm4)
 ```
-```{r 2009 pairs elev ols, echo=F}
-pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2009 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2009 Rainy Season")
-# summary(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt))
-rs09rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy09)
-summary(rs09rg_elev.lm)
+
+rs09.lm1 <- lm(totppt_mm ~ elev_m, data = rainy09)
+rs09.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy09)
+rs09.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy09)
+rs09.lm4 <- lm(totppt_mm ~ d2coast, data = rainy09)
+
+summary(rs09.lm1); summary(rs09.lm2); summary(rs09.lm3); summary(rs09.lm4)
 ```
-```{r 2010 pairs elev ols, echo=F}
-pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r 2010 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2010 Rainy Season")
-rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
-summary(rs10rg_elev.lm)
+
+rs10.lm1 <- lm(totppt_mm ~ elev_m, data = rainy10)
+rs10.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy10)
+rs10.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy10)
+rs10.lm4 <- lm(totppt_mm ~ d2coast, data = rainy10)
+
+summary(rs10.lm1); summary(rs10.lm2); summary(rs10.lm3); summary(rs10.lm4)
 ```
-```{r 2011 pairs elev ols, echo=F}
-pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon),
+```{r 2011 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2011 Rainy Season")
-rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
-summary(rs11rg_elev.lm)
+
+rs11.lm1 <- lm(totppt_mm ~ elev_m, data = rainy11)
+rs11.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
+rs11.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy11)
+rs11.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
+
+summary(rs11.lm1); summary(rs11.lm2); summary(rs11.lm3); summary(rs11.lm4)
 ```
-```{r 2012 pairs elev ols, echo=F}
-pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon),
+```{r 2012 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2012 Rainy Season")
-rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
-summary(rs12rg_elev.lm)
+
+rs12.lm1 <- lm(totppt_mm ~ elev_m, data = rainy12)
+rs12.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy12)
+rs12.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy12)
+rs12.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy12)
+
+summary(rs12.lm1); summary(rs12.lm2); summary(rs12.lm3); summary(rs12.lm4)
 ```
-```{r 2014 pairs elev ols, echo=F}
-pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon),
+```{r 2014 pairs elev ols, echo=F, fig.height=8, fig.width=9}
+pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2014 Rainy Season")
-rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
-summary(rs14rg_elev.lm)
-```
 
-#### Rain Gauge Distance to Coast
-```{r dist 2 pacific coast, echo=F}
-pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
-all.equal(proj4string(pac_coast), proj4string(stations_0308))
-cal_bnd <- readOGR("shapefiles/", "CA_BOUNDARY", verbose = F)
-(cal_bnd)
-all.equal(proj4string(cal_bnd), proj4string(stations_0308))
-plot(cal_bnd); plot(stations_0308, add = T)
-plot(pac_coast); plot(stations_0308, add = T)
+rs14.lm1 <- lm(totppt_mm ~ elev_m, data = rainy14)
+rs14.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy14)
+rs14.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy14)
+rs14.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy14)
 
-library(rgeos)
-stations_0308@data$d2pacific <- gDistance(pac_coast, stations_0308, byid = T)
-stations_0308@data$d2coast <- gDistance(cal_bnd, stations_0308, byid = F)
-
-names(stations_0308@data)
-cor(stations_0308@data$d2pacific, stations_0308@data$d2coast)
-
+summary(rs14.lm1); summary(rs14.lm2); summary(rs14.lm3); summary(rs14.lm4)
 ```
 
 
