@@ -464,7 +464,7 @@ rainy12 <- rainy012; rainy14 <- rainy013
 rm(list = ls(pattern = "01"))
 ```
 
-```{r pairs plots & linear models}
+```{r pairs plots & linear models, eval=F}
 library(MuMIn)
 panel.hist <- function(x, ...){
     usr <- par("usr"); on.exit(par(usr))
@@ -608,7 +608,7 @@ Due to the randomness of rainfall over even small areas, the best-practice appro
 
 
 Create Thiessen Polygon surfaces with rainfall values
-```{r Thiessen polygons test}
+```{r Thiessen polygons test, eval=F}
 # The `voronoi function from the `dismo` package, which was adapted from the code by Carson Farmer
 library(dismo)
 v1 <- voronoi(rg_2003_2008)
@@ -651,7 +651,7 @@ voronoipolygons <- function(x) {
 
 Proof that it works, but I think I need to do this to the subset for each season so that only points with observations are used. I should end up with 10 surfaces with varying numbers of polygons depending on how many sites were `NA` or removed b/c outliers for that season.
 
-```{r create season Thiessen polys}
+```{r create season Thiessen polys, eval=F}
 library(rgdal); library(dismo)
 rainy04v <- voronoi(rainy04 <- readOGR(dsn = "shapefiles", layer = "rain_gauges04"))
 rainy05v <- voronoi(rainy05 <- readOGR(dsn = "shapefiles", layer = "rain_gauges05"))
@@ -667,7 +667,7 @@ rainy14v <- voronoi(rainy14 <- readOGR(dsn = "shapefiles", layer = "rain_gauges1
 ```
 
 Overlay Thiessen polygons and plot locations
-```{r overlay plots and Thiessen polys}
+```{r overlay plots and Thiessen polys, eval=F}
 library(rgdal)
 plts <- readOGR(dsn = "shapefiles", layer = "soco_plots_metric")
 str(plts)
@@ -701,7 +701,7 @@ The voronoi (Thiessen) polygons don't extend to the edges of the extent as it is
 
 How do I extend the `bbox` of the point shapefiles to the elevation surface extent and have that captured by the `voronoi` function?
 
-```{r extend bbox}
+```{r extend bbox, eval=F}
 bbox(elev)
 bbox(rainy04)
 all.equal(proj4string(elev), proj4string(rainy04))
