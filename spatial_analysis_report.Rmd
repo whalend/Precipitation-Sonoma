@@ -139,6 +139,52 @@ kable(cor.table)
 
 ____
 
+### Map of PRISM-Rain Gauge Deviations for Rainy Season Totals
+A map showing the absolute deviation between the rain gauge record and the PRISM estimate for total rainy season rainfall at the rain gauge locations.
+
+```{r map deviations, echo=F, message=F, fig.width=10, fig.height=7}
+library(raster)
+elev <- raster("dem/sod15m.tif")
+par(mfrow = c(2,4), mar = c(1,1,4,1))
+
+plot(elev, legend = F, axes = F)
+title(main = "2004", line = 1)
+plot(spTransform(rainy04, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy04, CRSobj = proj4string(elev)), labels = round(rainy04$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2005", line = 1)
+plot(spTransform(rainy05, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy05, CRSobj = proj4string(elev)), labels = round(rainy05$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2006", line = 1)
+plot(spTransform(rainy06, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy06, CRSobj = proj4string(elev)), labels = round(rainy06$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2007", line = 1)
+plot(spTransform(rainy07, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy07, CRSobj = proj4string(elev)), labels = round(rainy07$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2008", line = 1)
+plot(spTransform(rainy08, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy08, CRSobj = proj4string(elev)), labels = round(rainy08$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2009", line = 1)
+plot(spTransform(rainy09, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy09, CRSobj = proj4string(elev)), labels = round(rainy09$psm_rg_dev), pos = 3, cex = .7)
+
+plot(elev, legend = F, axes = F)
+title(main = "2010", line = 1)
+plot(spTransform(rainy10, CRSobj = proj4string(elev)), pch = 6, col = "blue", cex = 0.7, add = T)
+text(spTransform(rainy10, CRSobj = proj4string(elev)), labels = round(rainy10$psm_rg_dev), pos = 3, cex = .7)
+```
+
+___
+
 ### Comparing Monthly Totals from PRISM & Rain Gauges
 
 The highest temporal resolution we have for PRISM data is monthly rainfall totals, so I did a comparison by plotting the values for total rainfall from PRISM and our rain gauges for each month from 2003-2010. The final years is 2010 because that is the last year of downscaled PRISM data. Similarly to the seasonal aggregation the records from the rain gauges are nearly always less than the estimates from the PRISM data. 
@@ -203,13 +249,16 @@ source("~/Documents/Rscratch/panel_cor.R")
 ```
 
 ```{r 2004 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
 
 rs04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
+rs04.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy04)
+rs04.lm1b <- lm(totppt_mm ~ elev_m^2, data = rainy04)
 rs04.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy04)
 rs04.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
+rs04.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy04)
 rs04.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy04)
 
 summary(rs04.lm1); summary(rs04.lm2); summary(rs04.lm3); summary(rs04.lm4)
@@ -219,7 +268,7 @@ summary(rs04.lm1); summary(rs04.lm2); summary(rs04.lm3); summary(rs04.lm4)
 # glance(rs04rg_elev.lm)
 ```
 ```{r 2005 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+pairs(select(rainy05@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2005 Rainy Season")
 
@@ -231,7 +280,7 @@ rs05.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
 summary(rs05.lm1); summary(rs05.lm2); summary(rs05.lm3); summary(rs05.lm4)
 ```
 ```{r 2006 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+pairs(select(rainy06@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2006 Rainy Season")
 
@@ -245,7 +294,7 @@ summary(rs06.lm1); summary(rs06.lm2); summary(rs06.lm3); summary(rs06.lm4)
 summary(rs06.lm5)
 ```
 ```{r 2007 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+pairs(select(rainy07@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2007 Rainy Season")
 
@@ -256,8 +305,8 @@ rs07.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy07)
 
 summary(rs07.lm1); summary(rs07.lm2); summary(rs07.lm3); summary(rs07.lm4)
 ```
-```{r 2008 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+```{r 2008 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy08@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2008 Rainy Season")
 
@@ -268,8 +317,8 @@ rs08.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy08)
 
 summary(rs08.lm1); summary(rs08.lm2); summary(rs08.lm3); summary(rs08.lm4)
 ```
-```{r 2009 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+```{r 2009 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy09@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2009 Rainy Season")
 
@@ -280,8 +329,8 @@ rs09.lm4 <- lm(totppt_mm ~ d2coast, data = rainy09)
 
 summary(rs09.lm1); summary(rs09.lm2); summary(rs09.lm3); summary(rs09.lm4)
 ```
-```{r 2010 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt, d2pacific, d2coast),
+```{r 2010 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy10@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2010 Rainy Season")
 
@@ -292,8 +341,8 @@ rs10.lm4 <- lm(totppt_mm ~ d2coast, data = rainy10)
 
 summary(rs10.lm1); summary(rs10.lm2); summary(rs10.lm3); summary(rs10.lm4)
 ```
-```{r 2011 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
+```{r 2011 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy11@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2011 Rainy Season")
 
@@ -304,8 +353,8 @@ rs11.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
 
 summary(rs11.lm1); summary(rs11.lm2); summary(rs11.lm3); summary(rs11.lm4)
 ```
-```{r 2012 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
+```{r 2012 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy12@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2012 Rainy Season")
 
@@ -316,8 +365,8 @@ rs12.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy12)
 
 summary(rs12.lm1); summary(rs12.lm2); summary(rs12.lm3); summary(rs12.lm4)
 ```
-```{r 2014 pairs elev ols, echo=F, fig.height=8, fig.width=9}
-pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon, d2pacific, d2coast),
+```{r 2014 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy14@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2014 Rainy Season")
 
