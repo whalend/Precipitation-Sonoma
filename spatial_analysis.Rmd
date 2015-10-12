@@ -183,7 +183,7 @@ correlations <- select(rs_totals, totppt_mm, psm_totppt, year) %>%
       mutate(label = paste("R = ", as.character(corr)))
 
 deviation <- select(rs_totals, station, totppt_mm, psm_totppt, year) %>% 
-      group_by(station, year) %>% 
+      group_by(year, station) %>% 
       summarise(abs_dev = abs(psm_totppt - totppt_mm))
 summary(deviation)
 
@@ -199,6 +199,41 @@ rs_totals.cor +
       ylab("Rain gauge precipitation (mm)") +
       ggtitle("Rainy Season Rain Gauge Precipitation vs. PRISM Precipiation") +
       theme_bw()
+```
+
+```{r add prism-rg deviation, echo=FALSE}
+# summary(rainy04)
+rainy04@data <- rainy04@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm))
+# summary(rainy05)
+rainy05@data <- rainy05@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm))
+# summary(rainy06)
+rainy06@data <- rainy06@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm))
+# summary(rainy07)
+rainy07@data <- rainy07@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm))
+# summary(rainy08)
+rainy08@data <- rainy08@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm))
+# summary(rainy09)
+rainy09@data <- rainy09@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm),
+             lat_utm = rainy09@coords[,2], lon_utm = rainy09@coords[,1])
+# summary(rainy10)
+rainy10@data <- rainy10@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(psm_rg_dev = abs(psm_totppt - totppt_mm),
+             lat_utm = rainy10@coords[,2], lon_utm = rainy10@coords[,1])
+# summary(rainy11)
+rainy11@data <- rainy11@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(lat_utm = rainy11@coords[,2], lon_utm = rainy11@coords[,1])
+# summary(rainy12)
+rainy12@data <- rainy12@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(lat_utm = rainy12@coords[,2], lon_utm = rainy12@coords[,1])
+# summary(rainy14)
+rainy14@data <- rainy14@data %>% rename(lat_utm = lat, lon_utm = lon) %>% 
+      mutate(lat_utm = rainy14@coords[,2], lon_utm = rainy14@coords[,1])
 ```
 
 
@@ -375,37 +410,288 @@ rm(WEF.dat); rm(dbh); rm(dbh.resid); rm(ht); rm(sp.dat)
 
 #### OLS Models of precipitation
 I am going to make a serious of OLS regression models of precipitation values for the rainy season and monthly aggregations. I will fit separte models for the rain gauge measurements and the estimates from the downscaled PRISM data using only elevation, latitude, and longitude as predictor variables.
-```{r rainy season OLS models}
-# source custom panel functions for `pairs`
+
+```{r source panel functions, echo=F}
 source("~/Documents/Rscratch/panel_cor.R")
 library(MuMIn)
 options(na.action = "na.fail")
+library(broom)
+```
 
-pairs(select(rainy04@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r RS 2004 OLS models, echo=F}
+pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
-rs04rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy04)
-rs04psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy04)
-rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
-summary(rs04rg.lm)
-# dredge(rs04rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs04psm.lm)
-summary(rs04rg_elev.lm)
 
-pairs(select(rainy05@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific) %>% filter(rain04_dys >= 71),
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2004 Rainy Season")
+
+elev_m.sqr <- (rainy04@data$elev_m)^2
+elev_m.log <- log1p(rainy04@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
+rstot04.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy04)
+rstot04.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy04)
+rstot04.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy04)
+summary(rstot04.lm1)
+summary(rstot04.lm1a)
+summary(rstot04.lm1b)
+summary(rstot04.lm1c)# best adj. R-squared
+AICc(rstot04.lm1); AICc(rstot04.lm1a); AICc(rstot04.lm1b); AICc(rstot04.lm1c)
+par(mfrow=c(2,2))
+plot(rstot04.lm1c)
+
+# Rainy days ~ elevation only models
+rsdys04.lm1 <- lm(sqrt(rain04_dys) ~ elev_m, data = rainy04)
+rsdys04.lm1a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m), data = rainy04)
+rsdys04.lm1b <- lm(sqrt(rain04_dys) ~ elev_m.sqr, data = rainy04)
+rsdys04.lm1c <- lm(sqrt(rain04_dys) ~ elev_m.log, data = rainy04)
+summary(rsdys04.lm1)# best adj. R-squared
+summary(rsdys04.lm1a)
+summary(rsdys04.lm1b)
+summary(rsdys04.lm1c)
+AICc(rsdys04.lm1); AICc(rsdys04.lm1a); AICc(rsdys04.lm1b); AICc(rsdys04.lm1c)
+plot(rsdys04.lm1)
+
+# Total rainfall ~ elevation + distance to coast models
+rstot04.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy04)
+rstot04.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy04)
+rstot04.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy04)
+rstot04.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy04)
+summary(rstot04.lm2)
+summary(rstot04.lm2a)
+summary(rstot04.lm2b)
+summary(rstot04.lm2c)
+
+# Rainy days ~ elevation + distance to coast models
+rsdys04.lm2 <- lm(sqrt(rain04_dys) ~ elev_m + d2coast, data = rainy04)
+rsdys04.lm2a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m) + d2coast, data = rainy04)
+rsdys04.lm2b <- lm(sqrt(rain04_dys) ~ elev_m.sqr + d2coast, data = rainy04)
+rsdys04.lm2c <- lm(sqrt(rain04_dys) ~ elev_m.log + d2coast, data = rainy04)
+summary(rsdys04.lm2)
+summary(rsdys04.lm2a)
+summary(rsdys04.lm2b)
+summary(rsdys04.lm2c)
+# These models with distance-to-coast are all bad
+
+# Total rain fall ~ elevation + distance to Pacific models
+rstot04.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
+rstot04.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy04)
+rstot04.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy04)
+rstot04.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy04)
+summary(rstot04.lm3)# adj. R-squared = 0.481
+summary(rstot04.lm3a)
+summary(rstot04.lm3b)# adj. R-squared = 0.489
+summary(rstot04.lm3c)
+
+# Rainy days ~ elevation + distance to Pacific models
+rsdys04.lm3 <- lm(sqrt(rain04_dys) ~ elev_m + d2pacific, data = rainy04)
+rsdys04.lm3a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m) + d2pacific, data = rainy04)
+rsdys04.lm3b <- lm(sqrt(rain04_dys) ~ elev_m.sqr + d2pacific, data = rainy04)
+rsdys04.lm3c <- lm(sqrt(rain04_dys) ~ elev_m.log + d2pacific, data = rainy04)
+summary(rsdys04.lm3)# adj. R-squared = 0.068
+summary(rsdys04.lm3a)
+summary(rsdys04.lm3b)# best adj. R-squared = 0.074
+summary(rsdys04.lm3c)
+AICc(rsdys04.lm3); AICc(rsdys04.lm3a); AICc(rsdys04.lm3b); AICc(rsdys04.lm3c)
+plot(rsdys04.lm3b)
+
+rstot04.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy04)
+rsdys04.lm4 <- lm(rain04_dys ~ d2pacific, data = rainy04)
+summary(rstot04.lm4)# shows that model is better w/elevation
+summary(rsdys04.lm4)# shows that model is better w/elevation
+
+# rs04psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy04)
+# rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
+# summary(rs04rg.lm)
+# dredge(rs04rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs04psm.lm)
+# summary(rs04rg_elev.lm)
+```
+
+```{r RS 2005 OLS models, echo=F}
+pairs(select(rainy05@data, totppt_mm, rain05_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2005 Rainy Season")
-rs05rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy05)
-rs05psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy05)
-rs05rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy05)
-summary(rs05rg.lm)
-# dredge(rs05rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs05psm.lm)
-summary(rs05rg_elev.lm)
 
-pairs(select(rainy06@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+elev_m.sqr <- (rainy05@data$elev_m)^2
+elev_m.log <- log1p(rainy05@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot05.lm1 <- lm(totppt_mm ~ elev_m, data = rainy05)
+rstot05.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy05)
+rstot05.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy05)
+rstot05.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy05)
+summary(rstot05.lm1)
+summary(rstot05.lm1a)
+summary(rstot05.lm1b)
+summary(rstot05.lm1c)
+# These models all have negative adj. R-squared
+
+# Rainy days ~ elevation only models
+rsdys05.lm1 <- lm(sqrt(rain05_dys) ~ elev_m, data = rainy05)
+rsdys05.lm1a <- lm(sqrt(rain05_dys) ~ sqrt(elev_m), data = rainy05)
+rsdys05.lm1b <- lm(sqrt(rain05_dys) ~ elev_m.sqr, data = rainy05)
+rsdys05.lm1c <- lm(sqrt(rain05_dys) ~ elev_m.log, data = rainy05)
+summary(rsdys05.lm1)
+summary(rsdys05.lm1a)
+summary(rsdys05.lm1b)
+summary(rsdys05.lm1c)
+# These models all have negative adj. R-squared
+
+# Total rainfall ~ elevation + distance to coast models
+rstot05.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
+rstot05.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy05)
+rstot05.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy05)
+rstot05.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy05)
+summary(rstot05.lm2)
+summary(rstot05.lm2a)
+summary(rstot05.lm2b)
+summary(rstot05.lm2c)
+
+# Rainy days ~ elevation + distance to coast models
+rsdys05.lm2 <- lm(sqrt(rain05_dys) ~ elev_m + d2coast, data = rainy05)
+rsdys05.lm2a <- lm(sqrt(rain05_dys) ~ sqrt(elev_m) + d2coast, data = rainy05)
+rsdys05.lm2b <- lm(sqrt(rain05_dys) ~ elev_m.sqr + d2coast, data = rainy05)
+rsdys05.lm2c <- lm(sqrt(rain05_dys) ~ elev_m.log + d2coast, data = rainy05)
+summary(rsdys05.lm2)# best adj. R-squared = 0.3195
+summary(rsdys05.lm2a)
+summary(rsdys05.lm2b)# adj. R-squared = 0.317
+summary(rsdys05.lm2c)
+
+# rsdys05.glm1 <- glm((rain05_dys) ~ elev_m + d2coast, family = "poisson", data = rainy05)
+# summary(rsdys05.glm1)
+# plot(rsdys05.glm1)
+# 
+# rsdys05.glm2 <- glm((rain05_dys) ~ elev_m.sqr + d2coast, family = "poisson", data = rainy05)
+# summary(rsdys05.glm2)
+# plot(rsdys05.glm2)
+
+# Total rainfall ~ elevation + distance to Pacific models
+rstot05.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy05)
+rstot05.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy05)
+rstot05.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy05)
+rstot05.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy05)
+summary(rstot05.lm3)
+summary(rstot05.lm3a)
+summary(rstot05.lm3b)
+summary(rstot05.lm3c)
+# These models all have negative adj. R-squared values
+
+# Rainy days ~ elevation + distance to Pacific models
+rsdys05.lm3 <- lm((rain05_dys) ~ elev_m + d2pacific, data = rainy05)
+rsdys05.lm3a <- lm((rain05_dys) ~ sqrt(elev_m) + d2pacific, data = rainy05)
+rsdys05.lm3b <- lm((rain05_dys) ~ elev_m.sqr + d2pacific, data = rainy05)
+rsdys05.lm3c <- lm((rain05_dys) ~ elev_m.log + d2pacific, data = rainy05)
+summary(rsdys05.lm3)
+summary(rsdys05.lm3a)
+summary(rsdys05.lm3b)
+summary(rsdys05.lm3c)
+# adj. R-squared values all ~0.28
+
+# d2coast & d2pacific both correlate with rainy days, but appear relatively orthogonal to each other for this season
+
+# Rainy days ~ elevation + distance to Pacific + distance to coast
+rsdys05.lm4 <- lm(rain05_dys ~ d2coast + elev_m + d2pacific, data = rainy05)
+rsdys05.lm4a <- lm(rain05_dys ~ d2coast + sqrt(elev_m) + d2pacific, data = rainy05)
+rsdys05.lm4b <- lm(rain05_dys ~ d2coast + elev_m.sqr + d2pacific, data = rainy05)
+rsdys05.lm4c <- lm(rain05_dys ~ d2coast + elev_m.log + d2pacific, data = rainy05)
+summary(rsdys05.lm4)# best adj. R-squared = 0.512
+summary(rsdys05.lm4a)
+summary(rsdys05.lm4b)
+summary(rsdys05.lm4c)
+# all adj. R-squared models ~0.51
+
+
+# rs05psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy05)
+# rs05rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy05)
+# summary(rs05rg.lm)
+# dredge(rs05rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs05psm.lm)
+# summary(rs05rg_elev.lm)
+```
+
+```{r RS 2006 OLS models, echo=F}
+pairs(select(rainy06@data, totppt_mm, rain06_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2006 Rainy Season")
+
+elev_m.sqr <- (rainy06@data$elev_m)^2
+elev_m.log <- log1p(rainy06@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot06.lm1 <- lm(totppt_mm ~ elev_m, data = rainy06)
+rstot06.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy06)
+rstot06.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy06)
+rstot06.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy06)
+summary(rstot06.lm1)
+summary(rstot06.lm1a)
+summary(rstot06.lm1b)
+summary(rstot06.lm1c)
+# These models all have negative adj. R-squared
+
+# Rainy days ~ elevation only models
+rsdys06.lm1 <- lm((rain06_dys) ~ elev_m, data = rainy06)
+rsdys06.lm1a <- lm((rain06_dys) ~ sqrt(elev_m), data = rainy06)
+rsdys06.lm1b <- lm((rain06_dys) ~ elev_m.sqr, data = rainy06)
+rsdys06.lm1c <- lm((rain06_dys) ~ elev_m.log, data = rainy06)
+summary(rsdys06.lm1)
+summary(rsdys06.lm1a)
+summary(rsdys06.lm1b)
+summary(rsdys06.lm1c)
+# These models all have negative adj. R-squared
+
+# Total rainfall ~ elevation + distance to coast models
+rstot06.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy06)
+rstot06.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy06)
+rstot06.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy06)
+rstot06.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy06)
+summary(rstot06.lm2)
+summary(rstot06.lm2a)
+summary(rstot06.lm2b)# best adj. R-squared = 0.768
+summary(rstot06.lm2c)
+
+# Rainy days ~ elevation + distance to coast models
+rsdys06.lm2 <- lm((rain06_dys) ~ elev_m + d2coast, data = rainy06)
+rsdys06.lm2a <- lm((rain06_dys) ~ sqrt(elev_m) + d2coast, data = rainy06)
+rsdys06.lm2b <- lm((rain06_dys) ~ elev_m.sqr + d2coast, data = rainy06)
+rsdys06.lm2c <- lm((rain06_dys) ~ elev_m.log + d2coast, data = rainy06)
+summary(rsdys06.lm2)
+summary(rsdys06.lm2a)
+summary(rsdys06.lm2b)
+summary(rsdys06.lm2c)
+# These all have negative R-squared values
+
+# Rainy days ~ distance to coast model
+rsdys06.lm3 <- lm((rain06_dys) ~ d2coast, data = rainy06)
+summary(rsdys06.lm3)
+# negative R-squared value
+# Total rainfall ~ distance to coast model
+rstot06.lm3b <- lm(totppt_mm ~ d2coast, data = rainy06)
+summary(rstot06.lm3b)
+
+# Rainy days ~ distance to pacific model
+rsdys06.lm3a <- lm((rain06_dys) ~ d2pacific, data = rainy06)
+summary(rsdys06.lm3a)
+# negative R-squared value
+# Total rainfall ~ distance to pacific model
+rstot06.lm3c <- lm(totppt_mm ~ d2pacific, data = rainy06)
+summary(rstot06.lm3c)
+
+
+# Total rainfall ~ elevation + distance to pacific models
+rstot06.lm4 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy06)
+rstot06.lm4a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy06)
+rstot06.lm4b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy06)
+rstot06.lm4c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy06)
+summary(rstot06.lm4)
+summary(rstot06.lm4a)
+summary(rstot06.lm4b)# best adj. R-squared = 0.762
+summary(rstot06.lm4c)
+
+
 rs06rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy06)
 rs06psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy06)
 rs06rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy06)
@@ -413,74 +699,790 @@ summary(rs06rg.lm)
 # dredge(rs06rg.lm, extra = c("adjR^2", "R^2")
 summary(rs06psm.lm)
 summary(rs06rg_elev.lm)
+```
 
-pairs(select(rainy07@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+```{r RS 2007 OLS models}
+pairs(select(rainy07@data, totppt_mm, rain07_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2007 Rainy Season")
-rs07rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy07)
-rs07psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy07)
-rs07rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy07)
-summary(rs07rg.lm)
-# dredge(rs07rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs07psm.lm)
-summary(rs07rg_elev.lm)
 
-pairs(select(rainy08@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+elev_m.sqr <- (rainy07@data$elev_m)^2
+elev_m.log <- log1p(rainy07@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot07.lm1 <- lm(totppt_mm ~ elev_m, data = rainy07)
+rstot07.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy07)
+rstot07.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy07)
+rstot07.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy07)
+summary(rstot07.lm1)# adj. R-squared = 0.143
+summary(rstot07.lm1a)# adj. R-squared = 0.147
+summary(rstot07.lm1b)
+summary(rstot07.lm1c)
+
+# Rainy days ~ elevation only models
+rsdys07.lm1 <- lm((rain07_dys) ~ elev_m, data = rainy07)
+rsdys07.lm1a <- lm((rain07_dys) ~ sqrt(elev_m), data = rainy07)
+rsdys07.lm1b <- lm((rain07_dys) ~ elev_m.sqr, data = rainy07)
+rsdys07.lm1c <- lm((rain07_dys) ~ elev_m.log, data = rainy07)
+summary(rsdys07.lm1)
+summary(rsdys07.lm1a)
+summary(rsdys07.lm1b)# only positive R-squared = 0.038
+summary(rsdys07.lm1c)
+
+# Total rainfall ~ elevation + distance to coast
+rstot07.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy07)
+rstot07.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy07)
+rstot07.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy07)
+rstot07.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy07)
+summary(rstot07.lm2)
+summary(rstot07.lm2a)
+summary(rstot07.lm2b)
+summary(rstot07.lm2c)
+# Very, very poor adj. R-squared values
+
+# Rainy days ~ elevation + distance to coast
+rsdys07.lm2 <- lm((rain07_dys) ~ elev_m + d2coast, data = rainy07)
+rsdys07.lm2a <- lm((rain07_dys) ~ sqrt(elev_m) + d2coast, data = rainy07)
+rsdys07.lm2b <- lm((rain07_dys) ~ elev_m.sqr + d2coast, data = rainy07)
+rsdys07.lm2c <- lm((rain07_dys) ~ elev_m.log + d2coast, data = rainy07)
+summary(rsdys07.lm2)
+summary(rsdys07.lm2a)
+summary(rsdys07.lm2b)
+summary(rsdys07.lm2c)
+# All R-squared values are negative
+
+# Total rainfall ~ elevation + distance to Pacific
+rstot07.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy07)
+rstot07.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy07)
+rstot07.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy07)
+rstot07.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy07)
+summary(rstot07.lm3)
+summary(rstot07.lm3a)
+summary(rstot07.lm3b)# adj. R-squared = 0.012
+summary(rstot07.lm3c)
+# Very, very poor adj. R-squared values
+
+# Rainy days ~ elevation + distance to Pacific
+rsdys07.lm3 <- lm((rain07_dys) ~ elev_m + d2pacific, data = rainy07)
+rsdys07.lm3a <- lm((rain07_dys) ~ sqrt(elev_m) + d2pacific, data = rainy07)
+rsdys07.lm3b <- lm((rain07_dys) ~ elev_m.sqr + d2pacific, data = rainy07)
+rsdys07.lm3c <- lm((rain07_dys) ~ elev_m.log + d2pacific, data = rainy07)
+summary(rsdys07.lm3)
+summary(rsdys07.lm3a)
+summary(rsdys07.lm3b)# best adj. R-squared = 0.677
+summary(rsdys07.lm3c)
+# all adj. R-squared values ~0.67
+
+# Rainy days ~ distance to Pacific model
+rsdys07.lm4 <- lm(rain07_dys ~ d2pacific, data = rainy07)
+summary(rsdys07.lm4)# adj. R-squared = 0.723
+rsdys07.lm4a <- lm(rain07_dys ~ d2coast, data = rainy07)
+summary(rsdys07.lm4a)
+rsdys07.lm4b <- lm(rain07_dys ~ d2pacific + d2coast, data = rainy07)
+summary(rsdys07.lm4b)# adj. R-squared = 0.737
+
+# rs07psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy07)
+# rs07rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy07)
+# summary(rs07rg.lm)
+# dredge(rs07rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs07psm.lm)
+# summary(rs07rg_elev.lm)
+```
+
+```{r RS 2008 OLS models}
+pairs(select(rainy08@data, totppt_mm, rain08_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2008 Rainy Season")
-rs08rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy08)
-rs08psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy08)
-rs08rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy08)
-summary(rs08rg.lm)
-# dredge(rs08rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs08psm.lm)
-summary(rs08rg_elev.lm)
 
-pairs(select(rainy09@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+elev_m.sqr <- (rainy08@data$elev_m)^2
+elev_m.log <- log1p(rainy08@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot08.lm1 <- lm(totppt_mm ~ elev_m, data = rainy08)
+rstot08.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy08)
+rstot08.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy08)
+rstot08.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy08)
+summary(rstot08.lm1)
+summary(rstot08.lm1a)
+summary(rstot08.lm1b)
+summary(rstot08.lm1c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models
+rsdys08.lm1 <- lm(rain08_dys ~ elev_m, data = rainy08)
+rsdys08.lm1a <- lm(rain08_dys ~ sqrt(elev_m), data = rainy08)
+rsdys08.lm1b <- lm(rain08_dys ~ elev_m.sqr, data = rainy08)
+rsdys08.lm1c <- lm(rain08_dys ~ elev_m.log, data = rainy08)
+summary(rsdys08.lm1)
+summary(rsdys08.lm1a)
+summary(rsdys08.lm1b)
+summary(rsdys08.lm1c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation only models + distance to coast
+rstot08.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy08)
+rstot08.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy08)
+rstot08.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy08)
+rstot08.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy08)
+summary(rstot08.lm2)
+summary(rstot08.lm2a)
+summary(rstot08.lm2b)
+summary(rstot08.lm2c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + distance to coast
+rsdys08.lm2 <- lm(rain08_dys ~ elev_m + d2coast, data = rainy08)
+rsdys08.lm2a <- lm(rain08_dys ~ sqrt(elev_m) + d2coast, data = rainy08)
+rsdys08.lm2b <- lm(rain08_dys ~ elev_m.sqr + d2coast, data = rainy08)
+rsdys08.lm2c <- lm(rain08_dys ~ elev_m.log + d2coast, data = rainy08)
+summary(rsdys08.lm2)
+summary(rsdys08.lm2a)
+summary(rsdys08.lm2b)
+summary(rsdys08.lm2c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation only models + distance to Pacific
+rstot08.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy08)
+rstot08.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy08)
+rstot08.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy08)
+rstot08.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy08)
+summary(rstot08.lm3)
+summary(rstot08.lm3a)
+summary(rstot08.lm3b)
+summary(rstot08.lm3c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + distance to coast
+rsdys08.lm3 <- lm(rain08_dys ~ elev_m + d2pacific, data = rainy08)
+rsdys08.lm3a <- lm(rain08_dys ~ sqrt(elev_m) + d2pacific, data = rainy08)
+rsdys08.lm3b <- lm(rain08_dys ~ elev_m.sqr + d2pacific, data = rainy08)
+rsdys08.lm3c <- lm(rain08_dys ~ elev_m.log + d2pacific, data = rainy08)
+summary(rsdys08.lm3)
+summary(rsdys08.lm3a)
+summary(rsdys08.lm3b)
+summary(rsdys08.lm3c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2coast + d2pacific
+rstot08.lm4 <- lm(totppt_mm ~ elev_m + d2coast + d2pacific, data = rainy08)
+rstot08.lm4a <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy08)
+rstot08.lm4b <- lm(totppt_mm ~ d2pacific, data = rainy08)
+rstot08.lm4c <- lm(totppt_mm ~ d2coast, data = rainy08)
+summary(rstot08.lm4)
+summary(rstot08.lm4a)
+summary(rstot08.lm4b)# only positive adj. R-squared = 0.054
+summary(rstot08.lm4c)
+
+# rs08psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy08)
+# rs08rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy08)
+# summary(rs08rg.lm)
+# dredge(rs08rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs08psm.lm)
+# summary(rs08rg_elev.lm)
+```
+
+```{r RS 2009 OLS models}
+pairs(select(rainy09@data, totppt_mm, rain09_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2009 Rainy Season")
-rs09rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy09)
-rs09psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy09)
-rs09rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy09)
-summary(rs09rg.lm)
-# dredge(rs09rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs09psm.lm)
-summary(rs09rg_elev.lm)
 
-pairs(select(rainy10@data, totppt_mm, elev_m, lat, lon, psm_totppt),
+elev_m.sqr <- (rainy09@data$elev_m)^2
+elev_m.log <- log1p(rainy09@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot09.lm1 <- lm(totppt_mm ~ elev_m, data = rainy09)
+rstot09.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy09)
+rstot09.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy09)
+rstot09.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy09)
+summary(rstot09.lm1)
+summary(rstot09.lm1a)
+summary(rstot09.lm1b)
+summary(rstot09.lm1c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models
+rsdys09.lm1 <- lm(rain09_dys ~ elev_m, data = rainy09)
+rsdys09.lm1a <- lm(rain09_dys ~ sqrt(elev_m), data = rainy09)
+rsdys09.lm1b <- lm(rain09_dys ~ elev_m.sqr, data = rainy09)
+rsdys09.lm1c <- lm(rain09_dys ~ elev_m.log, data = rainy09)
+summary(rsdys09.lm1)
+summary(rsdys09.lm1a)
+summary(rsdys09.lm1b)
+summary(rsdys09.lm1c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2coast
+rstot09.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy09)
+rstot09.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy09)
+rstot09.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy09)
+rstot09.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy09)
+summary(rstot09.lm2)
+summary(rstot09.lm2a)
+summary(rstot09.lm2b)
+summary(rstot09.lm2c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2coast
+rsdys09.lm2 <- lm(rain09_dys ~ elev_m + d2coast, data = rainy09)
+rsdys09.lm2a <- lm(rain09_dys ~ sqrt(elev_m) + d2coast, data = rainy09)
+rsdys09.lm2b <- lm(rain09_dys ~ elev_m.sqr + d2coast, data = rainy09)
+rsdys09.lm2c <- lm(rain09_dys ~ elev_m.log + d2coast, data = rainy09)
+summary(rsdys09.lm2)
+summary(rsdys09.lm2a)
+summary(rsdys09.lm2b)
+summary(rsdys09.lm2c)# best adj. R-squared = 0.039
+
+# Total rainfall ~ elevation + d2pacific
+rstot09.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy09)
+rstot09.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy09)
+rstot09.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy09)
+rstot09.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy09)
+summary(rstot09.lm3)
+summary(rstot09.lm3a)
+summary(rstot09.lm3b)
+summary(rstot09.lm3c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2pacific
+rsdys09.lm3 <- lm(rain09_dys ~ elev_m + d2pacific, data = rainy09)
+rsdys09.lm3a <- lm(rain09_dys ~ sqrt(elev_m) + d2pacific, data = rainy09)
+rsdys09.lm3b <- lm(rain09_dys ~ elev_m.sqr + d2pacific, data = rainy09)
+rsdys09.lm3c <- lm(rain09_dys ~ elev_m.log + d2pacific, data = rainy09)
+summary(rsdys09.lm3)
+summary(rsdys09.lm3a)
+summary(rsdys09.lm3b)
+summary(rsdys09.lm3c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ d2coast + d2pacific + elevation
+rstot09.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy09)
+rstot09.lm4a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific + d2coast, data = rainy09)
+rstot09.lm4b <- lm(totppt_mm ~ elev_m.sqr + d2pacific + d2coast, data = rainy09)
+rstot09.lm4c <- lm(totppt_mm ~ elev_m.log + d2pacific + d2coast, data = rainy09)
+summary(rstot09.lm4)
+summary(rstot09.lm4a)
+summary(rstot09.lm4b)
+summary(rstot09.lm4c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation + d2pacific + d2coast
+rsdys09.lm4 <- lm(rain09_dys ~ elev_m + d2pacific + d2coast, data = rainy09)
+rsdys09.lm4a <- lm(rain09_dys ~ sqrt(elev_m) + d2pacific + d2coast, data = rainy09)
+rsdys09.lm4b <- lm(rain09_dys ~ elev_m.sqr + d2pacific + d2coast, data = rainy09)
+rsdys09.lm4c <- lm(rain09_dys ~ elev_m.log + d2pacific + d2coast, data = rainy09)
+summary(rsdys09.lm4)
+summary(rsdys09.lm4a)
+summary(rsdys09.lm4b)
+summary(rsdys09.lm4c)
+
+# Total rainfall ~ d2coast
+rstot09.lm5 <- lm(totppt_mm ~ d2coast, data = rainy09)
+summary(rstot09.lm5)# adj. R-squared = 0.031
+
+# Total rainfall ~ d2pacific
+rstot09.lm5a <- lm(totppt_mm ~ d2pacific, data = rainy09)
+summary(rstot09.lm5a)# adj. R-squared is negative
+
+# Total rainfall ~ d2coast + d2pacific
+rstot09.lm5b <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy09)
+summary(rstot09.lm5b)# adj. R-squared is negative
+
+# Rainy days ~ d2coast
+rsdys09.lm5 <- lm(rain09_dys ~ d2coast, data = rainy09)
+summary(rsdys09.lm4)# adj. R-squared = 0.108
+
+# Rainy days ~ d2pacific
+rsdys09.lm5a <- lm(rain09_dys ~ d2pacific, data = rainy09)
+summary(rsdys09.lm5a)# adj. R-squared is negative
+
+# Rainy days ~ d2coast + d2pacific
+rsdys09.lm5b <- lm(rain09_dys ~ d2coast + d2pacific, data = rainy09)
+summary(rsdys09.lm5b)# adj. R-squared = 0.094
+
+# rs09rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy09)
+# rs09psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy09)
+# rs09rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy09)
+# summary(rs09rg.lm)
+# dredge(rs09rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs09psm.lm)
+# summary(rs09rg_elev.lm)
+```
+
+```{r RS 2010 OLS models}
+pairs(select(rainy10@data, totppt_mm, rain10_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2010 Rainy Season")
-rs10rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy10)
-rs10psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy10)
-rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
-summary(rs10rg.lm)
-# dredge(rs10rg.lm, extra = c("adjR^2", "R^2"))
-summary(rs10psm.lm)
-summary(rs10rg_elev.lm)
 
-pairs(select(rainy11@data, totppt_mm, elev_m, lat, lon),
+elev_m.sqr <- (rainy10@data$elev_m)^2
+elev_m.log <- log1p(rainy10@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot10.lm1 <- lm(totppt_mm ~ elev_m, data = rainy10)
+rstot10.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy10)
+rstot10.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy10)
+rstot10.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy10)
+summary(rstot10.lm1)
+summary(rstot10.lm1a)
+summary(rstot10.lm1b)
+summary(rstot10.lm1c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models
+rsdys10.lm1 <- lm(rain10_dys ~ elev_m, data = rainy10)
+rsdys10.lm1a <- lm(rain10_dys ~ sqrt(elev_m), data = rainy10)
+rsdys10.lm1b <- lm(rain10_dys ~ elev_m.sqr, data = rainy10)
+rsdys10.lm1c <- lm(rain10_dys ~ elev_m.log, data = rainy10)
+summary(rsdys10.lm1)
+summary(rsdys10.lm1a)
+summary(rsdys10.lm1b)
+summary(rsdys10.lm1c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2coast
+rstot10.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy10)
+# rstot10.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy10)
+rstot10.lm2b <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy10)
+rstot10.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy10)
+summary(rstot10.lm2)# best adj. R-squared = 0.707
+# summary(rstot10.lm2a)
+summary(rstot10.lm2b)# adj. R-squared = 0.699
+summary(rstot10.lm2c)# better looking residual plots
+# Residual plots look bad, d2coast & elevation are correlated r = -0.64
+
+# Rainy days ~ elevation models + d2coast
+rsdys10.lm2 <- lm(rain10_dys ~ elev_m + d2coast, data = rainy10)
+# rsdys10.lm2a <- lm(rain10_dys ~ sqrt(elev_m) + d2coast, data = rainy10)
+rsdys10.lm2b <- lm(rain10_dys ~ elev_m.sqr + d2coast, data = rainy10)
+rsdys10.lm2c <- lm(rain10_dys ~ elev_m.log + d2coast, data = rainy10)
+summary(rsdys10.lm2)
+# summary(rsdys10.lm2a)
+summary(rsdys10.lm2b)
+summary(rsdys10.lm2c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2pacific
+rstot10.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy10)
+# rstot10.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy10)
+rstot10.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy10)
+rstot10.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy10)
+summary(rstot10.lm3)
+# summary(rstot10.lm3a)
+summary(rstot10.lm3b)
+summary(rstot10.lm3c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2pacific
+rsdys10.lm3 <- lm(rain10_dys ~ elev_m + d2pacific, data = rainy10)
+# rsdys10.lm3a <- lm(rain10_dys ~ sqrt(elev_m) + d2pacific, data = rainy10)
+rsdys10.lm3b <- lm(rain10_dys ~ elev_m.sqr + d2pacific, data = rainy10)
+rsdys10.lm3c <- lm(rain10_dys ~ elev_m.log + d2pacific, data = rainy10)
+summary(rsdys10.lm3)# adj. R-squared = 0.162
+# summary(rsdys10.lm3a)
+summary(rsdys10.lm3b)# adj. R-squared = 0.167
+summary(rsdys10.lm3c)# adj. R-squared = 0.147
+# plot(rsdys10.lm3c)
+
+# Total rainfall ~ d2coast + d2pacific + elevation
+rstot10.lm4 <- lm(totppt_mm ~ d2coast + d2pacific + elev_m, data = rainy10)
+rstot10.lm4a <- lm(totppt_mm ~ d2coast + d2pacific + elev_m.log, data = rainy10)
+rstot10.lm4b <- lm(totppt_mm ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy10)
+summary(rstot10.lm4)# adj. R-squared = 0.697
+summary(rstot10.lm4a)# adj. R-squared = 0.684
+summary(rstot10.lm4b)# adj. R-squared = 0.655
+
+# Rainy days ~ d2coast + d2pacific + elevation
+rsdys10.lm4 <- lm(rain10_dys ~ d2coast + d2pacific + elev_m, data = rainy10)
+rsdys10.lm4a <- lm(rain10_dys ~ d2coast + d2pacific + elev_m.log, data = rainy10)
+rsdys10.lm4b <- lm(rain10_dys ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy10)
+summary(rsdys10.lm4)# adj. R-squared = 0.044
+summary(rsdys10.lm4a)
+summary(rsdys10.lm4b)
+
+# Total rainfall ~ distance to coast
+rstot10.lm5 <- lm(totppt_mm ~ d2coast, data = rainy10)
+summary(rstot10.lm4)# adj. R-squared = 0.17
+
+# Total rainfall ~ d2coast + d2pacific
+rstot10.lm5a <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy10)
+summary(rstot10.lm4a)# adj. R-squared = 0.087
+
+# Rainy days ~ d2coast
+rsdys10.lm5 <- lm(rain10_dys ~ d2coast, data = rainy10)
+summary(rsdys10.lm5)# adj. R-squared is negative
+
+# Rainy days ~ d2pacific
+rsdys10.lm5a <- lm(rain10_dys ~ d2pacific, data = rainy10)
+summary(rsdys10.lm5a)# adj. R-squared = 0.195
+
+# Rainy days ~ d2coast + d2pacific
+rsdys10.lm5b <- lm(rain10_dys ~ d2coast + d2pacific, data = rainy10)
+summary(rsdys10.lm5b)# adj. R-squared = 0.131
+
+
+# rs10rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy10)
+# rs10psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy10)
+# rs10rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy10)
+# summary(rs10rg.lm)
+# # dredge(rs10rg.lm, extra = c("adjR^2", "R^2"))
+# summary(rs10psm.lm)
+# summary(rs10rg_elev.lm)
+```
+
+```{r RS 2011 OLS models}
+pairs(select(rainy11@data, totppt_mm, rain11_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2011 Rainy Season")
-rs11rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy11)
-rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
-summary(rs11rg.lm)
-summary(rs11rg_elev.lm)
 
-pairs(select(rainy12@data, totppt_mm, elev_m, lat, lon),
+elev_m.sqr <- (rainy11@data$elev_m)^2
+elev_m.log <- log1p(rainy11@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot11.lm1 <- lm(totppt_mm ~ elev_m, data = rainy11)
+rstot11.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy11)
+rstot11.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy11)
+rstot11.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy11)
+summary(rstot11.lm1)
+summary(rstot11.lm1a)
+summary(rstot11.lm1b)# adj. R-squared = 0.011
+summary(rstot11.lm1c)
+# All other adj. R-squared values are negative
+
+# Rainy days ~ elevation models
+rsdys11.lm1 <- lm(rain11_dys ~ elev_m, data = rainy11)
+# rsdys11.lm1a <- lm(rain11_dys ~ sqrt(elev_m), data = rainy11)
+rsdys11.lm1b <- lm(rain11_dys ~ elev_m + elev_m.sqr, data = rainy11)
+rsdys11.lm1c <- lm(rain11_dys ~ elev_m.log, data = rainy11)
+summary(rsdys11.lm1)# adj. R-squared = 0.18
+# summary(rsdys11.lm1a)
+summary(rsdys11.lm1b)# adj. R-squared = 0.232
+summary(rsdys11.lm1c)
+par(mfrow=c(2,2))
+# plot(rsdys11.lm1b)
+
+# Total rainfall ~ elevation + d2coast
+rstot11.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
+# rstot11.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy11)
+rstot11.lm2b <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy11)
+rstot11.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy11)
+summary(rstot11.lm2)
+# summary(rstot11.lm2a)
+summary(rstot11.lm2b)
+summary(rstot11.lm2c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2coast
+rsdys11.lm2 <- lm(rain11_dys ~ elev_m + d2coast, data = rainy11)
+# rsdys11.lm2a <- lm(rain11_dys ~ sqrt(elev_m) + d2coast, data = rainy11)
+rsdys11.lm2b <- lm(rain11_dys ~ elev_m + elev_m.sqr + d2coast, data = rainy11)
+rsdys11.lm2c <- lm(rain11_dys ~ elev_m.log + d2coast, data = rainy11)
+summary(rsdys11.lm2)# adj. R-squared = 0.101
+# summary(rsdys11.lm2a)
+summary(rsdys11.lm2b)# adj. R-squared = 0.152
+summary(rsdys11.lm2c)
+
+# Total rainfall ~ elevation + d2pacific
+rstot11.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy11)
+# rstot11.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy11)
+rstot11.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy11)
+rstot11.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy11)
+summary(rstot11.lm3)
+# summary(rstot11.lm3a)
+summary(rstot11.lm3b)
+summary(rstot11.lm3c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2pacific
+rsdys11.lm3 <- lm(rain11_dys ~ elev_m + d2pacific, data = rainy11)
+# rsdys11.lm3a <- lm(rain11_dys ~ sqrt(elev_m) + d2pacific, data = rainy11)
+rsdys11.lm3b <- lm(rain11_dys ~ elev_m + elev_m.sqr + d2pacific, data = rainy11)
+rsdys11.lm3c <- lm(rain11_dys ~ elev_m.log + d2pacific, data = rainy11)
+summary(rsdys11.lm3)# adj. R-squared = 0.089
+# summary(rsdys11.lm3a)
+summary(rsdys11.lm3b)# adj. R-squared = 0.187
+summary(rsdys11.lm3c)
+plot(rsdys11.lm3)
+
+# Total rainfall ~ d2coast + d2pacific + elevation
+rstot11.lm4 <- lm(totppt_mm ~ d2coast + d2pacific + elev_m, data = rainy11)
+rstot11.lm4a <- lm(totppt_mm ~ d2coast + d2pacific + elev_m.log, data = rainy11)
+rstot11.lm4b <- lm(totppt_mm ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy11)
+summary(rstot11.lm4)
+summary(rstot11.lm4a)
+summary(rstot11.lm4b)
+# All adj. R-squared values are negative
+
+# Rainy days ~ d2coast + d2pacific + elevation
+rsdys11.lm4 <- lm(rain11_dys ~ d2coast + d2pacific + elev_m, data = rainy11)
+rsdys11.lm4a <- lm(rain11_dys ~ d2coast + d2pacific + elev_m.log, data = rainy11)
+rsdys11.lm4b <- lm(rain11_dys ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy11)
+summary(rsdys11.lm4)
+summary(rsdys11.lm4a)
+summary(rsdys11.lm4b)# adj. R-squared = 0.079
+
+# Total rainfall ~ distance to coast
+rstot11.lm5 <- lm(totppt_mm ~ d2coast, data = rainy11)
+summary(rstot11.lm4)# adj. R-squared is negative
+
+# Total rainfall ~ d2coast + d2pacific
+rstot11.lm5a <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy11)
+summary(rstot11.lm4a)# adj. R-squared is negative
+
+# Rainy days ~ d2coast
+rsdys11.lm5 <- lm(rain11_dys ~ d2coast, data = rainy11)
+summary(rsdys11.lm5)# adj. R-squared is negative
+
+# Rainy days ~ d2pacific
+rsdys11.lm5a <- lm(rain11_dys ~ d2pacific, data = rainy11)
+summary(rsdys11.lm5a)# adj. R-squared is negative
+
+# Rainy days ~ d2coast + d2pacific
+rsdys11.lm5b <- lm(rain11_dys ~ d2coast + d2pacific, data = rainy11)
+summary(rsdys11.lm5b)# adj. R-squared is negative
+
+
+# rs11rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy11)
+# rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
+# summary(rs11rg.lm)
+# summary(rs11rg_elev.lm)
+```
+
+```{r RS 2012 OLS models}
+pairs(select(rainy12@data, totppt_mm, rain12_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2012 Rainy Season")
-rs12rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy12)
-rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
-summary(rs12rg.lm)
-summary(rs12rg_elev.lm)
 
-pairs(select(rainy14@data, totppt_mm, elev_m, lat, lon),
+elev_m.sqr <- (rainy12@data$elev_m)^2
+elev_m.log <- log1p(rainy12@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot12.lm1 <- lm(totppt_mm ~ elev_m, data = rainy12)
+rstot12.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy12)
+rstot12.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy12)
+rstot12.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy12)
+summary(rstot12.lm1)
+summary(rstot12.lm1a)
+summary(rstot12.lm1b)
+summary(rstot12.lm1c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models
+rsdys12.lm1 <- lm(rain12_dys ~ elev_m, data = rainy12)
+rsdys12.lm1a <- lm(rain12_dys ~ sqrt(elev_m), data = rainy12)
+rsdys12.lm1b <- lm(rain12_dys ~ elev_m.sqr, data = rainy12)
+rsdys12.lm1c <- lm(rain12_dys ~ elev_m.log, data = rainy12)
+summary(rsdys12.lm1)
+summary(rsdys12.lm1a)
+summary(rsdys12.lm1b)
+summary(rsdys12.lm1c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2coast
+rstot12.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy12)
+# rstot12.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy12)
+rstot12.lm2b <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy12)
+rstot12.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy12)
+summary(rstot12.lm2)
+# summary(rstot12.lm2a)
+summary(rstot12.lm2b)
+summary(rstot12.lm2c)
+# All adj. R-squared values are negative
+
+# Rainy days ~ elevation models + d2coast
+rsdys12.lm2 <- lm(rain12_dys ~ elev_m + d2coast, data = rainy12)
+# rsdys12.lm2a <- lm(rain12_dys ~ sqrt(elev_m) + d2coast, data = rainy12)
+rsdys12.lm2b <- lm(rain12_dys ~ elev_m.sqr + d2coast, data = rainy12)
+rsdys12.lm2c <- lm(rain12_dys ~ elev_m.log + d2coast, data = rainy12)
+summary(rsdys12.lm2)
+# summary(rsdys12.lm2a)
+summary(rsdys12.lm2b)
+summary(rsdys12.lm2c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2pacific
+rstot12.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy12)
+# rstot12.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy12)
+rstot12.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy12)
+rstot12.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy12)
+summary(rstot12.lm3)# adj. R-squared = 0.171
+# summary(rstot12.lm3a)
+summary(rstot12.lm3b)# adj. R-squared = 0.167
+summary(rstot12.lm3c)# adj. R-squared = 0.184
+
+# Rainy days ~ elevation models + d2pacific
+rsdys12.lm3 <- lm(rain12_dys ~ elev_m + d2pacific, data = rainy12)
+# rsdys12.lm3a <- lm(rain12_dys ~ sqrt(elev_m) + d2pacific, data = rainy12)
+rsdys12.lm3b <- lm(rain12_dys ~ elev_m.sqr + d2pacific, data = rainy12)
+rsdys12.lm3c <- lm(rain12_dys ~ elev_m.log + d2pacific, data = rainy12)
+summary(rsdys12.lm3)
+# summary(rsdys12.lm3a)
+summary(rsdys12.lm3b)
+summary(rsdys12.lm3c)# adj. R-squared = 0.039
+# plot(rsdys12.lm3c)
+
+# Total rainfall ~ d2coast + d2pacific + elevation
+rstot12.lm4 <- lm(totppt_mm ~ d2coast + d2pacific + elev_m, data = rainy12)
+rstot12.lm4a <- lm(totppt_mm ~ d2coast + d2pacific + elev_m.log, data = rainy12)
+rstot12.lm4b <- lm(totppt_mm ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy12)
+summary(rstot12.lm4)
+summary(rstot12.lm4a)
+summary(rstot12.lm4b)# adj. R-squared = 0.215
+
+# Rainy days ~ d2coast + d2pacific + elevation
+rsdys12.lm4 <- lm(rain12_dys ~ d2coast + d2pacific + elev_m, data = rainy12)
+rsdys12.lm4a <- lm(rain12_dys ~ d2coast + d2pacific + elev_m.log, data = rainy12)
+rsdys12.lm4b <- lm(rain12_dys ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy12)
+summary(rsdys12.lm4)
+summary(rsdys12.lm4a)
+summary(rsdys12.lm4b)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ distance to coast
+rstot12.lm5 <- lm(totppt_mm ~ d2coast, data = rainy12)
+summary(rstot12.lm5)# adj. R-squared is negative
+
+# Total rainfall ~ distance to Pacific
+rstot12.lm5a <- lm(totppt_mm ~ d2pacific, data = rainy12)
+summary(rstot12.lm5a)# adj. R-squared = 0.375
+
+# Total rainfall ~ d2coast + d2pacific
+rstot12.lm5b <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy12)
+summary(rstot12.lm5b)# adj. R-squared = 0.167
+
+# Rainy days ~ d2coast
+rsdys12.lm5 <- lm(rain12_dys ~ d2coast, data = rainy12)
+summary(rsdys12.lm5)# adj. R-squared is negative
+
+# Rainy days ~ d2pacific
+rsdys12.lm5a <- lm(rain12_dys ~ d2pacific, data = rainy12)
+summary(rsdys12.lm5a)# adj. R-squared is negative
+
+# Rainy days ~ d2coast + d2pacific
+rsdys12.lm5b <- lm(rain12_dys ~ d2coast + d2pacific, data = rainy12)
+summary(rsdys12.lm5b)# adj. R-squared is negative
+
+
+# rs12rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy12)
+# rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
+# summary(rs12rg.lm)
+# summary(rs12rg_elev.lm)
+```
+
+```{r RS 2014 OLS models}
+pairs(select(rainy14@data, totppt_mm, rain14_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2014 Rainy Season")
-rs14rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy14)
-rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
-summary(rs14rg.lm)
-summary(rs14rg_elev.lm)
+
+elev_m.sqr <- (rainy14@data$elev_m)^2
+elev_m.log <- log1p(rainy14@data$elev_m)
+
+# Total rainfall ~ elevation only models
+rstot14.lm1 <- lm(totppt_mm ~ elev_m, data = rainy14)
+rstot14.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy14)
+# rstot14.lm1b <- lm(totppt_mm ~ elev_m + elev_m.sqr, data = rainy14)
+rstot14.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy14)
+summary(rstot14.lm1)# adj. R-squared = 0.319
+summary(rstot14.lm1a)# adj. R-squared = 0.359
+# summary(rstot14.lm1b)
+summary(rstot14.lm1c)# adj. R-squared = 0.357
+
+# Rainy days ~ elevation models
+rsdys14.lm1 <- lm(rain14_dys ~ elev_m, data = rainy14)
+rsdys14.lm1a <- lm(rain14_dys ~ sqrt(elev_m), data = rainy14)
+rsdys14.lm1b <- lm(rain14_dys ~ elev_m.sqr, data = rainy14)
+rsdys14.lm1c <- lm(rain14_dys ~ elev_m.log, data = rainy14)
+summary(rsdys14.lm1)
+summary(rsdys14.lm1a)
+summary(rsdys14.lm1b)
+summary(rsdys14.lm1c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2coast
+rstot14.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy14)
+rstot14.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy14)
+# rstot14.lm2b <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy14)
+rstot14.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy14)
+summary(rstot14.lm2)# adj. R-squared = 0.475
+summary(rstot14.lm2a)# adj. R-squared = 0.613
+# summary(rstot14.lm2b)
+summary(rstot14.lm2c)# adj. R-squared = 0.611
+# Residual plots look bad, d2coast & elevation are correlated r = -0.64
+
+# Rainy days ~ elevation models + d2coast
+rsdys14.lm2 <- lm(rain14_dys ~ elev_m + d2coast, data = rainy14)
+rsdys14.lm2a <- lm(rain14_dys ~ sqrt(elev_m) + d2coast, data = rainy14)
+# rsdys14.lm2b <- lm(rain14_dys ~ elev_m.sqr + d2coast, data = rainy14)
+rsdys14.lm2c <- lm(rain14_dys ~ elev_m.log + d2coast, data = rainy14)
+summary(rsdys14.lm2)
+summary(rsdys14.lm2a)
+# summary(rsdys14.lm2b)
+summary(rsdys14.lm2c)
+# All adj. R-squared values are negative
+
+# Total rainfall ~ elevation + d2pacific
+rstot14.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy14)
+rstot14.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy14)
+# rstot14.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy14)
+rstot14.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy14)
+summary(rstot14.lm3)# adj. R-squared = 0.12
+summary(rstot14.lm3a)# adj. R-squared = 0.243
+# summary(rstot14.lm3b)
+summary(rstot14.lm3c)# adj. R-squared = 0.361
+
+# Rainy days ~ elevation models + d2pacific
+rsdys14.lm3 <- lm(rain14_dys ~ elev_m + d2pacific, data = rainy14)
+rsdys14.lm3a <- lm(rain14_dys ~ sqrt(elev_m) + d2pacific, data = rainy14)
+# rsdys14.lm3b <- lm(rain14_dys ~ elev_m.sqr + d2pacific, data = rainy14)
+rsdys14.lm3c <- lm(rain14_dys ~ elev_m.log + d2pacific, data = rainy14)
+summary(rsdys14.lm3)# adj. R-squared = 0.488
+summary(rsdys14.lm3a)# adj. R-squared = 0.525
+# summary(rsdys14.lm3b)
+summary(rsdys14.lm3c)# adj. R-squared = 0.581
+# plot(rsdys14.lm3c)
+
+# Total rainfall ~ d2coast + d2pacific + elevation
+rstot14.lm4 <- lm(totppt_mm ~ d2coast + d2pacific + elev_m, data = rainy14)
+rstot14.lm4a <- lm(totppt_mm ~ d2coast + d2pacific + elev_m.log, data = rainy14)
+# rstot14.lm4b <- lm(totppt_mm ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy14)
+summary(rstot14.lm4)# adj. R-squared is negative
+summary(rstot14.lm4a)# adj. R-squared = 0.585
+# summary(rstot14.lm4b)
+
+# Rainy days ~ d2coast + d2pacific + elevation
+rsdys14.lm4 <- lm(rain14_dys ~ d2coast + d2pacific + elev_m, data = rainy14)
+rsdys14.lm4a <- lm(rain14_dys ~ d2coast + d2pacific + elev_m.log, data = rainy14)
+# rsdys14.lm4b <- lm(rain14_dys ~ d2coast + d2pacific + elev_m + elev_m.sqr, data = rainy14)
+summary(rsdys14.lm4)# adj. R-squared = 0.142
+summary(rsdys14.lm4a)# adj. R-squared = 0.245
+# summary(rsdys14.lm4b)
+
+# Total rainfall ~ distance to coast
+rstot14.lm5 <- lm(totppt_mm ~ d2coast, data = rainy14)
+summary(rstot14.lm4)# adj. R-squared is negative
+
+# Total rainfall ~ d2pacific
+rstot14.lm5a <- lm(totppt_mm ~ d2pacific, data = rainy14)
+summary(rstot14.lm5a)# adj. R-squared = 0.125
+
+# Total rainfall ~ d2coast + d2pacific
+rstot14.lm5b <- lm(totppt_mm ~ d2coast + d2pacific, data = rainy14)
+summary(rstot14.lm5b)# adj. R-squared is negative
+
+# Rainy days ~ d2coast
+rsdys14.lm5 <- lm(rain14_dys ~ d2coast, data = rainy14)
+summary(rsdys14.lm5)# adj. R-squared is negative
+
+# Rainy days ~ d2pacific
+rsdys14.lm5a <- lm(rain14_dys ~ d2pacific, data = rainy14)
+summary(rsdys14.lm5a)# adj. R-squared = 0.428
+
+# Rainy days ~ d2coast + d2pacific
+rsdys14.lm5b <- lm(rain14_dys ~ d2coast + d2pacific, data = rainy14)
+summary(rsdys14.lm5b)# adj. R-squared = 0.568
+
+# rs14rg.lm <- lm(totppt_mm ~ elev_m + lat + lon, data = rainy14)
+# rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
+# summary(rs14rg.lm)
+# summary(rs14rg_elev.lm)
 ```
 
 
