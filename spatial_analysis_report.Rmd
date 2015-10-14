@@ -99,7 +99,25 @@ plot(sod_plots, pch = 20, cex = .3, add = T)
 ___
 
 ### Comparing Rainy Season Totals from PRISM & Rain Gauges
-I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004.
+I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004. To illustrate the small coverage of PRISM stations in the study area I plotted the locations of stations used for the 1981-2010 monthly data and our maximum rain gauge coverage over the region of the DEM for the study area.
+
+```{r PRISM gauges in study area, echo=F}
+psm_stations <- readOGR(dsn = "shapefiles/", layer = "psm_stations")
+rg_vpoly <- readOGR(dsn = "shapefiles/", layer = "rg04_vpolys")
+psm_stations <- spTransform(psm_stations, CRSobj = proj4string(elev))
+psm_stations <- crop(psm_stations, elev)
+rg_vpoly <- spTransform(rg_vpoly, CRSobj = proj4string(elev))
+
+plot(elev, main = "PRISM (1981-2010) and Study (2004) Rain Gauge Stations")
+# plot(rg_vpoly, add = T)
+plot(psm_stations, pch = 19, add = T)
+plot(spTransform(rainy04, CRSobj = proj4string(elev)), pch = 25, col = "blue", add = T)
+text(psm_stations, labels = psm_stations@data$stnid, pos = 3)
+
+# psm_stations@data
+```
+
+A caveat with the PRISM stations is that these are locations where data was recorded and used at some point during the 1981-2010. I was especially interested in the stations that were on the border in the northeast corner, but after some investigation found that these don't appear to contribute data after the mid-1990s.
 
 ___
 
