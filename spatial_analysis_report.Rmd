@@ -12,7 +12,7 @@ This reports on some of the exploratory analysis of spatial relationships in the
 load("~/Documents/soco_ppt/spatial_201510.RData")
 ```
 
-```{r rain gauges elevation, echo=FALSE, message=FALSE}
+```{r map rain gauges elevation, echo=FALSE, message=FALSE, fig.height=8}
 library(raster); library(rgdal)
 elev <- raster("dem/sod15m.tif")
 sod_plots <- readOGR("shapefiles/", "soco_plots_metric", verbose = F)
@@ -30,6 +30,7 @@ ____
 These figures of the voronoi polygons for the rain gauge locations show how the available data changes, sometimes dramatically from year to year. Rain gauge locations are the point-down triangles, and the dots are the locations of the disease monitoring plots. 
 
 ___
+
 
 ```{r plot voronoi surfaces, echo=FALSE, message=FALSE, fig.height=4.5, fig.width=10}
 library(rgdal); library(plyr)
@@ -99,25 +100,27 @@ plot(sod_plots, pch = 20, cex = .3, add = T)
 ___
 
 ### Comparing Rainy Season Totals from PRISM & Rain Gauges
-I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004. To illustrate the small coverage of PRISM stations in the study area I plotted the locations of stations used for the 1981-2010 monthly data and our maximum rain gauge coverage over the region of the DEM for the study area.
+To illustrate the limited coverage of PRISM stations in the study area I plotted the locations of stations used for the 1981-2010 monthly data and our maximum rain gauge coverage (15 stations in 2004) over the region of the DEM for the study area. Most of the PRISM stations (filled points) are outside or very near the edge of the study area.
 
-```{r PRISM gauges in study area, echo=F}
-psm_stations <- readOGR(dsn = "shapefiles/", layer = "psm_stations")
-rg_vpoly <- readOGR(dsn = "shapefiles/", layer = "rg04_vpolys")
+```{r PRISM gauges in study area, echo=F, fig.height=8}
+psm_stations <- readOGR(dsn = "shapefiles/", layer = "psm_stations", verbose = F)
+rg_vpoly <- readOGR(dsn = "shapefiles/", layer = "rg04_vpolys", verbose = F)
 psm_stations <- spTransform(psm_stations, CRSobj = proj4string(elev))
 psm_stations <- crop(psm_stations, elev)
 rg_vpoly <- spTransform(rg_vpoly, CRSobj = proj4string(elev))
 
 plot(elev, main = "PRISM (1981-2010) and Study (2004) Rain Gauge Stations")
 # plot(rg_vpoly, add = T)
-plot(psm_stations, pch = 19, add = T)
-plot(spTransform(rainy04, CRSobj = proj4string(elev)), pch = 25, col = "blue", add = T)
+plot(psm_stations, pch = 20, add = T)
+plot(spTransform(rainy04, CRSobj = proj4string(elev)), pch = 6, col = "blue", add = T)
 text(psm_stations, labels = psm_stations@data$stnid, pos = 3)
 
 # psm_stations@data
 ```
 
 A caveat with the PRISM stations is that these are locations where data was recorded and used at some point during the 1981-2010. I was especially interested in the stations that were on the border in the northeast corner, but after some investigation found that these don't appear to contribute data after the mid-1990s.
+
+I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004.
 
 ___
 
@@ -207,7 +210,8 @@ ___
 
 The highest temporal resolution we have for PRISM data is monthly rainfall totals, so I did a comparison by plotting the values for total rainfall from PRISM and our rain gauges for each month from 2003-2010. The final years is 2010 because that is the last year of downscaled PRISM data. Similarly to the seasonal aggregation the records from the rain gauges are nearly always less than the estimates from the PRISM data. 
 
-```{r monthly correlation, echo=FALSE, fig.width=16, fig.height=20}
+I excluded these data in this version to conserve some space
+```{r monthly correlation, echo=FALSE, fig.width=16, fig.height=20, eval=F}
 ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
       geom_point() +
       geom_smooth(method ="lm", size = 0.5, se = F) +
@@ -226,11 +230,11 @@ ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
 
 ____
 
-The black line is the 1:1 fit and the blue line is the fit from a linear model. Month-year combinations where the correlation is "NA" results from having only 1 or 0 records from the rain gauge data.
+~~The black line is the 1:1 fit and the blue line is the fit from a linear model. Month-year combinations where the correlation is "NA" results from having only 1 or 0 records from the rain gauge data.~~
 
-I am unsure about how to summarize these monthly data into a table, or if that even makes sense. I could do a summary of the average of the monthly deviations for each year, i.e.:
+~~I am unsure about how to summarize these monthly data into a table, or if that even makes sense. I could do a summary of the average of the monthly deviations for each year, i.e.:~~
 
-```{r average monthly deviation, echo=F, eval=T}
+```{r average monthly deviation, echo=F, eval=F}
 monthly_dev.avg <- monthly.dev %>% filter(date >= 2004) %>% 
       select(year, abs_dev) %>% 
       group_by(year) %>% 
