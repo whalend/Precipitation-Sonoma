@@ -267,6 +267,7 @@ source("~/Documents/Rscratch/panel_cor.R")
 ```
 
 ```{r 2004 pairs elev ols, echo=F, fig.height=8, fig.width=10}
+detach("package:raster", unload=TRUE)
 pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
