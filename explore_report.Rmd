@@ -307,6 +307,7 @@ hr_rg_data1 <- rbind(hr_rg_data1, hr_special)
 hr_rg_data1$date <- as.Date(paste(hr_rg_data1$year, hr_rg_data1$month, hr_rg_data1$day, sep = "/"), format = "%Y/%m/%d")
 summary(hr_rg_data1)
 ```
+
 Now I have one dataframe with all the hourly events recorded across all of the rain gauges. Next I will follow the same process to create a dataframe of all the daily events.
 ```{r create daily data set, echo=TRUE}
 dy_rg_data <- rg_data %>% 
@@ -470,6 +471,26 @@ saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
 
 Examine/add precipitation data from other stations in Sonoma County. These data are station summaries from the [Community Collaborative Rain, Hail, and Snow Network](http://www.cocorahs.org). I need to overlay them on the elevation grid to see if they reasonably fall within our study area.
 
+I obtained additional weather station precipitation from:
+
+[UC Integrated Pest Management Program](http://www.ipm.ucdavis.edu/calludt.cgi/WXSTATIONDATA?MAP=&STN=PETALUMA_EAST.A) 
+
+ - Petaluma East
+
+[California Data Exchange Center](http://cdec.water.ca.gov/cgi-progs/queryCSV)
+
+ - Lichau
+ - St. Helena (sh4)
+ 
+[Weather Underground](http://www.wunderground.com/cgi-bin/findweather/getForecast?query=pws:KCASONOM8)
+ 
+ - kcasonom8 (Diamond A Ranch)
+ - kcasanta225
+ 
+[National Climate Data Center](http://www.ncdc.noaa.gov/cdo-web/datatools/findstation)
+
+ - Sonoma
+ 
 ```{r precip other stations}
 library(readxl)
 ppt_other <- read_excel("ppt_other_stations.xlsx", 1)
@@ -482,6 +503,145 @@ ppt_other_sp <- SpatialPointsDataFrame(
     proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
 
+# Sonoma rain gauges
+sonoma <- read.csv("other_gauges/sonoma_rg_noaa_ncdc.csv")
+summary(sonoma)
+sonoma[sonoma==9999 | sonoma==-9999] <- NA
+
+filter(sonoma, STATION == "GHCND:US1CASN0055") %>% 
+      select(date, lon_dd, lat_dd)
+# station moved(?), renamed 2009-02-11
+
+sonoma_ppt <- select(sonoma, date, station = STATION, lat_dd, lon_dd, elev_m, ppt_mm = PRCP)
+sonoma_ppt$ppt_mm <- sonoma_ppt$ppt_mm * 0.1
+
+sonoma_ppt$date <- as.Date(as.character(sonoma_ppt$date), "%Y%m%d")
+library(lubridate)
+sonoma_ppt$year <- year(sonoma_ppt$date)
+sonoma_ppt$month <- month(sonoma_ppt$date)
+sonoma_ppt$day <- day(sonoma_ppt$date)
+summary(sonoma_ppt)
+head(sonoma_ppt)
+detach("package:lubridate", unload=TRUE)
+
+sonoma_ppt$station <- as.character(sonoma_ppt$station)
+sonoma_ppt$station[sonoma_ppt$station=="GHCND:USC00048351"] <- "sonoma1"
+sonoma_ppt$station[sonoma_ppt$station=="GHCND:US1CASN0055"] <- "sonoma2"
+sonoma_ppt$station <- as.factor(sonoma_ppt$station)
+summary(sonoma_ppt)
+
+filter(sonoma_ppt, is.na(ppt_mm))
+
+dup_dates <- filter(sonoma_ppt, duplicated(date))
+tmp <- filter(sonoma_ppt, sonoma_ppt$date %in% dup_dates$date)
+tmp <- arrange(tmp, date)
+# two different stations
+rm(tmp); rm(dup_dates)
+
+sonoma1 <- filter(sonoma_ppt, station == "sonoma1")
+sonoma2 <- filter(sonoma_ppt, station == "sonoma2")
+
+summary(sonoma1)
+sonoma1 <- droplevels(sonoma1)
+filter(sonoma1, is.na(ppt_mm))
+sonoma1$daily_ppt <- sonoma1$ppt_mm/25.4
+sonoma1_daily <- select(sonoma1, station, year, month, day, daily_ppt, date)
+sonoma1_daily <- rename(sonoma1_daily, stationid = station)
+
+summary(sonoma2)
+sonoma2 <- droplevels(sonoma2)
+sonoma2$daily_ppt <- sonoma2$ppt_mm/25.4
+sonoma2_daily <- select(sonoma2, station, year, month, day, daily_ppt, date)
+sonoma2_daily <- rename(sonoma2_daily, stationid = station)
+
+
+# Lichau Creek rain gauge
+# originally downloaded accumulation, then calculated amount of each event
+# overwrote original CSV download
+lichau <- read.csv("other_gauges/lichau_cdec.csv")
+summary(lichau)
+str(lichau)
+lichau$date <- as.Date(as.character(lichau$Date), "%Y%m%d")
+library(lubridate)
+lichau$year <- year(lichau$date)
+lichau$month <- month(lichau$date)
+lichau$day <- day(lichau$date)
+detach("package:lubridate", unload=TRUE)
+lichau <- rename(lichau, lon_dd = long_dd)
+summary(lichau)
+
+lichau_daily <- lichau %>% select(-Date, -PST) %>% 
+      group_by(stationid, year, month, day, date) %>% 
+      summarise(daily_ppt = sum(ppt_inches, na.rm = T))
+lichau_daily <- ungroup(lichau_daily)
+lichau_daily <- select(lichau_daily, c(1:4), daily_ppt, date)# reorder cols
+
+
+# Petaluma East rain gauge
+petaluma <- read.csv("other_gauges/petaluma_east.csv")
+summary(petaluma)
+petaluma$stationid <- "petaluma_e"
+petaluma$date <- as.Date(as.character(petaluma$Date), "%Y%m%d")
+library(lubridate)
+petaluma$year <- year(petaluma$date)
+petaluma$month <- month(petaluma$date)
+petaluma$day <- day(petaluma$date)
+detach("package:lubridate", unload=TRUE)
+petaluma_daily <- select(petaluma, stationid, year, month, day, ppt_mm, date)
+anyDuplicated(petaluma_daily$date)
+petaluma_daily <- rename(petaluma_daily, daily_ppt = ppt_mm) %>% 
+      mutate(daily_ppt = daily_ppt/25.4)
+summary(petaluma_daily)
+filter(petaluma_daily, is.na(year))
+petaluma_daily <- filter(petaluma_daily, !is.na(year))
+
+
+# St. Helena (sh4) rain gauge
+sthelena <- read.csv("other_gauges/sthelena_sh4_cdec.csv")
+summary(sthelena)
+sthelena$date <- as.Date(as.character(sthelena$Date), "%Y%m%d")
+library(lubridate)
+sthelena$year <- year(sthelena$date)
+sthelena$month <- month(sthelena$date)
+sthelena$day <- day(sthelena$date)
+detach("package:lubridate", unload=TRUE)
+sthelena_daily <- select(sthelena, stationid, year, month, day, ppt_inches, date)
+anyDuplicated(sthelena_daily$date)
+sthelena_daily <- rename(sthelena_daily, daily_ppt = ppt_inches)
+summary(sthelena_daily)
+
+
+# Santa Rosa 225 rain gauge
+santa225 <- read.csv("other_gauges/sr_kcasanta225_wunderground.csv")
+summary(santa225)
+santa225$date <- as.Date(as.character(santa225$Date))
+library(lubridate)
+santa225$year <- year(santa225$date)
+santa225$month <- month(santa225$date)
+santa225$day <- day(santa225$date)
+detach("package:lubridate", unload=TRUE)
+santa225 <- rename(santa225, ppt_inches = PrecipitationSumIn)
+santa225_daily <- select(santa225, stationid, year, month, day, ppt_inches, date)
+anyDuplicated(santa225_daily$date)
+santa225_daily <- rename(santa225_daily, daily_ppt = ppt_inches)
+summary(santa225_daily)
+
+
+# Diamond A rain gauge
+diamonda <- read.csv("other_gauges/diamonda_wunderground.csv")
+summary(diamonda)
+diamonda$date <- as.Date(as.character(diamonda$Date))
+library(lubridate)
+diamonda$year <- year(diamonda$date)
+diamonda$month <- month(diamonda$date)
+diamonda$day <- day(diamonda$date)
+detach("package:lubridate", unload=TRUE)
+diamonda <- rename(diamonda, ppt_inches = PrecipitationSumIn)
+diamonda_daily <- select(diamonda, stationid, year, month, day, ppt_inches, date)
+anyDuplicated(diamonda_daily$date)
+diamonda_daily <- rename(diamonda_daily, daily_ppt = ppt_inches)
+summary(diamonda_daily)
+
 elev <- raster("dem/sod15m.tif")
 crs <- elev@crs
 
@@ -493,15 +653,16 @@ plot(ppt_other_sp, add = T, pch = 25, col="blue")
 # plot(plts, add = T, pch = 0)
 ```
 
-It looks like the Rohnert Park & Santa Rosa stations are outside the area, so I create a shape file with the locations of the Glen Ellen rain gauges.
+It looks like the Rohnert Park & Santa Rosa stations are outside the area, so I created a shape file with the locations of the Glen Ellen rain gauges.
 
 ```{r other ppt create shapefile}
 library(dplyr)
 ppt_other <- filter(ppt_other, station == "GlenEllen" | station == "GlenEllenWNW")
 unique(ppt_other$station)
 summary(ppt_other)
-glen_ellen_sp <- ppt_other %>% distinct(station) %>% select(station, lat, lon)
 
+# Create shapefile of Glen Ellen rain gauges
+glen_ellen_sp <- ppt_other %>% distinct(station) %>% select(station, lat, lon)
 glen_ellen_rg <- SpatialPointsDataFrame(
     as.matrix(glen_ellen_sp[, c("lon","lat")]), 
     as.data.frame(glen_ellen_sp),
@@ -509,6 +670,70 @@ glen_ellen_rg <- SpatialPointsDataFrame(
 )
 glen_ellen_rg <- spTransform(glen_ellen_rg, CRS=crs)
 summary(glen_ellen_rg)
+
+# Create shapefile of Sonoma stations
+sonoma_shp <- sonoma_ppt %>% 
+      distinct(station) %>% 
+      select(stationid = station, lon_dd, lat_dd)
+sonoma_shp <- SpatialPointsDataFrame(
+      as.matrix(sonoma_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(sonoma_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Create shapefile of Lichau station
+lichau_shp <- lichau %>% 
+      distinct(stationid) %>% 
+      select(stationid, lon_dd, lat_dd)
+lichau_shp <- SpatialPointsDataFrame(
+      as.matrix(lichau_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(lichau_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Create shapefile of Petaluma station
+petaluma_shp <- petaluma %>% 
+      distinct(stationid) %>% 
+      select(stationid, lon_dd, lat_dd)
+petaluma_shp <- SpatialPointsDataFrame(
+      as.matrix(petaluma_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(petaluma_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Create shapefile of St. Helena station
+sthelena_shp <- sthelena %>% 
+      distinct(stationid) %>% 
+      select(stationid, lon_dd, lat_dd)
+sthelena_shp <- SpatialPointsDataFrame(
+      as.matrix(sthelena_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(sthelena_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Create shapefile of Santa Rosa 225 station
+santa225_shp <- santa225 %>% 
+      distinct(stationid) %>% 
+      select(stationid, lon_dd, lat_dd)
+santa225_shp <- SpatialPointsDataFrame(
+      as.matrix(santa225_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(santa225_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Create shapefile of Diamond A station
+diamonda_shp <- diamonda %>% 
+      distinct(stationid) %>% 
+      select(stationid, lon_dd, lat_dd)
+diamonda_shp <- SpatialPointsDataFrame(
+      as.matrix(diamonda_shp[, c("lon_dd", "lat_dd")]), 
+      as.data.frame(diamonda_shp),
+      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+)
+
+# Bind spatial point dataframes together
+add_rg_shp <- rbind(diamonda_shp, lichau_shp, petaluma_shp, santa225_shp, sonoma_shp, sthelena_shp)
+writeOGR(add_rg_shp, "shapefiles/", "otherRGs", driver = "ESRI Shapefile")
 
 plot(elev)
 plot(glen_ellen_rg, add = T, pch = 25, col = "blue")
@@ -521,10 +746,11 @@ writeOGR(glen_ellen_rg, "shapefiles/", "GlenEllen_ppt_2009-2015", driver = "ESRI
 
 Now I'm going to create a data frame of the Glen Ellen stations formatted to merge with the `dy_rg_data` data frame
 
-```{r Glen Ellen data frame}
+```{r daily ppt data}
 summary(ppt_other)
 unique(ppt_other$station)
 names(dy_rg_data)
+dy_rg_data <- rename(dy_rg_data, stationid = id)
 
 ppt_other$date <- as.Date(ppt_other$Date)
 ppt_other <- mutate(ppt_other, daily_ppt = Precip_mm/25.4)
@@ -547,6 +773,10 @@ ppt_other <- ppt_other %>%
       rename(id = station)
 ppt_other$id <- tolower(ppt_other$id)
 dy_rg_data <- rbind(dy_rg_data, ppt_other)
+
+# rbind daily precipitation data and save
+dy_rg_data <- bind_rows(dy_rg_data, diamonda_daily, lichau_daily, petaluma_daily, santa225_daily, sonoma1_daily, sonoma2_daily, sthelena_daily)
+unique(dy_rg_data$stationid)
+
 saveRDS(dy_rg_data, "dy_rg_data_corrected.rds")
 ```
-
