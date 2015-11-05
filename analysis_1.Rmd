@@ -9,25 +9,38 @@ Outliers have been replaced with `NA` (see `explore_report.Rmd` for details). He
 
 Load libraries I plan to use for data manipulation (`dplyr`) and plotting (`ggplot2`).
 ```{r load libraries, echo=TRUE, message=FALSE}
-library(ggplot2); library(plyr); library(dplyr)
+library(ggplot2); library(plyr); library(raster); library(dplyr)
 ```
 
-Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement in these data sets I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches.
+Read-in the data sets, one daily and one hourly, and then plot. For outlier replacement in these data sets I settled on a daily precipitation threshold of greater than or equal to 6.5 inches, and an hourly precipitation threshold of greater than or equal to 2 inches for the data from our rain gagues.
+
 ```{r read in daily data, echo=TRUE}
 dy_rg_data <- readRDS("dy_rg_data_corrected.rds")
 summary(dy_rg_data)
 str(dy_rg_data)
-summary(filter(dy_rg_data, is.na(daily_ppt)))
-ggplot(data = dy_rg_data, aes(x = date, y = daily_ppt)) +
-      geom_point()
+filter(dy_rg_data, is.na(daily_ppt)) %>% 
+      select(date, stationid) %>% 
+      arrange(date)
+na.2004 <- (filter(dy_rg_data, is.na(daily_ppt), year == 2004))
+na.2004
+rm(na.2004)
+
+(filter(dy_rg_data, is.na(daily_ppt), year == 2004, month == 12))
+
+dy_rg_data_tmp <- dy_rg_data
+dy_rg_data_tmp[is.na(dy_rg_data_tmp)] <- -2
+
+ggplot(data = dy_rg_data_tmp, aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      facet_grid(stationid ~ .)
 ```
 
-
 Make data frame of monthly totals and plot across all years
+
 ```{r summarise daily to monthly totals, echo=TRUE, eval=FALSE}
 # Monthly precipitation (ppt) by year, month, and gauge id
 monthly <- dy_rg_data %>% 
-      group_by(id, year, month) %>%# This grouping order causes reordering by year, month, then id
+      group_by(year, month, stationid) %>%# This grouping order causes reordering by year, month, then id
       summarise(monthly_ppt = sum(daily_ppt), 
                 monthly_ppt_mm = sum(daily_ppt) * 25.4)
 monthly
@@ -46,6 +59,7 @@ filter(monthly_ppt, is.na(avg_monthly_ppt))
 ```
 
 Plot total monthly rainfall data
+
 ```{r plotting monthly data, echo=TRUE, eval=FALSE, fig.height=9, fig.width=6}
 # Plot monthly rainfall grouped by plot ####
 # monthly_ppt <- ungroup(monthly_ppt)
@@ -110,7 +124,8 @@ qplot(month, monthly_ppt, data = hr_rg_data %>%
 ```
 
 I want to group the daily data into data frames by month and year so that I can create an interpolation for precipitation for each unique month-year combination from each location. For example:
-```{r group by year month, echo=TRUE}
+
+```{r group by year month, echo=TRUE, eval=F}
 ppt2004_01 <- dy_rg_data %>% #
       group_by(id, year, month) %>% 
       #filter(year==2004, month==1) %>%
@@ -119,30 +134,34 @@ ppt2004_01
 ```
 
 This is how I need each data frame to be structured, but I want to find a faster way to create the whole set of month-year combinations
-```{r list of data frames split by month-year, echo=TRUE}
+```{r list of data frames split by month-year, echo=TRUE, eval=F}
 # Split `monthly` dataframe with year-month-location on the month and year to create a list of data frames with the total precipitation and location id for each month and year combo
 df_list <- split(monthly, list(monthly$year, monthly$month))# 132 data frames
 ```
 
 I wasn't sure what to do from here in trying to put each data frame into the global environment. I finally hit on the right search terms ("unlist data frame R") revealing this function in an answer on [Stack Overflow](http://stackoverflow.com/questions/17697239/r-unlist-a-list-of-dataframes):
+
 ```{r unlist data frames into environment, eval=FALSE}
 list2env(df_list, .GlobalEnv))
 ```
 
 Trying to figure out a `plyr` approach with `assign` so that I can name the data frames, but not having much luck.
+
 ```{r plyr unlist (fail), echo=FALSE, eval=FALSE}
 # ldply(df_list, function(i){
 #       assign(df_list[i], df_list[[i]])
 # })
 ```
+
 Two commenters asked why you would even want to do this when you could just work on them as elements of the list. Can I match up the spatial data to the data frames in the list? Then can I also pass each data frame in that list to an interpolation function?
 
 I am leaving the data frames in the list for now.
 
 I was working on trying to subset the named list of dataframes using wildcards/regular expressions (`regexp`). I wanted to break them up by year due to relocation of some rain gauges, so this is necessary to make sure the data is joined to the correct coordinates. Rain gauges typically were not moved very far, so it may not matter much, but I am being thorough.
 
-I figured out how to do it using regular expressions. 
-```{r subset list using regular expression, echo=TRUE, eval=TRUE}
+I figured out how to do it using regular expressions.
+
+```{r subset list using regular expression, echo=F, eval=F}
 # These first two lines didn't get me anywhere
 # l <- subset(df_list, df_list["*"]<=df_list["*2008"])
 # Filter(function(x) length(x) > 3, l)
@@ -162,90 +181,140 @@ df_list_1214 <- df_list[grep("2012|2013|2014", df_list_names)]
 
 
 A couple of rain gauges have been moved to new locations near their established areas over the years, so I have shapefiles corresponding the move of one or more gauge stations.
+
 ```{r list rain gague shapefiles}
 list.files("shapefiles", pattern = "*.shp")
 ```
+
 This shows that there are four shapefiles for various stretches of the study, 2003-2008, 2009-2011, 2012-2014, and then 2015_2016. The 2015 is the result of moving a rain gauge during our 2014 visits. I will not be using that file for the data I have in hand.
 
 Develop variables of rainfall for each rainy season: number of days with rain `rainXX_dys`, average daily rainfall `rainXX_avg`, and total rainfall `rainXX_tot`.
+
 ```{r breakdown daily into seasonal aggregation, message=FALSE}
-library(dplyr)
-summary(filter(dy_rg_data, id == "glenellen"))
+# library(dplyr)
+summary(filter(dy_rg_data, stationid == "glenellen"))
+length(unique(dy_rg_data$stationid))# 25 rain gauge stations in total
+dy_rg_data$stationid <- as.factor(dy_rg_data$stationid)
 
 # Calculate number of days, average, total with recorded rain
+summary(dy_rg_data %>% filter(date >= "2003-11-01", date <= "2004-05-31"))
 dys_rain <- dy_rg_data %>% 
       filter(date >= "2003-11-01", date <= "2004-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>% 
-      summarise(rain04_dys = length(daily_ppt), rain04_avg = mean(daily_ppt), rain04_tot = sum(daily_ppt))
+      group_by(stationid) %>% 
+      summarise(rain04_dys = length(daily_ppt), rain04_avg = sum(daily_ppt)/212, rain04_tot = sum(daily_ppt))
+
+summary(dy_rg_data %>% filter(date >= "2004-11-01", date <= "2005-05-31"))
+na.2005 <- dy_rg_data %>% filter(date >= "2004-11-01", date <= "2005-05-31", is.na(daily_ppt))
+summary(na.2005)# indicates FOP will be questionable w/29 missing values
+rm(na.2005)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2004-11-01", date <= "2005-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain05_dys = length(daily_ppt), rain05_avg = mean(daily_ppt), rain05_tot = sum(daily_ppt)), by = "id", all = T)
-      
+      group_by(stationid) %>%
+      summarise(rain05_dys = length(daily_ppt), rain05_avg = sum(daily_ppt)/211, rain05_tot = sum(daily_ppt)), by = "stationid", all = T)
+
+summary(dy_rg_data %>% filter(date >= "2005-11-01", date <= "2006-05-31"))
+na.2006 <- dy_rg_data %>% filter(date >= "2005-11-01", date <= "2006-05-31", is.na(daily_ppt))
+summary(na.2006)# FOP questionable w/44 missing values
+rm(na.2006)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2005-11-01", date <= "2006-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain06_dys = length(daily_ppt), rain06_avg = mean(daily_ppt), rain06_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain06_dys = length(daily_ppt), rain06_avg = sum(daily_ppt)/211, rain06_tot = sum(daily_ppt)), by = "stationid", all = T)
       
+summary(dy_rg_data %>% filter(date >= "2006-11-01", date <= "2007-05-31"))
+na.2007 <- dy_rg_data %>% filter(date >= "2006-11-01", date <= "2007-05-31", is.na(daily_ppt))
+summary(na.2007)# St. Helena station has 40 missing values
+rm(na.2007)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2006-11-01", date <= "2007-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain07_dys = length(daily_ppt), rain07_avg = mean(daily_ppt), rain07_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain07_dys = length(daily_ppt), rain07_avg = sum(daily_ppt)/211, rain07_tot = sum(daily_ppt)), by = "stationid", all = T)
       
+summary(dy_rg_data %>% filter(date >= "2007-11-01", date <= "2008-05-31"))
+dy_rg_data %>% filter(date >= "2007-11-01", date <= "2008-05-31", is.na(daily_ppt))
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2007-11-01", date <= "2008-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain08_dys = length(daily_ppt), rain08_avg = mean(daily_ppt), rain08_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain08_dys = length(daily_ppt), rain08_avg = sum(daily_ppt)/212, rain08_tot = sum(daily_ppt)), by = "stationid", all = T)
 
+summary(dy_rg_data %>% filter(date >= "2008-11-01", date <= "2009-05-31"))
+dy_rg_data %>% filter(date >= "2008-11-01", date <= "2009-05-31", is.na(daily_ppt))# Glen Ellen WNW station has 10 missing values, 7 in April
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2008-11-01", date <= "2009-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain09_dys = length(daily_ppt), rain09_avg = mean(daily_ppt), rain09_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain09_dys = length(daily_ppt), rain09_avg = sum(daily_ppt)/211, rain09_tot = sum(daily_ppt)), by = "stationid", all = T)
       
+summary(dy_rg_data %>% filter(date >= "2009-11-01", date <= "2010-05-31"))
+na.2010 <- dy_rg_data %>% filter(date >= "2009-11-01", date <= "2010-05-31", is.na(daily_ppt))
+summary(na.2010)# Glen Ellen WNW station has 9 missing values
+rm(na.2010)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2009-11-01", date <= "2010-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain10_dys = length(daily_ppt), rain10_avg = mean(daily_ppt), rain10_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain10_dys = length(daily_ppt), rain10_avg = sum(daily_ppt)/211, rain10_tot = sum(daily_ppt)), by = "stationid", all = T)
 
+summary(dy_rg_data %>% filter(date >= "2010-11-01", date <= "2011-05-31"))
+na.2011 <- dy_rg_data %>% filter(date >= "2010-11-01", date <= "2011-05-31", is.na(daily_ppt))
+summary(na.2011)# Sonoma1 station has 83 missing values; excl. from interp. 
+filter(na.2011, stationid == "sonoma1")# mostly after February
+rm(na.2011)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2010-11-01", date <= "2011-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>% 
-      summarise(rain11_dys = length(daily_ppt), rain11_avg = mean(daily_ppt), rain11_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>% 
+      summarise(rain11_dys = length(daily_ppt), rain11_avg = sum(daily_ppt)/211, rain11_tot = sum(daily_ppt)), by = "stationid", all = T)
       
+summary(dy_rg_data %>% filter(date >= "2011-11-01", date <= "2012-05-31"))
+na.2012 <- dy_rg_data %>% filter(date >= "2011-11-01", date <= "2012-05-31", is.na(daily_ppt))
+summary(na.2012)# Sonoma1 station has 166 missing, Glen Ellen WNW 14 missing
+filter(na.2012, stationid == "sonoma1")# starts in November, should exclude
+rm(na.2012)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2011-11-01", date <= "2012-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>% 
-      summarise(rain12_dys = length(daily_ppt), rain12_avg = mean(daily_ppt), rain12_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>% 
+      summarise(rain12_dys = length(daily_ppt), rain12_avg = sum(daily_ppt)/212, rain12_tot = sum(daily_ppt)), by = "stationid", all = T)
       
+summary(dy_rg_data %>% filter(date >= "2013-11-01", date <= "2014-05-31"))
+dy_rg_data %>% filter(date >= "2013-11-01", date <= "2014-05-31", is.na(daily_ppt))# both Glen Ellen stations missing data, WNW 11 mostly in March, the other 6
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2013-11-01", date <= "2014-05-31", daily_ppt > 0) %>% 
-      group_by(id) %>%
-      summarise(rain14_dys = length(daily_ppt), rain14_avg = mean(daily_ppt), rain14_tot = sum(daily_ppt)), by = "id", all = T)
+      group_by(stationid) %>%
+      summarise(rain14_dys = length(daily_ppt), rain14_avg = sum(daily_ppt)/211, rain14_tot = sum(daily_ppt)), by = "stationid", all = T)
 
 summary(dys_rain)
 ```
 
-I think that the `NAs` during some seasons are due to rain gauges not recording, recording bad data, or being decommissioned. 
+I think that the `NAs` during some seasons are due to rain gauges not recording, recording bad data, or being decommissioned.
+
 ```{r investigate dys_rain NAs}
-filter(dys_rain, is.na(rain04_dys)) # mackie, glenellen x2 (3)
-filter(dys_rain, is.na(rain06_dys)) # kunde, mitsui, sugarloaf, glenellen x2 (5)
-filter(dys_rain, is.na(rain07_dys)) # fop, kunde, spaulding, glenellen x2 (5)
-filter(dys_rain, is.na(rain08_dys)) # fop, glenellen x2 (3)
-filter(dys_rain, is.na(rain09_dys)) # backman, cook, fop, mitsui (4)
-filter(dys_rain, is.na(rain10_dys)) # fop, sugarloaf (2)
-filter(dys_rain, is.na(rain11_dys)) # beltane, fop, mitsui, sugarloaf, votruba (5)
-filter(dys_rain, is.na(rain12_dys)) # annadel, backman, beltane, fop, kunde, mitsui, sugarloaf, votruba (8)
+filter(dys_rain, is.na(rain04_dys)) # mackie, glenellen x2, sonoma2, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain06_dys)) # kunde, mitsui, sugarloaf, glenellen x2, sonoma2, wunderground stations x2 (8)
+filter(dys_rain, is.na(rain07_dys)) # fop, kunde, spaulding, glenellen x2, sonoma2, wunderground stations x2 (8)
+filter(dys_rain, is.na(rain08_dys)) # fop, glenellen x2, sonoma2, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain09_dys)) # backman, cook, fop, mitsui, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain10_dys)) # fop, sugarloaf, kcasanta225 (3)
+filter(dys_rain, is.na(rain11_dys)) # beltane, fop, mitsui, sugarloaf, votruba, kcasanta225 (6)
+filter(dys_rain, is.na(rain12_dys)) # annadel, backman, beltane, fop, kunde, mitsui, sugarloaf, votruba, kcasanta225 (9)
 filter(dys_rain, is.na(rain14_dys)) # annadel, badger, beltane, cook, fop, sawi, secret, spaulding, sugarloaf, votruba (10)
 ```
-I noticed that the way the series of join statements were written I missed the "mackie" rain gauge because it was not part of the 2004 season. I corrected this and another join issue that arose later with adding the Glen Ellen rain gauges by calling the `merge` function with `all = TRUE` option. This is a "full outer join" that retains all the values for all the rows, inserting `NAs` for columns where the data is missing for that row. Here the rows correspond to the rain gauge station name.
 
-I still need to investigate the very high maximum total rainfall for 2005. (From previously playing with this data I think I may find some other issues as well)
+I noticed that the way the series of join statements were written I missed the "mackie" rain gauge because it was not part of the 2004 season. I corrected this and another join issue that arose later with adding the other rain gauges by calling the `merge` function with `all = TRUE` option. This is a "full outer join" that retains all the values for all the rows, inserting `NAs` for columns where the data is missing for that row. Here the rows correspond to the rain gauge station name.
+
+I still need to investigate the very high maximum total rainfall for 2005. (From previously playing with this data I think I may find some other issues as well).
+
 ```{r investigate dys_rain extreme values}
-filter(dys_rain, rain05_tot > 70)
-select(dys_rain, id, rain05_tot)
+(filter(dys_rain, rain05_tot > 70))
+summary(select(dys_rain, stationid, rain05_tot))
+sd(filter(dys_rain, rain05_tot < 70)$rain05_tot, na.rm = T)
+# excluding two major outliers sd ≈ 8.6, 3 x sd ≈ 26, mean ≈ 32, max ≈ 49
+# the total around 70 for Beltane would fall just within 3 standard deviations of the maximum value, which was recorded by the St. Helena station located at a much higher elevation.
+ggplot(data = dys_rain, aes(x = stationid, y = rain05_tot))+
+      geom_point() +
+      geom_abline(intercept = mean(dys_rain$rain05_tot, na.rm = T), slope = 0)
 ```
 
-```{r monthly data 2003-2008}
+I think the 2005 seasonal totals for Beltane and FOP are far too big compared to the rest of the measurements to be considered reliable. Particular months may be okay.
+
+```{r monthly data 2003-2008, echo=F, eval=F}
 month_rg_2003_2008 <- dy_rg_data %>%
       group_by(id, year, month) %>% 
       filter(year<=2008) %>%
@@ -259,174 +328,269 @@ day_rg_2003_2008 <- dy_rg_data %>%
 summary(day_rg_2003_2008)
 ```
 
-```{r read in shapefile(s) and DEM}
-library(sp)
-library(raster)
-library(rgdal)
+```{r read in shapefile(s) and DEM, messages=F, echo=F}
+# library(sp)
+library(rgdal, verbose = F)
 
 rg_2003_2008 <- readOGR(dsn="shapefiles", layer="RainGauges2003_2008")
-str(rg_2003_2008)
-rg_2003_2008@data$NAME
-unique(dys_rain$plotid)
-rg_2003_2008@data$NAME <- tolower(rg_2003_2008@data$NAME)
-rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="macki"] <- "mackie"
-rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="sdc"] <- "sec"
-rg_2003_2008@data$NAME[rg_2003_2008@data$NAME=="sugar"] <- "sugarloaf"
-unique(rg_2003_2008@data$NAME)
-plot(rg_2003_2008)
+rg0308 <- rg_2003_2008[,3:5]
+# str(rg0308)
+rg0308@data$NAME
+unique(dys_rain$stationid)
+rg0308@data$NAME <- tolower(rg0308@data$NAME)
+rg0308@data$NAME[rg0308@data$NAME=="macki"] <- "mackie"
+rg0308@data$NAME[rg0308@data$NAME=="sdc"] <- "sec"
+rg0308@data$NAME[rg0308@data$NAME=="sugar"] <- "sugarloaf"
+unique(rg0308@data$NAME)
+rg0308@data <- rename(rg0308@data, stationid = NAME, lat = NORTHING, lon = EASTING)
+plot(rg0308)
 # rg_2003_2008@coords <- rg_2003_2008@coords[-7,] # remove coordinates for FOP
 # plot(rg_2003_2008)
 # rg_2003_2008@data <- filter(rg_2003_2008@data, NAME != "fop")
 
 rg_2009_2011 <- readOGR(dsn = "shapefiles/", layer = "RainGauges2009_2011")
-str(rg_2009_2011)
-rg_2009_2011$NAME
-rg_2009_2011$NAME <- tolower(rg_2009_2011$NAME)
-rg_2009_2011@data$NAME[rg_2009_2011@data$NAME=="macki"] <- "mackie"
-rg_2009_2011@data$NAME[rg_2009_2011@data$NAME=="sdc"] <- "sec"
-rg_2009_2011@data$NAME[rg_2009_2011@data$NAME=="sugar"] <- "sugarloaf"
+names(rg_2009_2011)
+# str(rg_2009_2011)
+rg0911 <- rg_2009_2011[,3:5]
+rg0911$NAME
+rg0911$NAME <- tolower(rg0911$NAME)
+rg0911@data$NAME[rg0911@data$NAME=="macki"] <- "mackie"
+rg0911@data$NAME[rg0911@data$NAME=="sdc"] <- "sec"
+rg0911@data$NAME[rg0911@data$NAME=="sugar"] <- "sugarloaf"
+rg0911@data <- rename(rg0911@data, stationid = NAME, lat = NORTHING, lon = EASTING)
 
 rg_2012_2014 <- readOGR(dsn = "shapefiles/", layer = "RainGauges2012_2014")
-str(rg_2012_2014)
-rg_2012_2014$NAME
-rg_2012_2014$NAME <- tolower(rg_2012_2014$NAME)
-rg_2012_2014@data$NAME[rg_2012_2014@data$NAME=="macki"] <- "mackie"
-rg_2012_2014@data$NAME[rg_2012_2014@data$NAME=="sdc"] <- "sec"
-rg_2012_2014@data$NAME[rg_2012_2014@data$NAME=="sugar"] <- "sugarloaf"
+rg1214 <- rg_2012_2014[,2:4]
+# str(rg_2012_2014)
+rg1214$NAME
+rg1214$NAME <- tolower(rg1214$NAME)
+rg1214@data$NAME[rg1214@data$NAME=="macki"] <- "mackie"
+rg1214@data$NAME[rg1214@data$NAME=="sdc"] <- "sec"
+rg1214@data$NAME[rg1214@data$NAME=="sugar"] <- "sugarloaf"
+rg1214@data <- rename(rg1214@data, stationid = NAME, lat = NORTHING, lon = EASTING)
 
-glen_ellen_rg <- readOGR("shapefiles/", "GlenEllen_ppt_2009-2015")
-str(glen_ellen_rg)
+glen_ellen_rg <- readOGR("shapefiles/", "GlenEllen_ppt_2009_2015")
+summary(glen_ellen_rg)
 glen_ellen_rg$station <- tolower(glen_ellen_rg$station)
+glen_ellen_rg@data <- rename(glen_ellen_rg@data, stationid = station)
 
+# add_rg <- readOGR("shapefiles/", "cdec_noaa_wundergrnd_rgloc")
+# summary(add_rg)
+# add_rg <- add_rg[add_rg$stationid != "kcasaint5" & add_rg$stationid != "msthc1" & add_rg$stationid != "kcanapa8",]
+
+other_rg <- readOGR("shapefiles/", "otherRGs")
+summary(other_rg)
+plot(other_rg)
+
+# add_rg@data$stationid
+other_rg@data$stationid
+other_rg@data <- rename(other_rg@data, lat = lat_dd, lon = lon_dd)
+other_rg@data <- select(other_rg@data, stationid, lat, lon)
+
+# single "other" rain gauge shapefiles
+sonoma_rgs <- readOGR("shapefiles/", "sonoma_rgs")
+lichau_rg <- readOGR("shapefiles/", "lichau_rg")
+petaluma_rg <- readOGR("shapefiles/", "petalumaE_rg")
+sh4 <- readOGR("shapefiles/", "sthelena_rg")
+santa_rg <- readOGR("shapefiles/", "santa225_rg")
+diamonda_rg <- readOGR("shapefiles/", "diamonda_rg")
+
+summary(diamonda_daily)# 2010-01-01 to 2014-05-31
+ggplot(data = filter(dy_rg_data_tmp, stationid == "kcasonom8"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Diamond A (?) Rain Gauge Data")
+      
+summary(lichau_daily)# 2003-11-01 to 2014-05-31
+ggplot(data = filter(dy_rg_data_tmp, stationid == "lichau"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Lichau Rain Gauge Data")
+
+summary(petaluma_daily)# 2003-11-01 to 2015-05-31
+ggplot(data = filter(dy_rg_data_tmp, stationid == "petaluma_e"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Petaluma East Rain Gauge Data")
+
+summary(santa225_daily)# 2013-01-01 to 2014-05-31, good for 2014
+ggplot(data = filter(dy_rg_data_tmp, stationid == "kcasanta225"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Santa Rosa 225 Rain Gauge Data")
+
+summary(sonoma1_daily)# 2003-11-01 to 2014-05-31
+ggplot(data = filter(dy_rg_data_tmp, stationid == "sonoma1"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Sonoma 1 Rain Gauge Data")
+
+summary(sonoma2_daily)# 2009-02-11 to 2014-05-09
+ggplot(data = filter(dy_rg_data_tmp, stationid == "sonoma2"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("Sonoma 2 Rain Gauge Data")
+
+summary(sthelena_daily)# 2003-11-01 to 2015-10-14
+ggplot(data = filter(dy_rg_data_tmp, stationid == "sh4wsw"), aes(x = date, y = daily_ppt)) +
+      geom_point() +
+      ggtitle("St. Helena WSW Rain Gauge Data")
+
+# library(raster)
 # Load elevation raster and transform shapefiles to match projection
 elev <- raster("dem/sod15m.tif")
 str(elev)
 crs <- elev@crs
-rg_2003_2008 <- spTransform(rg_2003_2008, CRS=crs)
-rg_2009_2011 <- spTransform(rg_2009_2011, CRS=crs)
-rg_2012_2014 <- spTransform(rg_2012_2014, CRS=crs)
+rg0308 <- spTransform(rg0308, CRS=crs)
+rg0911 <- spTransform(rg0911, CRS=crs)
+rg1214 <- spTransform(rg1214, CRS=crs)
 glen_ellen_rg <- spTransform(glen_ellen_rg, CRS=crs)
+other_rg <- spTransform(other_rg, CRS=crs)
 
+all_rg <- rbind(rg0308, rg0911, rg1214, glen_ellen_rg, other_rg)
+summary(all_rg)
+all_rg <- all_rg[,1]
+all_rg@data$stationid
+all_rg <- remove.duplicates(all_rg)
+plot(all_rg)
+text(all_rg, labels = all_rg@data$stationid)
+```
+
+```{r append other rain gauges}
+glen_ellen_rg
+other_rg
+other_rg <- rbind(other_rg, glen_ellen_rg)
+
+rg0308 <- rbind(rg0308, other_rg)
+rg0911 <- rbind(rg0911, other_rg)
+rg1214 <- rbind(rg1214, other_rg)
+
+rg0308@coords
+rg0911@coords
+rg1214@coords
+
+# Drop lat and lon from data attributes
+rg0308@data <- select(rg0308@data, stationid)
+rg0911@data <- select(rg0911@data, stationid)
+rg1214@data <- select(rg1214@data, stationid)
+```
+
+
+```{r quick visual of rain gauge locations}
 # Overlay rain gauge files on elevation grid. Elevation is in feet.
 plot(elev)
-plot(rg_2003_2008, pch = 25, col = "blue", bg="transparent", add=TRUE)
+plot(rg0308, pch = 25, col = "blue", bg="transparent", add=TRUE)
 #spplot(elev, scales=list(draw=T), sp.layout=list("sp.points", rg_2003_2008))
-plot(rg_2009_2011, pch = 20, col = "red", add = T)
-plot(rg_2012_2014, pch = 2, add = T)
+plot(rg0911, pch = 20, col = "red", add = T)
+plot(rg1214, pch = 2, add = T)
 plot(glen_ellen_rg, add = T)
+plot(other_rg, add = T)
+text(other_rg, labels = other_rg@data$stationid, pos = 3)
+
+# writeOGR(all_rg, "shapefiles/", "all_rgs", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
-Now that everything is in the same projection, I want to append the Glen Ellen stations point shapefile to the point files of the other rain gauges.
-```{r append/merge shapefiles}
-library(rgeos)
-library(maptools)
+Based on visualizing the DEM and the "other" rain gauges in QGIS the 'sonoma2' and 'petaluma_e' stations are both outside the boundary. I think that I could still use these for a 2-D spline interpolation, but they would be inappropriate for a 3-D interpolation that is dependent on the local DEM I am currently using. (I could use a different DEM that is cropped or masked to a slightly larger area)
 
-names(rg_2003_2008)[2:4] <- c("station","lat","lon")
-rg_2003_2008@data <- select(rg_2003_2008@data, -NUM)
-
-names(rg_2009_2011)[2:4] <- c("station","lat","lon")
-rg_2009_2011@data <- select(rg_2009_2011@data, -NUM)
-rg_2009_2011 <- spRbind(rg_2009_2011, glen_ellen_rg)
-rg_2009_2011@data$lon <- rg_2009_2011@coords[,1]
-rg_2009_2011@data$lat <- rg_2009_2011@coords[,2]
-
-names(rg_2012_2014)[2:4] <- c("station","lat","lon")
-rg_2012_2014@data <- select(rg_2012_2014@data, -NUM)
-rg_2012_2014 <- spRbind(rg_2012_2014, glen_ellen_rg)
-rg_2012_2014@data$lon <- rg_2012_2014@coords[,1]
-rg_2012_2014@data$lat <- rg_2012_2014@coords[,2]
-```
-
-Extracting elevation values to the points
+Extracting elevation values to the rain gauge point locations
 ```{r extract elevation to points}
-library(raster)
-rg_2003_2008@data$elev_ft <- extract(elev, rg_2003_2008)
-rg_2009_2011@data$elev_ft <- extract(elev, rg_2009_2011)
-rg_2012_2014@data$elev_ft <- extract(elev, rg_2012_2014)
+# library(raster)
+rg0308@data$elev_ft <- extract(elev, rg0308)
+rg0911@data$elev_ft <- extract(elev, rg0911)
+rg1214@data$elev_ft <- extract(elev, rg1214)
 ```
 
 Joining seasonal precipitation data to spatial points data frame
 ```{r joining data}
-detach("package:raster", unload=TRUE) # unmask `select` in `dplyr`
+# detach("package:raster", unload=TRUE) # unmask `select` in `dplyr`
 summary(dys_rain)
 
 # inner_join(rg_2003_2008@data, dys_rain %>% select(-starts_with("rain1"), -contains("09")), by = c("NAME" = "plotid"))
-rg_2003_2008@data <- inner_join(rg_2003_2008@data, dys_rain %>% select(-starts_with("rain1"), -contains("09")), by = c("station" = "id"))
-rg_2003_2008@data$elev_m <- rg_2003_2008@data$elev_ft * .305
-summary(rg_2003_2008)
 
-rg_2009_2011@data <- inner_join(rg_2009_2011@data, dys_rain %>% select(id, contains("09"), contains("10"), contains("11")), by = c("station" = "id"))
-rg_2009_2011@data$elev_m <- rg_2009_2011@data$elev_ft * .305
-summary(rg_2009_2011)
+# all_rg@data <- inner_join(all_rg@data, dys_rain)
 
-rg_2012_2014@data <- inner_join(rg_2012_2014@data, dys_rain %>% select(id, contains("12"), contains("13"), contains("14")), by = c("station" = "id"))
-rg_2012_2014@data$elev_m <- rg_2012_2014@data$elev_ft * .305
-summary(rg_2012_2014)
+rg0308@data <- inner_join(rg0308@data, dys_rain %>% select(-starts_with("rain1"), -contains("09")), by = "stationid")
+rg0308@data$elev_m <- rg0308@data$elev_ft * .305
+summary(rg0308)
+
+rg0911@data <- inner_join(rg0911@data, dys_rain %>% select(stationid, contains("09"), contains("10"), contains("11")), by = "stationid")
+rg0911@data$elev_m <- rg0911@data$elev_ft * .305
+summary(rg0911)
+
+rg1214@data <- inner_join(rg1214@data, dys_rain %>% select(stationid, contains("12"), contains("13"), contains("14")), by = "stationid")
+rg1214@data$elev_m <- rg1214@data$elev_ft * .305
+summary(rg1214)
 ```
 
 Now I am going to create new datasets that are for each season
 ```{r filter data to each season}
-rg_2003_2008@data
-# mackie was missing from 2004, corresponding to row 10
-rainy04 <- rg_2003_2008[rg_2003_2008$station != "mackie",]# remove mackie
-rainy04@data <- rainy04@data %>% select(station, elev_ft, lat, lon, elev_m, starts_with("rain04"))
+# Transform projections to NAD83 UTM Zone 10 to match the GRASS project location
+soco_loc <- readOGR("shapefiles/", "rg05_vpolys", verbose = F)
+rg0308 <- spTransform(rg0308, CRSobj = proj4string(soco_loc))
+rg0911 <- spTransform(rg0911, CRSobj = proj4string(soco_loc))
+rg1214 <- spTransform(rg1214, CRSobj = proj4string(soco_loc))
+
+writeOGR(rg0308, dsn = "shapefiles/", layer = "rgs_0308", driver = "ESRI Shapefile")
+writeOGR(rg0911, dsn = "shapefiles/", layer = "rgs_0911", driver = "ESRI Shapefile")
+writeOGR(rg1214, dsn = "shapefiles/", layer = "rgs_1214", driver = "ESRI Shapefile")
+
+rainy04 <- rg0308[!is.na(rg0308$rain04_dys),]# remove NAs for 2004 season
+rainy04@data <- rainy04@data %>% select(stationid, elev_ft, elev_m, starts_with("rain04"))
 rainy04@data$totppt_mm <- rainy04@data$rain04_tot * 25.4
 rainy04; summary(rainy04)
 
 # None missing in 2005, but removed "beltane" (row 4) and "fop" (row 7) because severe positive outliers, recording > 70 and 109 inches of rain. The next highest was 44 inches
-rainy05 <- rg_2003_2008[,c("station", "lat", "lon", "rain05_dys", "rain05_avg", "rain05_tot", "elev_m")]
-rainy05 <- rainy05[rainy05$station != "beltane" & rainy05$station != "fop",]
+rainy05 <- rg0308[!is.na(rg0308$rain05_dys), c("stationid", "rain05_dys", "rain05_avg", "rain05_tot", "elev_m")]
+rainy05@data
+rainy05 <- rainy05[rainy05$stationid != "beltane" & rainy05$stationid != "fop",]# remove outlier stations FOP and Beltane
 rainy05@data$totppt_mm <- rainy05@data$rain05_tot * 25.4
 rainy05@data; summary(rainy05)
 
-rainy06 <- rg_2003_2008[,c("station", "lat", "lon", "rain06_dys", "rain06_avg", "rain06_tot", "elev_m")]
-rainy06@data # In 2006 there are some NAs and also some very small values (<2 inches) that seem extremely unreliable compared to the other measurements. I'm not really sure what to do about those
-rainy06 <- rainy06[rainy06$station == "cook" | rainy06$station == "mackie" | rainy06$station == "spaulding" | rainy06$station == "votruba" | rainy06$station == "yahng",]
+rainy06 <- rg0308[!is.na(rg0308$rain06_dys), c("stationid", "rain06_dys", "rain06_avg", "rain06_tot", "elev_m")]
+rainy06@data # In 2006 there were some NAs and also some very small values (<2 inches) that seem extremely unreliable compared to the other measurements.
+rainy06 <- rainy06[rainy06$stationid == "cook" | rainy06$stationid == "mackie" | rainy06$stationid == "spaulding" | rainy06$stationid == "votruba" | rainy06$stationid == "yahng" | rainy06$stationid == "lichau" | rainy06$stationid == "petaluma_e" | rainy06$stationid == "sonoma1" | rainy06$stationid == "sh4wsw",]
 rainy06@data$totppt_mm <- rainy06@data$rain06_tot * 25.4
 rainy06@data; summary(rainy06); plot(rainy06)
 # This results in essentially zero coverage in the southeastern part of the study area
 
-rainy07 <- rg_2003_2008[,c("station", "lat", "lon", "rain07_dys", "rain07_avg", "rain07_tot", "elev_m")]
-rainy07@data # Again some NAs and values that don't seem very reliable
-rainy07 <- rainy07[rainy07$station != "mitsui" & rainy07$station != "fop" & rainy07$station != "kunde" & rainy07$station != "spaulding" & rainy07$station != "mackie" & rainy07$station != "sugarloaf" & rainy07$station != "votruba" & rainy07$station != "cook",]
+rainy07 <- rg0308[!is.na(rg0308$rain07_dys) ,c("stationid", "rain07_dys", "rain07_avg", "rain07_tot", "elev_m")]
+rainy07@data # Again some values that don't seem very reliable
+rainy07 <- rainy07[rainy07$stationid != "mitsui" & rainy07$stationid != "cook" & rainy07$stationid != "secret" & rainy07$stationid != "mackie" &  rainy07$stationid != "sugarloaf" & rainy07$stationid != "votruba" & rainy07$stationid != "yahng",]
 rainy07@data$totppt_mm <- rainy07@data$rain07_tot * 25.4
 rainy07@data; summary(rainy07); plot(rainy07)
 
-rainy08 <- rg_2003_2008[,c("station", "lat", "lon", "rain08_dys", "rain08_avg", "rain08_tot", "elev_m")]
+rainy08 <- rg0308[!is.na(rg0308$rain08_dys), c("stationid", "rain08_dys", "rain08_avg", "rain08_tot", "elev_m")]
 rainy08@data
-rainy08 <- rainy08[rainy08$station != "backman" & rainy08$station != "badger" & rainy08$station != "fop" & rainy08$station != "kunde" & rainy08$station != "spaulding",]
+# A few unreliable values for total rainfall
+rainy08 <- rainy08[rainy08$stationid != "backman" & rainy08$stationid != "badger" & rainy08$stationid != "kunde" & rainy08$stationid != "spaulding",]
 rainy08@data$totppt_mm <- rainy08@data$rain08_tot * 25.4
 rainy08@data; summary(rainy08); plot(rainy08)
 
-rainy09 <- rg_2009_2011[,c("station", "lat", "lon", "rain09_dys", "rain09_avg", "rain09_tot", "elev_m")]
+rainy09 <- rg0911[!is.na(rg0911$rain09_dys), c("stationid", "rain09_dys", "rain09_avg", "rain09_tot", "elev_m")]
 rainy09@data
-rainy09 <- rainy09[rainy09$station != "backman" & rainy09$station != "beltane" & rainy09$station != "mitsui" & rainy09$station != "cook",]
+# Remove a few unreliable values
+rainy09 <- rainy09[rainy09$stationid != "annadel" & rainy09$stationid != "beltane" & rainy09$stationid != "secret" & rainy09$stationid != "sec" & rainy09$stationid != "glenellen" & rainy09$stationid != "glenellenwnw",]
 rainy09@data$totppt_mm <- rainy09@data$rain09_tot * 25.4
 rainy09@data; summary(rainy09); plot(rainy09)
 
-rainy10 <- rg_2009_2011[,c("station", "lat", "lon", "rain10_dys", "rain10_avg", "rain10_tot", "elev_m")]
+rainy10 <- rg0911[!is.na(rg0911$rain10_dys), c("stationid", "rain10_dys", "rain10_avg", "rain10_tot", "elev_m")]
 rainy10@data
-rainy10 <- rainy10[rainy10$station != "backman" & rainy10$station != "sugarloaf" & rainy10$station != "mitsui" & rainy10$station != "sec" & rainy10$station != "spaulding" & rainy10$station != "annadel",]
+rainy10 <- rainy10[rainy10$stationid != "annadel" & rainy10$stationid != "backman" & rainy10$stationid != "badger" & rainy10$stationid != "mitsui" & rainy10$stationid != "sec" & rainy10$stationid != "spaulding",]
 rainy10@data$totppt_mm <- rainy10@data$rain10_tot * 25.4
 rainy10@data; summary(rainy10); plot(rainy10)
 
-rainy11 <- rg_2009_2011[,c("station", "lat", "lon", "rain11_dys", "rain11_avg", "rain11_tot", "elev_m")]
+rainy11 <- rg0911[!is.na(rg0911$rain11_dys), c("stationid", "rain11_dys", "rain11_avg", "rain11_tot", "elev_m")]
 rainy11@data
-rainy11 <- rainy11[rainy11$station != "beltane" & rainy11$station != "sugarloaf" & rainy11$station != "mitsui" & rainy11$station != "votruba" & rainy11$station != "yahng",]
+rainy11 <- rainy11[rainy11$stationid != "yahng",]
 rainy11@data$totppt_mm <- rainy11@data$rain11_tot * 25.4
 rainy11@data; summary(rainy11); plot(rainy11)
 
-rainy12 <- rg_2012_2014[,c("station", "lat", "lon", "rain12_dys", "rain12_avg", "rain12_tot", "elev_m")]
+rainy12 <- rg1214[!is.na(rg1214$rain12_dys), c("stationid", "rain12_dys", "rain12_avg", "rain12_tot", "elev_m")]
 rainy12@data
-rainy12 <- rainy12[rainy12$station != "annadel" & rainy12$station != "backman" & rainy12$station != "kunde" & rainy12$station != "mitsui" & rainy12$station != "sugarloaf" & rainy12$station != "spaulding" & rainy12$station != "sec" & rainy12$station != "secret" & rainy12$station != "cook",]
+rainy12 <- rainy12[rainy12$stationid != "cook" & rainy12$stationid != "secret" & rainy12$stationid != "spaulding" & rainy12$stationid != "sec",]
 rainy12@data$totppt_mm <- rainy12@data$rain12_tot * 25.4
 rainy12@data; summary(rainy12); plot(rainy12)
 
-rainy14 <- rg_2012_2014[,c("station", "lat", "lon", "rain14_dys", "rain14_avg", "rain14_tot", "elev_m")]
+rainy14 <- rg1214[!is.na(rg1214$rain14_dys), c("stationid", "rain14_dys", "rain14_avg", "rain14_tot", "elev_m")]
 rainy14@data
-rainy14 <- rainy14[rainy14$station == "backman" | rainy14$station == "mackie" | rainy14$station == "sec" | rainy14$station == "glenellen" | rainy14$station == "glenellenwnw",]
+rainy14 <- rainy14[rainy14$stationid != "mitsui" & rainy14$stationid != "kunde" & rainy14$stationid != "yahng",]
 rainy14@data$totppt_mm <- rainy14@data$rain14_tot * 25.4
 rainy14@data; summary(rainy14); plot(rainy14)
+
 
 writeOGR(rainy04, dsn = "shapefiles/", layer = "rain_gauges04", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy05, dsn = "shapefiles/", layer = "rain_gauges05", driver = "ESRI Shapefile", overwrite_layer = T)
@@ -440,6 +604,7 @@ writeOGR(rainy12, dsn = "shapefiles/", layer = "rain_gauges12", driver = "ESRI S
 writeOGR(rainy14, dsn = "shapefiles/", layer = "rain_gauges14", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
+At this point these shapefiles need to be imported to GRASS for doing the precipitation interpolation.
 
 #### Pairs plots and linear models of seasonally aggregated data
 ```{r read in spatial data frames}
