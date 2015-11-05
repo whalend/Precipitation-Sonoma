@@ -602,6 +602,8 @@ writeOGR(rainy10, dsn = "shapefiles/", layer = "rain_gauges10", driver = "ESRI S
 writeOGR(rainy11, dsn = "shapefiles/", layer = "rain_gauges11", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy12, dsn = "shapefiles/", layer = "rain_gauges12", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy14, dsn = "shapefiles/", layer = "rain_gauges14", driver = "ESRI Shapefile", overwrite_layer = T)
+
+save.image("~/Documents/soco_ppt/analysis201511.RData")
 ```
 
 At this point these shapefiles need to be imported to GRASS for doing the precipitation interpolation.
