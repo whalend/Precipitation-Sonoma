@@ -239,6 +239,7 @@ rainy14@data <- rainy14@data %>% rename(lat_utm = lat, lon_utm = lon) %>%
 
 ## Monthly precip correlation: rain gauges vs. PRISM
 I added monthly rainfall totals from our rain gauges and extracted values from the downscaled PRISM surfaces into `stations_0308` and `stations_0911` data frames. I now want to convert the wide formatted monthly PRISM data to long format so that it is easier to plot across months and years using `ggplot` functionality.
+
 ```{r convert PRISM wide to long}
 stations_0308
 stations_0911
@@ -259,6 +260,7 @@ monthly_prism.long$year <- gsub("prsm", "20", monthly_prism.long$year)
 ```
 
 Join the long formatted PRISM monthly data to the long formatted monthly data from our rain gauges:
+
 ```{r join long PRISM to long RG}
 monthly
 head(monthly_prism.long)
@@ -279,6 +281,7 @@ summary(prism_rg)
 ```
 
 PRISM rainfall data only goes through 2010, so that is why there are 456 `NAs` for that column. To do the correlation I am going to drop the rows with `NA` for the PRISM data, and then omit any of the remaining rows that have `NA` for our rain gauge data when I do the correlation.
+
 ```{r monthly data corr}
 summary(prism_rg)
 prism_rg <- filter(prism_rg, !is.na(prism_ppt))
@@ -318,6 +321,7 @@ monthly.dev <- prism_rg %>% group_by(id, year, date) %>%
 EDA, spatial data visualization, and variogram analysis following methods in section 2.5 *Hierarchical Modeling and Analysis for Spatial Data* (p. 44). 
 
 Tutorial from the book:
+
 ```{r tutorial EDA and visualization, echo=F, eval=F}
 library(spBayes); library(classInt); library(RColorBrewer)
 
@@ -413,9 +417,9 @@ I am going to make a serious of OLS regression models of precipitation values fo
 
 ```{r source panel functions, echo=F}
 source("~/Documents/Rscratch/panel_cor.R")
-library(MuMIn)
-options(na.action = "na.fail")
-library(broom)
+# library(MuMIn)
+# options(na.action = "na.fail")
+# library(broom)
 ```
 
 ```{r RS 2004 OLS models, echo=F}
@@ -423,9 +427,9 @@ pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
 
-pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific) %>% filter(rain04_dys >= 71),
-      upper.panel = panel.cor, diag.panel = panel.hist,
-      main = "2004 Rainy Season")
+# pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific) %>% filter(rain04_dys >= 71),
+#       upper.panel = panel.cor, diag.panel = panel.hist,
+#       main = "2004 Rainy Season")
 
 elev_m.sqr <- (rainy04@data$elev_m)^2
 elev_m.log <- log1p(rainy04@data$elev_m)
@@ -438,7 +442,7 @@ rstot04.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy04)
 summary(rstot04.lm1)
 summary(rstot04.lm1a)
 summary(rstot04.lm1b)
-summary(rstot04.lm1c)# best adj. R-squared
+summary(rstot04.lm1c)# best adj. R-squared = 0.023
 AICc(rstot04.lm1); AICc(rstot04.lm1a); AICc(rstot04.lm1b); AICc(rstot04.lm1c)
 par(mfrow=c(2,2))
 plot(rstot04.lm1c)
@@ -448,7 +452,7 @@ rsdys04.lm1 <- lm(sqrt(rain04_dys) ~ elev_m, data = rainy04)
 rsdys04.lm1a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m), data = rainy04)
 rsdys04.lm1b <- lm(sqrt(rain04_dys) ~ elev_m.sqr, data = rainy04)
 rsdys04.lm1c <- lm(sqrt(rain04_dys) ~ elev_m.log, data = rainy04)
-summary(rsdys04.lm1)# best adj. R-squared
+summary(rsdys04.lm1)# best adj. R-squared = 0.018
 summary(rsdys04.lm1a)
 summary(rsdys04.lm1b)
 summary(rsdys04.lm1c)
@@ -464,6 +468,7 @@ summary(rstot04.lm2)
 summary(rstot04.lm2a)
 summary(rstot04.lm2b)
 summary(rstot04.lm2c)
+# All adj. R-squared values are negative
 
 # Rainy days ~ elevation + distance to coast models
 rsdys04.lm2 <- lm(sqrt(rain04_dys) ~ elev_m + d2coast, data = rainy04)
@@ -474,7 +479,7 @@ summary(rsdys04.lm2)
 summary(rsdys04.lm2a)
 summary(rsdys04.lm2b)
 summary(rsdys04.lm2c)
-# These models with distance-to-coast are all bad
+# All adj. R-squared values are negative
 
 # Total rain fall ~ elevation + distance to Pacific models
 rstot04.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
@@ -482,9 +487,14 @@ rstot04.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy04)
 rstot04.lm3b <- lm(totppt_mm ~ elev_m.sqr + d2pacific, data = rainy04)
 rstot04.lm3c <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy04)
 summary(rstot04.lm3)# adj. R-squared = 0.481
-summary(rstot04.lm3a)
-summary(rstot04.lm3b)# adj. R-squared = 0.489
-summary(rstot04.lm3c)
+summary(rstot04.lm3a)# adj. R-squared = 0.468
+summary(rstot04.lm3b)# adj. R-squared = 0.489 *best
+summary(rstot04.lm3c)# adj. R-squared = 0.450
+par(mfrow=c(2,2))
+plot(rstot04.lm3b, main = "elev^2 model")
+plot(rstot04.lm3, main = "elev model")
+plot(rstot04.lm3c, main = "ln(elev) model")
+plot(rstot04.lm3a, main = "sqrt(elev) model")
 
 # Rainy days ~ elevation + distance to Pacific models
 rsdys04.lm3 <- lm(sqrt(rain04_dys) ~ elev_m + d2pacific, data = rainy04)
@@ -500,8 +510,8 @@ plot(rsdys04.lm3b)
 
 rstot04.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy04)
 rsdys04.lm4 <- lm(rain04_dys ~ d2pacific, data = rainy04)
-summary(rstot04.lm4)# shows that model is better w/elevation
-summary(rsdys04.lm4)# shows that model is better w/elevation
+summary(rstot04.lm4)# indicates that model is better w/elevation
+summary(rsdys04.lm4)# indicates that model is better w/elevation
 
 # rs04psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy04)
 # rs04rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy04)
@@ -546,10 +556,10 @@ rstot05.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
 rstot05.lm2a <- lm(totppt_mm ~ sqrt(elev_m) + d2coast, data = rainy05)
 rstot05.lm2b <- lm(totppt_mm ~ elev_m.sqr + d2coast, data = rainy05)
 rstot05.lm2c <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy05)
-summary(rstot05.lm2)
-summary(rstot05.lm2a)
-summary(rstot05.lm2b)
-summary(rstot05.lm2c)
+summary(rstot05.lm2)# adj. R.squared = 0.29
+summary(rstot05.lm2a)# adj. R-squared = 0.287
+summary(rstot05.lm2b)# adj. R-squared = 0.288
+summary(rstot05.lm2c)# adj. R-squared = 0.282
 
 # Rainy days ~ elevation + distance to coast models
 rsdys05.lm2 <- lm(sqrt(rain05_dys) ~ elev_m + d2coast, data = rainy05)
@@ -589,7 +599,7 @@ summary(rsdys05.lm3)
 summary(rsdys05.lm3a)
 summary(rsdys05.lm3b)
 summary(rsdys05.lm3c)
-# adj. R-squared values all ~0.28
+# adj. R-squared values all ≈ 0.28
 
 # d2coast & d2pacific both correlate with rainy days, but appear relatively orthogonal to each other for this season
 
@@ -602,7 +612,7 @@ summary(rsdys05.lm4)# best adj. R-squared = 0.512
 summary(rsdys05.lm4a)
 summary(rsdys05.lm4b)
 summary(rsdys05.lm4c)
-# all adj. R-squared models ~0.51
+# all adj. R-squared models ≈ 0.51
 
 
 # rs05psm.lm <- lm(psm_totppt ~ elev_m + lat + lon, data = rainy05)
@@ -668,14 +678,16 @@ summary(rsdys06.lm2c)
 rsdys06.lm3 <- lm((rain06_dys) ~ d2coast, data = rainy06)
 summary(rsdys06.lm3)
 # negative R-squared value
+
 # Total rainfall ~ distance to coast model
 rstot06.lm3b <- lm(totppt_mm ~ d2coast, data = rainy06)
-summary(rstot06.lm3b)
+summary(rstot06.lm3b)# adj. R-squared ≈ 0.534
 
 # Rainy days ~ distance to pacific model
 rsdys06.lm3a <- lm((rain06_dys) ~ d2pacific, data = rainy06)
 summary(rsdys06.lm3a)
 # negative R-squared value
+
 # Total rainfall ~ distance to pacific model
 rstot06.lm3c <- lm(totppt_mm ~ d2pacific, data = rainy06)
 summary(rstot06.lm3c)
