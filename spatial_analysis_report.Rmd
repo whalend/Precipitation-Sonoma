@@ -1,11 +1,13 @@
 ---
 title: "Rain Gauge and PRISM Data Report"
 author: "Whalen Dillon"
-date: "October 5, 2015"
-output: html_document
+date: "October 20, 2015"
+output: 
+   html_document:
+      toc: yes
 ---
 
-## Precipitation and Spatial Locations of Rain Gauges
+## Elevation and Spatial Locations of Rain Gauges
 This reports on some of the exploratory analysis of spatial relationships in the precipitation data, including a comparison of our rain gauge data to estimates from downscaled PRISM data (from 800m to 100m). (These code chunks are mostly pulled from my `spatial_analysis.Rmd` file, but this should function as a stand alone with the `spatial_201510.RData` file.)
 
 ```{r load spatial data, echo=FALSE, message=FALSE}
@@ -30,7 +32,6 @@ ____
 These figures of the voronoi polygons for the rain gauge locations show how the available data changes, sometimes dramatically from year to year. Rain gauge locations are the point-down triangles, and the dots are the locations of the disease monitoring plots. 
 
 ___
-
 
 ```{r plot voronoi surfaces, echo=FALSE, message=FALSE, fig.height=4.5, fig.width=10}
 library(rgdal); library(plyr)
@@ -118,7 +119,52 @@ text(psm_stations, labels = psm_stations@data$stnid, pos = 3)
 # psm_stations@data
 ```
 
-A caveat with the PRISM stations is that these are locations where data was recorded and used at some point during the 1981-2010. I was especially interested in the stations that were on the border in the northeast corner, but after some investigation found that these don't appear to contribute data after the mid-1990s.
+A caveat with the PRISM stations is that these are locations where data was recorded and used at some point during the 1981-2010. I was especially interested in the stations that were on the border in the northeast corner, but after some investigation found that these don't appear to contribute data after the mid-1990s. Precipitation data used in PRISM comes from the following networks (strikethrough of networks that would not have data for this study area). I have tracked down a few of stations from some of these networks that I may be able to incorporate to increase the sampling for estimation.
+
+#### PRISM Stations for Precipitation Estimates
+
+ - AGRIMET: Bureau of Reclamation Agricultural Weather Network
+ 
+ - CDEC: California Data Exchange Center
+    - I found Lichau Creek and St. Helena gauges that may have useable data. The Lichau Creek gauge measured accumulatively, so I will need to break that down. These data have not yet been incorporated into this analysis, and the Lichau Creek gauge data does not actually appear to have been used in the PRISM estimation.
+ 
+ - COCORAHS: Community Collaborative Rain, Hail, and Snow Network
+    - I picked up a couple of stations located in Glen Ellen from this network for recent years (2009-2014). Those are already included in this analysis.
+    
+ - COOP: National Weather Service Cooperative Observer Program (part of GHCN-D database).
+ 
+ - ~~EC: Environment Canada~~
+ 
+ - HDSC: NOAA Hydrometerological Design Studies Center; period of record ends in 2010
+ 
+ - ~~HJA: HJ Andrews Experimental Forest, Oregon, NSF-LTER~~
+ 
+ - ~~MN: Minnesota Climatology Working Group~~
+ 
+ - ~~NDSWC: North Dakota State Water Commission~~
+ 
+ - ~~NVDWR: Nevada Division of Water Resources~~
+ 
+ - ~~OKMESONET: Oklahoma Mesonet~~
+ 
+ - RAWS: USFS and BLM Remote Automated Weather Stations
+ 
+ - ~~SFWMD: South Florida Water Management District~~
+ 
+ - SNOTEL: Natural Resources Conservation Service Snowpack Telemetry
+ 
+ - SNOWCOURSE: Natural Resources Conservation Service Snow Course
+ 
+ - STORAGE: Miscellaneous Long-Term Precipitation Storage Gauge Stations
+ 
+ - ~~USLTER: Stations from Hubbard Brook, Coweeta, Sevietta, Niwot Ridge~~
+ 
+ - WBAN: Weather Bureau - Army, Navy
+ 
+ - WRCC: Western Regional Climate Center
+
+
+#### Scatter Plots of PRISM and Rain Gauge Rainy Season Totals
 
 I have defined the "rainy season" for this region to be from November 1st - May 31st the following year. For example, the rainy season for 2004 is from November 1st, 2003 - May 31st, 2004.
 
@@ -146,11 +192,12 @@ rs_totals.cor +
       theme_bw()
 ```
 
-The blue line is the fit of a linear model between the PRISM and rain gauge data. The black line is the 1:1 fit, which is where the points would fall if the PRISM and rain gauge data lined up perfectly. Nearly all the records from the rain gauges are less than the estimates from the PRISM data.
+The blue line is the fit of a linear model between the PRISM and rain gauge data. The black line is the 1:1 fit, which is where the points would fall if the PRISM and rain gauge data lined up perfectly. Nearly all the records from the rain gauges are less than the estimates from the PRISM data. Assuming the rain gauge records are the "true" values PRISM tends to overestimate precipitation.
 
 ____
 
-**Table of rainy season aggregations correlations and deviations**
+#### Table of rainy season aggregations correlations and deviations
+
 ```{r rainy season cor table, echo=FALSE}
 library(knitr)
 cor.table <- select(correlations, -label) %>% 
@@ -160,8 +207,9 @@ kable(cor.table)
 
 ____
 
-### Map of PRISM-Rain Gauge Deviations for Rainy Season Totals
-A map showing the absolute deviation between the rain gauge record and the PRISM estimate for total rainy season rainfall at the rain gauge locations.
+#### Map of PRISM-Rain Gauge Deviations for Rainy Season Totals
+
+A map showing the absolute deviation between the rain gauge record and the PRISM estimate for total rainy season rainfall at the rain gauge point locations. I think the correct assumption here would be that the rain gauge record is correct, so the deviation is from the PRISM estimation. In other words, I would consider this as the error in the estimated PRISM surface. Nearly all the locations during most years show that PRISM estimates overpredict the rainfall compared to our rain gauge record.
 
 ```{r map deviations, echo=F, message=F, fig.width=10, fig.height=7}
 library(raster)
@@ -206,12 +254,11 @@ text(spTransform(rainy10, CRSobj = proj4string(elev)), labels = round(rainy10$ps
 
 ___
 
-### Comparing Monthly Totals from PRISM & Rain Gauges
+#### Comparing Monthly Totals from PRISM & Rain Gauges
 
 The highest temporal resolution we have for PRISM data is monthly rainfall totals, so I did a comparison by plotting the values for total rainfall from PRISM and our rain gauges for each month from 2003-2010. The final years is 2010 because that is the last year of downscaled PRISM data. Similarly to the seasonal aggregation the records from the rain gauges are nearly always less than the estimates from the PRISM data. 
 
-I excluded these data in this version to conserve some space
-```{r monthly correlation, echo=FALSE, fig.width=16, fig.height=20, eval=F}
+```{r monthly correlation, echo=FALSE, fig.width=16, fig.height=20, eval=T}
 ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
       geom_point() +
       geom_smooth(method ="lm", size = 0.5, se = F) +
@@ -230,9 +277,9 @@ ggplot(data = prism_rg, aes(x = prism_ppt, y = monthly_ppt_mm)) +
 
 ____
 
-~~The black line is the 1:1 fit and the blue line is the fit from a linear model. Month-year combinations where the correlation is "NA" results from having only 1 or 0 records from the rain gauge data.~~
+The black line is the 1:1 fit and the blue line is the fit from a linear model. Month-year combinations where the correlation is "NA" results from having only 1 or 0 records from the rain gauge data.
 
-~~I am unsure about how to summarize these monthly data into a table, or if that even makes sense. I could do a summary of the average of the monthly deviations for each year, i.e.:~~
+~~I am unsure about how to summarize these monthly data into a table, or if that even makes sense. I could do a summary of the average of the monthly deviations for each year, e.g.:~~
 
 ```{r average monthly deviation, echo=F, eval=F}
 monthly_dev.avg <- monthly.dev %>% filter(date >= 2004) %>% 
@@ -244,14 +291,9 @@ kable(monthly_dev.avg)
 
 ___
 
-### Linear Regression Modeling: Rainy Season Totals
-Here I show pairs plots of precipitation, location (latitude,longitude), and elevation, plus results from linear regression models of precipitation against elevation for each rainy season. The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 and 2014 rainy seasons. The plots indicate that the spatial location (latitude or longitude, sometimes both) is more often more strongly correlated with the precipitation recorded at the rain gauges.
+### Rain Gauge Distance to Coast
 
-Unsurprisingly, the pairs plots show a strong correlation between the PRISM estimate and elevation because elevation is a key parameter in the PRISM and downscaling modeling methods. 
-
-#### Rain Gauge Distance to Coast
-
-I wanted to illustrate why I calculated to measures for distance to coastline. In this figure the Pacific Ocean proper is to the left of the green line, but the northern shore of the San Pablo bay also forms a significant coastline near the study area. So, I calculated the distance to coastline as the distance to the Pacific Ocean proper, and to the nearest coastline, which I believe was the north shore of the San Pablo Bay for all the rain gauge locations based on estimates with the measuring tool in GIS. Each of these metrics correlate closely with latitude (distance to coast `d2coast`) or longitude (distance to Pacific Ocean `d2pacific`).
+I wanted to illustrate why I calculated two different measures for distance to coastline. In this figure the Pacific Ocean proper is to the left of the green line, but the northern shore of the San Pablo bay also forms a significant coastline near the study area. So, I calculated the distance to coastline as the distance to the Pacific Ocean proper, and to the nearest coastline, which I believe was the north shore of the San Pablo Bay for all the rain gauge locations based on estimates with the measuring tool in GIS. Each of these metrics correlate closely with latitude (distance to coast `d2coast`) or longitude (distance to Pacific Ocean `d2pacific`).
 
 ```{r plot border and rain gauges, echo=F}
 pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
@@ -262,143 +304,720 @@ cal_bnd <- readOGR("shapefiles/", "ca_border", verbose = F)
 # all.equal(proj4string(cal_bnd), proj4string(stations_0308))
 plot(pac_coast, col = "green", lwd = 2)
 plot(stations_0308, pch = 6, cex = .5, col = "blue", add = T)
-plot(cal_bnd, add = T)
+plot(cal_bnd, col = "wheat", add = T)
 ```
+
+### Linear Regression Modeling: Rainy Season Totals and Days
+
+My goal is to be able to provide estimates for the total amount of precipitation and the number of days with recorded precipitation (>= 0.01 inches) for each of the disease monitoring plots. Here I show pairs plots of total precipitation, number of days with precipitation recorded, location (latitude, longitude, and distance metrics that correlate with those), and elevation, plus results from OLS regression models of total precipitation or number of days with recorded precipitation. These variables capture the relationships with major features that have been identified to influence precipitation, specifically distance from the sea, elevation, and latitude.
+
+The pairs plots and the regression models show what I think could at best be called a weak correlation between elevation and our rain gauge data, with the exception of the 2007 and 2014 rainy seasons. The plots indicate that the spatial location (latitude/longitude, distance metrics) is more often more strongly correlated with the precipitation recorded at the rain gauges.
+
+Unsurprisingly, the pairs plots show a strong correlation between the PRISM estimate and elevation because elevation is a key parameter in the PRISM and downscaling modeling methods. 
 
 ```{r load packages, echo=F}
-# library(broom)
+library(broom)
 source("~/Documents/Rscratch/panel_cor.R")
+detach("package:raster", unload=TRUE)
 ```
 
-```{r 2004 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-detach("package:raster", unload=TRUE)
+All of these OLS models violate assumptions of normality based on visualizing the residuals (not shown), and they seldom produce statistically significant relationships. This isn't surprising due to the small sample sizes. I still found this a useful process for examining the relationships between preciptation variables (total or number of days), distance metrics and elevation. 
+
+#### OLS of Total Precipitation 2004
+
+Summary:
+
+ - Transformations of elevation didn't improve model fitting
+ 
+ - Distance to Pacific was the most influential
+ 
+ - Including elevation improves adj. R-squared over distance to Pacific model by about 7% (0.48 vs. 0.41); multiple R-squared improved by about 11% (0.45 vs. 0.56)
+
+```{r 2004 pairs totppt lm, echo=F, fig.height=8, fig.width=10}
 pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
 
-rs04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
-rs04.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy04)
-rs04.lm1b <- lm(totppt_mm ~ elev_m^2, data = rainy04)
-rs04.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy04)
-rs04.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
-rs04.lm3a <- lm(totppt_mm ~ sqrt(elev_m) + d2pacific, data = rainy04)
-rs04.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy04)
+elev_m.sqr <- (rainy04@data$elev_m)^2
+elev_m.log <- log1p(rainy04@data$elev_m)
 
-summary(rs04.lm1); summary(rs04.lm2); summary(rs04.lm3); summary(rs04.lm4)
+rstot04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
+rstot04.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy04)
+rstot04.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy04)
+rstot04.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy04)
+# summary(rstot04.lm1)
+# summary(rstot04.lm1a)
+# summary(rstot04.lm1b)
+# summary(rstot04.lm1c)# best adj. R-squared = 0.023
 
-# formula(rs04rg_elev.lm)
-# tidy(rs04rg_elev.lm)
-# glance(rs04rg_elev.lm)
+rstot04.lm2 <- lm(totppt_mm ~ d2pacific + elev_m, data = rainy04)
+rstot04.lm2a <- lm(totppt_mm ~ d2pacific + elev_m.log, data = rainy04)
+summary(rstot04.lm2)# adj. R-squared = 0.481
+summary(rstot04.lm2a)# adj. R-squared = 0.450
+# par(mfrow=c(2,2))
+# plot(rstot04.lm2)
+# plot(rstot04.lm2a)
+
+rstot04.lm3 <- lm(totppt_mm ~ d2pacific, data = rainy04)
+summary(rstot04.lm3)# adj. R-squared = 0.409
+
+# formula(rstot04.lm1)
+# tidy(rstot04.lm1)
+# glance(rstot04.lm1)
 ```
-```{r 2005 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy05@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+Using the `v.surf.rst` function from GRASS-GIS to do a two-dimensional spline interpolation can capture the dominant "influence"" of the distance to Pacific, e.g. this surface of total precipitation,
+
+![Precipitation 2004 A](precip_surfaces/ppt04_t1s1.png)
+
+This is probably not a very realistic surface of rainfall, though what I think it is indicating is the dominant direction of storm events during this rainy season. By changing the tension and smoothing parameters, specifically increasing tension to restrict the range of influence from any given point, I can calculate a surface more similar to contours, e.g.,
+
+![Precipitation 2004 B](precip_surfaces/ppt04_t90s1.png)
+
+Although elevation doesn't show a strong direct correlation with total precipitation during this season, the spatial distribution of the rain gauges captures a decent range of the elevation in the study area. Note that the highest rainfall was not recorded at the highest elevation.
+
+With these algorithms I have been trying to find a good tradeoff between the quantitative measure of mean absolute error from leave-one-out cross-validation and a surface that appears qualitatively realistic. I am considering a more realistic surface one that shows greater variation with localized intense areas of rainfall, i.e. not the bands seen in the first surface above. This is based on similar elevations at nearby locations will likely experience similar rainfall amounts, resulting in contour-like maps of precipitation. Contour mapping (or graphing) is a common approach for interpolating precipitation of limited data, and multiple regression or spline methods have commonly been compared to expert drawn contour maps of precipitation to assess accuracy.
+
+#### OLS of Wet Days 2004
+
+Summary: 
+
+ - Best adjusted R-squared ≈ 0.07, including distance to pacific and elevation in the model, with either straight elevation or elevation squared
+ 
+    - multiple R-squared ≈ 0.21
+
+```{r 2004 rainy days lm, echo=F}
+rsdys04.lm1 <- lm(sqrt(rain04_dys) ~ elev_m, data = rainy04)
+rsdys04.lm1a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m), data = rainy04)
+rsdys04.lm1b <- lm(sqrt(rain04_dys) ~ elev_m.sqr, data = rainy04)
+rsdys04.lm1c <- lm(sqrt(rain04_dys) ~ elev_m.log, data = rainy04)
+# summary(rsdys04.lm1)# best adj. R-squared = 0.018
+# summary(rsdys04.lm1a)
+# summary(rsdys04.lm1b)
+# summary(rsdys04.lm1c)
+
+rsdys04.lm3 <- lm(sqrt(rain04_dys) ~ elev_m + d2pacific, data = rainy04)
+rsdys04.lm3a <- lm(sqrt(rain04_dys) ~ sqrt(elev_m) + d2pacific, data = rainy04)
+rsdys04.lm3b <- lm(sqrt(rain04_dys) ~ elev_m.sqr + d2pacific, data = rainy04)
+rsdys04.lm3c <- lm(sqrt(rain04_dys) ~ elev_m.log + d2pacific, data = rainy04)
+summary(rsdys04.lm3)# adj. R-squared = 0.068
+# summary(rsdys04.lm3a)
+summary(rsdys04.lm3b)# best adj. R-squared = 0.074
+# summary(rsdys04.lm3c)
+
+rsdys04.lm4 <- lm(rain04_dys ~ d2pacific, data = rainy04)
+summary(rsdys04.lm4)
+```
+
+#### OLS of Total Precipitation 2005
+
+Summary:
+ 
+ - Elevation-only models had negative adjusted R-squared
+ 
+ - Distance to coast (latitude) is the best single predictor and the best of the models, adj. R-squared ≈ 0.33, multiple R-squared ≈ 0.38
+ 
+ - Distance to coast and elevation resulted in adj. R-squared ≈ 0.29, and a multiple R-squared ≈ 0.40
+
+```{r 2005 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy05@data, totppt_mm, rain05_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2005 Rainy Season")
 
-rs05.lm1 <- lm(totppt_mm ~ elev_m, data = rainy05)
-rs05.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
-rs05.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy05)
-rs05.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy05)
+elev_m.sqr <- (rainy05@data$elev_m)^2
+elev_m.log <- log1p(rainy05@data$elev_m)
 
-summary(rs05.lm1); summary(rs05.lm2); summary(rs05.lm3); summary(rs05.lm4)
+rs05.lm1 <- lm(totppt_mm ~ elev_m, data = rainy05)
+rs05.lm2 <- lm(totppt_mm ~ d2coast, data = rainy05)
+rs05.lm3 <- lm(totppt_mm ~ d2coast + elev_m, data = rainy05)
+
+summary(rs05.lm1)
+summary(rs05.lm2)
+summary(rs05.lm3)
 ```
-```{r 2006 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy06@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+**OLS of Wet Days 2005**
+
+Summary:
+
+ - Elevation-only models all had negative adjusted R-squared
+ 
+ - Distance to pacific and distance to coast both correlate with wet days and produced the best model fit, adj. R-squared ≈ 0.55, multiple R-squared ≈ 0.62
+ 
+ - Including elevation did not improve R-squared values, adj. R-squared ≈ 0.51, multiple R-squared ≈ 0.62
+ 
+ - The best single predictor was distance to Pacific, adj. R-squared ≈ 0.34
+
+```{r 2005 rainy days ols, echo=F}
+rsdys05.lm1 <- lm(rain05_dys ~ elev_m, data = rainy05)
+rsdys05.lm2 <- lm(rain05_dys ~ d2pacific, data = rainy05)
+rsdys05.lm3 <- lm(rain05_dys ~ d2coast, data = rainy05)
+rsdys05.lm4a <- lm(rain05_dys ~ d2coast + elev_m, data = rainy05)
+rsdys05.lm4b <- lm(rain05_dys ~ d2pacific + elev_m, data = rainy05)
+rsdys05.lm4c <- lm(rain05_dys ~ d2pacific + d2coast, data = rainy05)
+rsdys05.lm5 <- lm(rain05_dys ~ d2coast + d2pacific + elev_m, data = rainy05)
+
+# summary(rsdys05.lm1)
+summary(rsdys05.lm2)# adj. R-squared = 0.341
+# summary(rsdys05.lm3)# adj. R-squared = 0.297
+# summary(rsdys05.lm4a)# adj. R-squared = 0.303
+# summary(rsdys05.lm4b)# adj. R-squared = 0.281
+summary(rsdys05.lm4c)# adj. R-squared = 0.546
+summary(rsdys05.lm5)# adj. R-squared = 0.512
+```
+
+#### OLS of Total Precipitation 2006
+
+Summary:
+
+ - Currently only 5 rain gauges and clustered to the NW corner of study area. I might be able to add a couple more from other networks to extend the spatial coverage, but am still investigating.
+ 
+ - Elevation only models all had a negative adj. R-squared.
+ 
+ - The spatial clustering results in tighter correlation between the two distance metrics (lat/long).
+ 
+ - Distance to coast is the best single predictor, adj. R-squared ≈ 0.53
+ 
+ - The models with elevation and either of the distance metrics resulted in adj. R-squared > 0.71
+
+```{r 2006 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy06@data, totppt_mm, rain06_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2006 Rainy Season")
 
-rs06.lm1 <- lm(totppt_mm ~ elev_m, data = rainy06)
-rs06.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy06)
-rs06.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy06)
-rs06.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy06)
-rs06.lm5 <- lm(totppt_mm ~ d2coast, data = rainy06)
+elev_m.sqr <- (rainy06@data$elev_m)^2
+elev_m.log <- log1p(rainy06@data$elev_m)
 
-summary(rs06.lm1); summary(rs06.lm2); summary(rs06.lm3); summary(rs06.lm4)
-summary(rs06.lm5)
+rs06.lm1 <- lm(totppt_mm ~ elev_m, data = rainy06)
+rs06.lm2 <- lm(totppt_mm ~ d2coast, data = rainy06)
+rs06.lm3 <- lm(totppt_mm ~ d2pacific, data = rainy06)
+rs06.lm4a <- lm(totppt_mm ~ elev_m + d2coast, data = rainy06)
+rs06.lm4b <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy06)
+
+# summary(rs06.lm1)
+summary(rs06.lm2)# adj. R-squared = 0.534, mult. R-squared = 0.651
+# summary(rs06.lm3)# adj. R-squared = 0.376, mult. R-squared = 0.532
+summary(rs06.lm4a)# adj. R-squared = 0.717, mult. R-squared = 0.858
+summary(rs06.lm4b)# adj. R-squared = 0.741, mult. R-squared = 0.871
 ```
-```{r 2007 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy07@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+#### OLS of Wet Days 2006
+
+Summary:
+
+ - Very limited coverage of useable data from our rain gauges this season; clustered in the NW quadrant of the study area
+ 
+ - Correlations between wet days and predictors were relatively weak
+ 
+ - Adjusted R-squared values for all formulated models were negative
+ 
+ - The highest multiple R-squared ≈ 0.38, from the model with elevation and distance to Pacific
+
+```{r 2006 rainy days ols, echo=F}
+rsdys06.lm1 <- lm((rain06_dys) ~ elev_m, data = rainy06)
+rsdys06.lm2 <- lm((rain06_dys) ~ d2coast, data = rainy06)
+rsdys06.lm3 <- lm((rain06_dys) ~ d2pacific, data = rainy06)
+rsdys06.lm4a <- lm((rain06_dys) ~ elev_m + d2coast, data = rainy06)
+rsdys06.lm4b <- lm((rain06_dys) ~ elev_m + d2pacific, data = rainy06)
+
+# summary(rsdys06.lm1)
+summary(rsdys06.lm2)
+summary(rsdys06.lm3)
+# summary(rsdys06.lm4a)
+summary(rsdys06.lm4b)
+```
+
+#### OLS of Total Precipitation 2007
+
+Summary:
+
+ - Strongest correlation was with elevation, it was negative
+ 
+ - Very, very, weekly correlated with distance metrics
+ 
+ - Elevation only models had adjusted R-squared around 0.14 and multiple R-squared around 0.27
+ 
+ - Including distance metrics improved multiple R-squared ≈ 0.31, but adjusted R-squared was negative
+
+```{r 2007 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy07@data, totppt_mm, rain07_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2007 Rainy Season")
 
-rs07.lm1 <- lm(totppt_mm ~ elev_m, data = rainy07)
-rs07.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy07)
-rs07.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy07)
-rs07.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy07)
+elev_m.sqr <- (rainy07@data$elev_m)^2
+elev_m.log <- log1p(rainy07@data$elev_m)
 
-summary(rs07.lm1); summary(rs07.lm2); summary(rs07.lm3); summary(rs07.lm4)
+# Total rainfall ~ elevation only models
+rstot07.lm1 <- lm(totppt_mm ~ elev_m, data = rainy07)
+rstot07.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy07)
+rstot07.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy07)
+rstot07.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy07)
+summary(rstot07.lm1)# adj. R-squared = 0.143, mult. R-squared = 0.266
+# summary(rstot07.lm1a)# adj. R-squared = 0.147
+summary(rstot07.lm1b)# adj. R-squared = 0.103, mult. R-squared = 0.231
+summary(rstot07.lm1c)# adj. R-squared = 0.134, mult. R-squared = 0.257
+
+rstot07.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy07)
+rstot07.lm3a <- lm(totppt_mm ~ elev_m + d2coast, data = rainy07)
+rstot07.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy07)
+
+# summary(rstot07.lm1)
+summary(rstot07.lm4)# adj. R-squared negative, mult. R-squared = 0.305
 ```
-```{r 2008 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy08@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2007
+
+Summary:
+
+ - Distance to Pacific is has the strongest correlation, with an adjusted R-squared ≈ 0.72 and multiple R-squared ≈ 0.76
+ 
+ - The elevation + elevation^2 model gave an adjusted R-squared ≈ 0.53 and multiple R-squared ≈ 0.66
+ 
+ - Including all of these in the same model resulted in adjusted R-squared ≈ 0.64 and multiple R-squared ≈ 0.80
+
+```{r 2007 rainy days ols, echo=F}
+# Rainy days ~ elevation only models
+rsdys07.lm1 <- lm((rain07_dys) ~ elev_m, data = rainy07)
+rsdys07.lm1a <- lm((rain07_dys) ~ sqrt(elev_m), data = rainy07)
+rsdys07.lm1b <- lm((rain07_dys) ~ elev_m + elev_m.sqr, data = rainy07)
+rsdys07.lm1c <- lm((rain07_dys) ~ elev_m.log, data = rainy07)
+# summary(rsdys07.lm1)# adj. R-squared negative, mult. R-squared = 0.06
+# summary(rsdys07.lm1a)# adj. R-squared negative, mult. R-squared = 0.02
+summary(rsdys07.lm1b)# adj. R-squared = 0.526, mult. R-squared = 0.661
+# summary(rsdys07.lm1c)# adj. R-squared negative, mult. R-squared = 0.002
+
+rsdys07.lm2 <- lm(rain07_dys ~ d2pacific, data = rainy07)
+rsdys07.lm2a <- lm(rain07_dys ~ d2coast, data = rainy07)
+summary(rsdys07.lm2)# adj. R-squared = 0.723, mult. R-squared = 0.763
+# summary(rsdys07.lm2a)
+
+rsdys07.lm3 <- lm(rain07_dys ~ elev_m + elev_m.sqr + d2pacific, data = rainy07)
+summary(rsdys07.lm3)# adj. R-squared = 0.64, mult. R-squared = 0.795
+```
+
+#### OLS of Total Precipitation 2008
+
+Summary:
+
+ - The strongest correlation is with distance to Pacific
+ 
+ - Elevation only models all had negative adjusted R-squared and multiple R-squared ≈ 0.04
+ 
+ - The distance to Pacific model adjusted R-squared ≈ 0.054, multiple R-squared ≈ 0.149
+ 
+ - Elevation + distance to Pacific had a negative adjusted R-squared and multiple R-squared ≈ 0.17, a small improvement over distance to Pacific only model
+
+```{r 2008 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy08@data, totppt_mm, rain08_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2008 Rainy Season")
 
-rs08.lm1 <- lm(totppt_mm ~ elev_m, data = rainy08)
-rs08.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy08)
-rs08.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy08)
-rs08.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy08)
+elev_m.sqr <- (rainy08@data$elev_m)^2
+elev_m.log <- log1p(rainy08@data$elev_m)
 
-summary(rs08.lm1); summary(rs08.lm2); summary(rs08.lm3); summary(rs08.lm4)
+# Total rainfall ~ elevation only models
+rstot08.lm1 <- lm(totppt_mm ~ elev_m, data = rainy08)
+rstot08.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy08)
+rstot08.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy08)
+rstot08.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy08)
+summary(rstot08.lm1)# adj. R-squared negative, mult. R-sqr = 0.044
+# summary(rstot08.lm1a)# adj. R-squared negative, mult. R-sqr = 0.042
+# summary(rstot08.lm1b)# adj. R-squared negative, mult. R-sqr = 0.047
+# summary(rstot08.lm1c)# adj. R-squared negative, mult. R-sqr = 0.038
+
+# rs08.lm2 <- lm(totppt_mm ~ d2coast, data = rainy08)
+rstot08.lm2a <- lm(totppt_mm ~ d2pacific, data = rainy08)
+# summary(rs08.lm2)# adj. R-squared negative, mult. R-squared = 0.006
+summary(rstot08.lm2a)# adj. R-squared = 0.054, mult. R-squared = 0.149
+
+rstot08.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy08)
+summary(rstot08.lm3)
+
+rstot08.lm4 <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy08)
+
+# summary(rstot08.lm2a)
+# summary(rstot08.lm3)
+# summary(rstot08.lm4)
 ```
-```{r 2009 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy09@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2008
+
+Summary:
+
+ - Highest correlation is with distance to coast; the correlation with elevation is very weak
+ 
+ - Distance to coast had negative adjusted R-squared and multiple R-squared ≈ 0.035
+ 
+ - Elevation + elevation^2 gives negative adjusted R-squared and multiple R-squared ≈ 0.11
+ 
+ - Including distance to coast did not improve the multiple R-squared
+
+```{r 2008 rainy days ols, echo=F}
+rsdys08.lm1 <- lm(rain08_dys ~ elev_m, data = rainy08)
+rsdys08.lm1a <- lm(rain08_dys ~ sqrt(elev_m), data = rainy08)
+rsdys08.lm1b <- lm(rain08_dys ~ elev_m + elev_m.sqr, data = rainy08)
+rsdys08.lm1c <- lm(rain08_dys ~ elev_m.log, data = rainy08)
+# summary(rsdys08.lm1)
+# summary(rsdys08.lm1a)
+summary(rsdys08.lm1b)# adj. R-squared negative, mult. R-squared = 0.11
+# summary(rsdys08.lm1c)
+
+rsdys08.lm2a <- lm(rain08_dys ~ d2coast, data = rainy08)
+# rsdys08.lm2b <- lm(rain08_dys ~ d2pacific, data = rainy08)
+summary(rsdys08.lm2a)# adj. R-squared negative, mult. R-squared = 0.034
+# summary(rsdys08.lm2b)
+
+rsdys08.lm3 <- lm(rain08_dys ~ elev_m + elev_m.sqr + d2coast, data = rainy08)
+summary(rsdys08.lm3)# adj. R-squared negative, mult. R-squared = 0.114
+
+# rsdys08.lm4 <- lm(rain08_dys ~ elev_m + d2coast, data = rainy08)
+# summary(rsdys08.lm4)
+```
+
+#### OLS of Total Precipitation 2009
+
+Summary:
+
+ - Elevation + elevation^2 gives multiple R-squared ≈ 0.21, adjusted R-squared ≈ 0.06
+ 
+ - Distance to coast model multiple R-squared ≈ 0.11, adjusted R-squared ≈ 0.03
+ 
+ - The elevation + distance to coast model only slightly improves the multiple R-squared ≈ 0.23 and adjusted R-squared is negative
+
+```{r 2009 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy09@data, totppt_mm, rain09_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2009 Rainy Season")
 
-rs09.lm1 <- lm(totppt_mm ~ elev_m, data = rainy09)
-rs09.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy09)
-rs09.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy09)
-rs09.lm4 <- lm(totppt_mm ~ d2coast, data = rainy09)
+elev_m.sqr <- (rainy09@data$elev_m)^2
+elev_m.log <- log1p(rainy09@data$elev_m)
 
-summary(rs09.lm1); summary(rs09.lm2); summary(rs09.lm3); summary(rs09.lm4)
+rstot09.lm1 <- lm(totppt_mm ~ elev_m, data = rainy09)
+rstot09.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy09)
+rstot09.lm1b <- lm(totppt_mm ~ elev_m + elev_m.sqr, data = rainy09)
+rstot09.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy09)
+# summary(rstot09.lm1)
+# summary(rstot09.lm1a)
+summary(rstot09.lm1b)# adj. R-squared = 0.055, mult. R-squared = 0.212
+# summary(rstot09.lm1c)
+
+rstot09.lm2 <- lm(totppt_mm ~ d2coast, data = rainy09)
+summary(rstot09.lm2)# adj. R-squared = 0.031, mult. R-squared = 0.112
+
+rs09.lm3 <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy09)
+summary(rs09.lm3)# adj. R-squared negative, mult. R-squared = 0.233
 ```
-```{r 2010 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy10@data, totppt_mm, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2009
+
+Summary:
+
+ - Distance to coast has best single correlation, adjusted R-squared ≈ 0.11 and multiple R-squared ≈ 0.18
+ 
+ - Elevation + elevation^2 model adjusted R-squared ≈ 0.11 and multiple R-squared ≈ 0.26
+ 
+ - Including distance to coast reduces adjusted R-squared ≈ 0.07 and improves multiple R-squared ≈ 0.30, about four points over the quadratic elevation model
+ 
+```{r 2009 rainy days ols, echo=F}
+rsdys09.lm1 <- lm(rain09_dys ~ elev_m, data = rainy09)
+rsdys09.lm1a <- lm(rain09_dys ~ sqrt(elev_m), data = rainy09)
+rsdys09.lm1b <- lm(rain09_dys ~ elev_m + elev_m.sqr, data = rainy09)
+rsdys09.lm1c <- lm(rain09_dys ~ elev_m.log, data = rainy09)
+# summary(rsdys09.lm1)
+# summary(rsdys09.lm1a)
+summary(rsdys09.lm1b)# adj. R-squared = 0.109, mult. R-squared = 0.257
+# summary(rsdys09.lm1c)
+
+rsdys09.lm2 <- lm(rain09_dys ~ d2coast, data = rainy09)
+rsdys09.lm2a <- lm(rain09_dys ~ d2pacific, data = rainy09)
+summary(rsdys09.lm2)# adj. R-squared = 0.108, mult. R-squared = 0.182
+# summary(rsdys09.lm2a)
+
+rsdys09.lm3 <- lm(rain09_dys ~ d2coast + elev_m + elev_m.sqr, data = rainy09)
+summary(rsdys09.lm3)# adj. R-squared = 0.068, mult. R-squared = 0.301
+```
+
+#### OLS of Total Precipitation 2010
+
+Summary:
+
+ - All elevation-only models have negative adjusted R-squared and multiple R-squared ≈ 0.06
+ 
+ - Distance to coast only model adjusted R-squared ≈ 0.17, multiple R-squared ≈ 0.25
+ 
+ - Using elevation and distance to coast adjusted R-squared ≈ 0.71 and multiple R-squared ≈ 0.77
+
+```{r 2010 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy10@data, totppt_mm, rain10_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2010 Rainy Season")
 
-rs10.lm1 <- lm(totppt_mm ~ elev_m, data = rainy10)
-rs10.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy10)
-rs10.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy10)
-rs10.lm4 <- lm(totppt_mm ~ d2coast, data = rainy10)
+elev_m.sqr <- (rainy10@data$elev_m)^2
+elev_m.log <- log1p(rainy10@data$elev_m)
 
-summary(rs10.lm1); summary(rs10.lm2); summary(rs10.lm3); summary(rs10.lm4)
+# Total rainfall ~ elevation only models
+rstot10.lm1 <- lm(totppt_mm ~ elev_m, data = rainy10)
+rstot10.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy10)
+rstot10.lm1b <- lm(totppt_mm ~ elev_m.sqr, data = rainy10)
+rstot10.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy10)
+summary(rstot10.lm1)
+# summary(rstot10.lm1a)
+summary(rstot10.lm1b)# adj. R-squared negative, mult. R-squared = 0.06
+# summary(rstot10.lm1c)
+
+rstot10.lm2 <- lm(totppt_mm ~ d2coast, data = rainy10)
+summary(rstot10.lm2)# adj. R-squared = 0.17, mult. R-squared = 0.253
+
+rstot10.lm3 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy10)
+summary(rstot10.lm3)# adj. R-squared = 0.707, mult. R-squared = 0.766
 ```
-```{r 2011 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy11@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2010
+
+Summary:
+
+ - Strongest single correlation is with distance to Pacific, model adjusted R-squared ≈ 0.20, multiple R-squared ≈ 0.28
+ 
+ - Elevation + elevation^2 model adjusted R-squared is negative, multiple R-squared ≈ 0.19
+ 
+ - Putting these variables together give adjustd R-squared ≈ 0.05 and improves multiple R-squared ≈ 0.34, about 6% higher than model with only distance to Pacific
+ 
+```{r 2010 rainy days ols, echo=F}
+rsdys10.lm1 <- lm(rain10_dys ~ elev_m, data = rainy10)
+rsdys10.lm1a <- lm(rain10_dys ~ sqrt(elev_m), data = rainy10)
+rsdys10.lm1b <- lm(rain10_dys ~ elev_m + elev_m.sqr, data = rainy10)
+rsdys10.lm1c <- lm(rain10_dys ~ elev_m.log, data = rainy10)
+# summary(rsdys10.lm1)
+# summary(rsdys10.lm1a)
+summary(rsdys10.lm1b)# adj. R-squared negative, mult. R-squared = 0.187
+# summary(rsdys10.lm1c)
+
+rsdys10.lm2 <- lm(rain10_dys ~ d2pacific, data = rainy10)
+summary(rsdys10.lm2)# adj. R-squared = 0.195, mult. R-squared = 0.276
+
+rsdys10.lm3 <- lm(rain10_dys ~ d2pacific + elev_m + elev_m.sqr, data = rainy10)
+summary(rsdys10.lm3)# adj. R-squared = 0.051, mult. R-squared = 0.336
+```
+
+#### OLS of Total Precipitation 2011
+
+Summary:
+
+ - Fairly weak model performance with adjusted R-squared values being negative
+ 
+ - Elevation + elevation^2 model multiple R-squared ≈ 0.16
+ 
+ - Including distance to Pacific model multiple R-squared ≈ 0.20
+
+```{r 2011 pairs ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy11@data, totppt_mm, rain11_dys, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2011 Rainy Season")
 
-rs11.lm1 <- lm(totppt_mm ~ elev_m, data = rainy11)
-rs11.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
-rs11.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy11)
-rs11.lm4 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy11)
+elev_m.sqr <- (rainy11@data$elev_m)^2
+elev_m.log <- log1p(rainy11@data$elev_m)
 
-summary(rs11.lm1); summary(rs11.lm2); summary(rs11.lm3); summary(rs11.lm4)
+# Total rainfall ~ elevation only models
+rstot11.lm1 <- lm(totppt_mm ~ elev_m, data = rainy11)
+rstot11.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy11)
+rstot11.lm1b <- lm(totppt_mm ~ elev_m + elev_m.sqr, data = rainy11)
+rstot11.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy11)
+# summary(rstot11.lm1)
+# summary(rstot11.lm1a)
+summary(rstot11.lm1b)# adj. R-squared negative, mult. R-squared = 0.158
+# summary(rstot11.lm1c)
+
+rstot11.lm2 <- lm(totppt_mm ~ d2coast, data = rainy11)
+summary(rstot11.lm2)# adj. R-squared negative, mult. R-squared = 0.030
+
+rstot11.lm3 <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2coast, data = rainy11)
+summary(rstot11.lm3)# adj. R-squared negative, mult. R-squared = 0.196
 ```
-```{r 2012 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy12@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2011
+
+Summary:
+
+ - Elevation + elevation^2 model adjusted R-squared ≈ 0.23, multiple R-squared ≈ 0.37
+    - Improvement over elevation only model adjusted R-squared ≈ 0.18 and multiple R-squared ≈ 0.25
+    
+ - Including distance to Pacific provides some model improvement, adjusted R-squared ≈ 0.19, multiple R-squared ≈ 0.41
+
+```{r 2011 rainy days ols, echo=F}
+rsdys11.lm1 <- lm(rain11_dys ~ elev_m, data = rainy11)
+rsdys11.lm1a <- lm(rain11_dys ~ sqrt(elev_m), data = rainy11)
+rsdys11.lm1b <- lm(rain11_dys ~ elev_m + elev_m.sqr, data = rainy11)
+rsdys11.lm1c <- lm(rain11_dys ~ elev_m.log, data = rainy11)
+# summary(rsdys11.lm1)# adj. R-squared = 0.18, mult. R-squared = 0.254
+# summary(rsdys11.lm1a)# adj. R-squared = 0.109, mult. R-squared = 0.190
+summary(rsdys11.lm1b)# adj. R-squared = 0.232, mult. R-squared = 0.372
+# summary(rsdys11.lm1c)# adj. R-squared = 0.030, mult. R-squared = 0.119
+
+rsdys11.lm2 <- lm(rain11_dys ~ d2pacific, data = rainy11)
+# summary(rsdys11.lm2)# adj. R-squared negative, mult. R-squared = 0.045
+
+rsdys11.lm3 <- lm(rain11_dys ~ elev_m + elev_m.sqr + d2pacific, data = rainy11)
+summary(rsdys11.lm3)# adj. R-squared = 0.187, mult. R-squared = 0.409
+```
+
+#### OLS of Total Precipitation 2012
+
+Summary:
+
+ - Rain gauge coverage limited to the western side of the study area
+ 
+ - Distance to Pacific was the best single predictor, model adjusted R-squared ≈ 0.38, multiple R-squared ≈ 0.50
+ 
+ - Including elevation + elevation^2 improved multiple R-squared ≈ 0.75, while adjusted R-squared stays the same at ≈ 0.38
+
+```{r 2012 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy12@data, totppt_mm, rain12_dys, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2012 Rainy Season")
 
-rs12.lm1 <- lm(totppt_mm ~ elev_m, data = rainy12)
-rs12.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy12)
-rs12.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy12)
-rs12.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy12)
+elev_m.sqr <- (rainy12@data$elev_m)^2
+elev_m.log <- log1p(rainy12@data$elev_m)
 
-summary(rs12.lm1); summary(rs12.lm2); summary(rs12.lm3); summary(rs12.lm4)
+# Total rainfall ~ elevation only models
+rstot12.lm1 <- lm(totppt_mm ~ elev_m, data = rainy12)
+rstot12.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy12)
+rstot12.lm1b <- lm(totppt_mm ~ elev_m + elev_m.sqr, data = rainy12)
+rstot12.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy12)
+summary(rstot12.lm1)# adj. R-squared negative, mult. R-squared = 0.047
+# summary(rstot12.lm1a)
+summary(rstot12.lm1b)# adj. R-squared negative, mult. R-squared = 0.076
+# summary(rstot12.lm1c)
+
+rstot12.lm2 <- lm(totppt_mm ~ d2pacific, data = rainy12)
+summary(rstot12.lm2)# adj. R-squared = 0.375, mult. R-squared = 0.500
+
+rstot12.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy12)
+summary(rstot12.lm3)# adj. R-squared = 0.171, mult. R-squared = 0.503
+
+rstot12.lm3a <- lm(totppt_mm ~ elev_m + elev_m.sqr + d2pacific, data = rainy12)
+summary(rstot12.lm3a)# adj. R-squared = 0.378, mult. R-squared = 0.751
 ```
-```{r 2014 pairs elev ols, echo=F, fig.height=8, fig.width=10}
-pairs(select(rainy14@data, totppt_mm, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
+
+#### OLS of Rainy Days 2012
+
+Summary:
+
+ - Elevation only models all had negative adjusted R-squared values and multiple R-squared ≈ 0.13 - 0.14
+ 
+ - Distance metrics had similar strength to their correlations but in opposite directions
+ 
+ - The model with elevation and distance to Pacific had a barely positive adjusted R-squared ≈ 0.002, multiple R-squared ≈ 0.40
+
+```{r 2012 rainy days ols, echo=F}
+rsdys12.lm1 <- lm(rain12_dys ~ elev_m, data = rainy12)
+rsdys12.lm1a <- lm(rain12_dys ~ sqrt(elev_m), data = rainy12)
+rsdys12.lm1b <- lm(rain12_dys ~ elev_m.sqr, data = rainy12)
+rsdys12.lm1c <- lm(rain12_dys ~ elev_m.log, data = rainy12)
+summary(rsdys12.lm1)
+# summary(rsdys12.lm1a)
+# summary(rsdys12.lm1b)
+# summary(rsdys12.lm1c)
+
+rsdys12.lm2 <- lm(rain12_dys ~ d2coast, data = rainy12)
+rsdys12.lm2a <- lm(rain12_dys ~ d2pacific, data = rainy12)
+summary(rsdys12.lm2)# adj. R-squared negative, mult. R-squared = 0.145
+summary(rsdys12.lm2a)# adj. R-squared negative, mult. R-squared = 0.106
+
+rsdys12.lm2b <- lm(rain12_dys ~ d2coast + d2pacific, data = rainy12)
+summary(rsdys12.lm2b)# adj. R-squared negative, mult. R-squared = 0.240
+
+rsdys12.lm3 <- lm(rain12_dys ~ elev_m + d2coast + d2pacific, data = rainy12)
+rsdys12.lm3a <- lm(rain12_dys ~ elev_m + d2coast, data = rainy12)
+rsdys12.lm3b <- lm(rain12_dys ~ elev_m + d2pacific, data = rainy12)
+# summary(rsdys12.lm3)# adj. R-squared negative, mult. R-squared = 0.408
+# summary(rsdys12.lm3a)
+summary(rsdys12.lm3b)#adj. R-squared 0.002, mult. R-squared = 0.401
+```
+
+#### OLS of Total Precipitation 2014
+
+Summary:
+
+ - Only five rain gauges, with poor coverage especially of east-southeast edge of study area
+ 
+ - Fairly strong correlation with elevation, with models reporting adjusted R-squared > 0.31 except for the elevation^2 model; multiple R-squared were all > 0.48
+ 
+ - The model with log-transformed elevation and both distance metrics had an adjusted R-squared ≈ 0.58, multiple R-squared ≈ 0.90
+
+```{r 2014 pairs total ppt ols, echo=F, fig.height=8, fig.width=10}
+pairs(select(rainy14@data, totppt_mm, rain14_dys, elev_m, lat_utm, lon_utm, d2pacific, d2coast),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2014 Rainy Season")
 
-rs14.lm1 <- lm(totppt_mm ~ elev_m, data = rainy14)
-rs14.lm2 <- lm(totppt_mm ~ elev_m + d2coast, data = rainy14)
-rs14.lm3 <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy14)
-rs14.lm4 <- lm(totppt_mm ~ d2pacific, data = rainy14)
+elev_m.sqr <- (rainy14@data$elev_m)^2
+elev_m.log <- log1p(rainy14@data$elev_m)
 
-summary(rs14.lm1); summary(rs14.lm2); summary(rs14.lm3); summary(rs14.lm4)
+# Total rainfall ~ elevation only models
+rstot14.lm1 <- lm(totppt_mm ~ elev_m, data = rainy14)
+rstot14.lm1a <- lm(totppt_mm ~ sqrt(elev_m), data = rainy14)
+rstot14.lm1b <- lm(totppt_mm ~ elev_m + elev_m.sqr, data = rainy14)
+rstot14.lm1c <- lm(totppt_mm ~ elev_m.log, data = rainy14)
+summary(rstot14.lm1)# adj. R-squared = 0.319, mult. R-squared = 0.489
+summary(rstot14.lm1a)# adj. R-squared = 0.359, mult. R-squared = 0.519
+summary(rstot14.lm1b)# adj. R-squared = 0.107, mult. R-squared = 0.554
+summary(rstot14.lm1c)# adj. R-squared = 0.357, mult. R-squared = 0.518
+
+rstot14.lm2 <- lm(totppt_mm ~ d2pacific, data = rainy14)
+rstot14.lm2a <- lm(totppt_mm ~ d2coast, data = rainy14)
+rstot14.lm2b <- lm(totppt_mm ~ d2pacific + d2coast, data = rainy14)
+summary(rstot14.lm2)# adj. R-squared = 0.125, mult. R-squared = 0.344
+# summary(rstot14.lm2a)# adj. R-squared negative, mult. R-squared = 0.060
+# summary(rstot14.lm2b)# adj. R-squared negative, mult. R-squared = 0.379
+
+rstot14.lm3 <- lm(totppt_mm ~ elev_m.log + d2pacific, data = rainy14)
+rstot14.lm3a <- lm(totppt_mm ~ elev_m.log + d2coast, data = rainy14)
+rstot14.lm3b <- lm(totppt_mm ~ elev_m.log + d2pacific + d2coast, data = rainy14)
+summary(rstot14.lm3)# adj. R-squared = 0.361, mult. R-squared = 0.680
+summary(rstot14.lm3a)# adj. R-squared = 0.611, mult. R-squared = 0.806
+summary(rstot14.lm3b)# adj. R-squared = 0.585, mult. R-squared = 0.896
+```
+
+#### OLS of Rainy Days 2014
+
+Summary:
+
+ - The direct correlation with elevation is weak, with all adjusted R-squared values negative
+ 
+ - Elevation + elevation^2 resulted in multiple R-squared ≈ 0.47, but adjusted R-squared was still negative
+ 
+ - Distance to coast + elevation + elevation^2 model adjusted R-squared ≈ 0.86, multiple R-squared ≈ 0.96, the best model based on these metrics
+
+
+```{r 2014 rainy days ols, echo=F}
+rsdys14.lm1 <- lm(rain14_dys ~ elev_m, data = rainy14)
+rsdys14.lm1a <- lm(rain14_dys ~ sqrt(elev_m), data = rainy14)
+rsdys14.lm1b <- lm(rain14_dys ~ elev_m + elev_m.sqr, data = rainy14)
+rsdys14.lm1c <- lm(rain14_dys ~ elev_m.log, data = rainy14)
+# summary(rsdys14.lm1)
+# summary(rsdys14.lm1a)
+summary(rsdys14.lm1b)# adj. R-squared negative, mult. R-squared = 0.469
+summary(rsdys14.lm1c)
+
+rsdys14.lm2 <- lm(rain14_dys ~ d2pacific, data = rainy14)
+rsdys14.lm2a <- lm(rain14_dys ~ d2coast, data = rainy14)
+rsdys14.lm2b <- lm(rain14_dys ~ d2pacific + d2coast, data = rainy14)
+# summary(rsdys14.lm2)# adj. R-squared = 0.428, mult. R-squared = 0.571
+# summary(rsdys14.lm2a)# adj. R-squared negative, mult. R-squared = 0.147
+summary(rsdys14.lm2b)# adj. R-squared = 0.568, mult. R-squared = 0.784
+
+
+rsdys14.lm3 <- lm(rain14_dys ~ elev_m + elev_m.sqr + d2pacific + d2coast, data = rainy14)
+rsdys14.lm3a <- lm(rain14_dys ~ elev_m + elev_m.sqr + d2pacific, data = rainy14)
+rsdys14.lm3b <- lm(rain14_dys ~ elev_m + elev_m.sqr + d2coast, data = rainy14)
+rsdys14.lm3c <- lm(rain14_dys ~ elev_m.log + d2pacific + d2coast, data = rainy14)
+rsdys14.lm3d <- lm(rain14_dys ~ elev_m.log + d2pacific, data = rainy14)
+rsdys14.lm3e <- lm(rain14_dys ~ elev_m.log + d2coast, data = rainy14)
+# summary(rsdys14.lm3)# NaN, likely overfitted
+# summary(rsdys14.lm3a)# adj. R-squared = 0.012, mult. R-squared = 0.753
+summary(rsdys14.lm3b)# adj. R-squared = 0.855, mult. R-squared = 0.964
+# summary(rsdys14.lm3c)# adj. R-squared = 0.245, mult. R-squared = 0.811
+summary(rsdys14.lm3d)# adj. R-squared = 0.581, mult. R-squared = 0.790
+# summary(rsdys14.lm3e)# adj. R-squared = -0.685, mult. R-squared = 0.157
 ```
 
 
