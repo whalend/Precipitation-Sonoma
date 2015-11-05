@@ -512,6 +512,7 @@ filter(sonoma, STATION == "GHCND:US1CASN0055") %>%
       select(date, lon_dd, lat_dd)
 # station moved(?), renamed 2009-02-11
 
+library(plyr); library(raster); library(dplyr)
 sonoma_ppt <- select(sonoma, date, station = STATION, lat_dd, lon_dd, elev_m, ppt_mm = PRCP)
 sonoma_ppt$ppt_mm <- sonoma_ppt$ppt_mm * 0.1
 
@@ -642,8 +643,10 @@ anyDuplicated(diamonda_daily$date)
 diamonda_daily <- rename(diamonda_daily, daily_ppt = ppt_inches)
 summary(diamonda_daily)
 
+
 elev <- raster("dem/sod15m.tif")
 crs <- elev@crs
+
 
 ppt_other_sp <- spTransform(ppt_other_sp, CRS=crs)
 
@@ -680,6 +683,7 @@ sonoma_shp <- SpatialPointsDataFrame(
       as.data.frame(sonoma_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(sonoma_shp, "shapefiles/", "sonoma_rgs", driver = "ESRI Shapefile")
 
 # Create shapefile of Lichau station
 lichau_shp <- lichau %>% 
@@ -690,16 +694,19 @@ lichau_shp <- SpatialPointsDataFrame(
       as.data.frame(lichau_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(lichau_shp, "shapefiles/", "lichau_rg", driver = "ESRI Shapefile")
 
 # Create shapefile of Petaluma station
 petaluma_shp <- petaluma %>% 
       distinct(stationid) %>% 
-      select(stationid, lon_dd, lat_dd)
+      select(stationid, lon_dd, lat_dd) %>% 
+      mutate(lon_dd = lon_dd * -1)
 petaluma_shp <- SpatialPointsDataFrame(
       as.matrix(petaluma_shp[, c("lon_dd", "lat_dd")]), 
       as.data.frame(petaluma_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(petaluma_shp, "shapefiles/", "petalumaE_rg", driver = "ESRI Shapefile")
 
 # Create shapefile of St. Helena station
 sthelena_shp <- sthelena %>% 
@@ -710,6 +717,7 @@ sthelena_shp <- SpatialPointsDataFrame(
       as.data.frame(sthelena_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(sthelena_shp, "shapefiles/", "sthelena_rg", driver = "ESRI Shapefile")
 
 # Create shapefile of Santa Rosa 225 station
 santa225_shp <- santa225 %>% 
@@ -720,6 +728,7 @@ santa225_shp <- SpatialPointsDataFrame(
       as.data.frame(santa225_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(santa225_shp, "shapefiles/", "santa225_rg", driver = "ESRI Shapefile")
 
 # Create shapefile of Diamond A station
 diamonda_shp <- diamonda %>% 
@@ -730,10 +739,12 @@ diamonda_shp <- SpatialPointsDataFrame(
       as.data.frame(diamonda_shp),
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
+writeOGR(diamonda_shp, "shapefiles/", "diamonda_rg", driver = "ESRI Shapefile")
 
+library(rgdal)
 # Bind spatial point dataframes together
 add_rg_shp <- rbind(diamonda_shp, lichau_shp, petaluma_shp, santa225_shp, sonoma_shp, sthelena_shp)
-writeOGR(add_rg_shp, "shapefiles/", "otherRGs", driver = "ESRI Shapefile")
+writeOGR(add_rg_shp, "shapefiles/", "otherRGs", driver = "ESRI Shapefile", overwrite_layer = T)
 
 plot(elev)
 plot(glen_ellen_rg, add = T, pch = 25, col = "blue")
@@ -741,7 +752,7 @@ plot(rg_2003_2008, add = T, pch = 20, col = "green")
 # plot(rainy06, add = T, pch = 5, col = "black")
 # plot(plts, add = T, pch = 0)
 
-writeOGR(glen_ellen_rg, "shapefiles/", "GlenEllen_ppt_2009-2015", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(glen_ellen_rg, "shapefiles/", "GlenEllen_ppt_2009_2015", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
 Now I'm going to create a data frame of the Glen Ellen stations formatted to merge with the `dy_rg_data` data frame
