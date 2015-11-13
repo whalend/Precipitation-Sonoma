@@ -1,5 +1,5 @@
 ---
-title: "ppt_cross_validation"
+title: "Cross-validation of Precipitation Interpolation"
 author: "Whalen Dillon"
 date: "September 15, 2015"
 output: html_document
@@ -9,10 +9,10 @@ Examine the outputs from the cross-validation procedure in `v.surf.rast` (2-dime
 
 In these cases, it is a leave-one-out cross-validation procedure, where each point in the dataset is excluded and the surface estimated from the remaining points. Then the difference between the actual and estimated value for each point is recorded. The root-mean square error and/or mean absolute error are two metrics that indicate how well the model performs in terms of accurate prediction using the given settings, with lower values indicating better accuracy.
 
-The measurements were recorded in inches, so the values reported here are in inches.
+I converted the original values in inches to millimeters, so the values reported here are in millimeter units.
 
 # Cross-validation 
-```{r load packages, echo=F}
+```{r load packages, echo=F, message=F}
 library(plyr); library(dplyr); library(ggplot2)
 ```
 
@@ -22,9 +22,6 @@ ppt2d_cv <- ldply(files, function(i){read.csv(i)})
 ```
 
 ```{r load 3D files, echo=FALSE}
-files <- list.files("cross_validation_grass/vol_rst/", full.names = T)
-ppt3d_cv <- ldply(files, function(i){read.csv(i)})
-
 files <- list.files("cross_validation_grass/vol_zrst/", full.names = T)
 ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
 ```
@@ -33,11 +30,11 @@ ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
 # rm(list = ls(pattern = "^rain"))
 ```
 
-```{r load rain gauge shapefiles, echo=F}
+```{r load rain gauge shapefiles, echo=F, message=F}
 library(rgdal)
 shp_list <- list.files("shapefiles", pattern = "^[rain_]")
 shp_list <- grep(".shp$", shp_list, value = TRUE)
-shp_list <- shp_list[1:10]
+shp_list <- shp_list[2:11]
 
 shp_list <- strsplit(shp_list, ".shp")
 tmp <- strsplit(unlist(shp_list), "rain_gauges")
@@ -47,19 +44,29 @@ tmp <- tmp[seq(2, 20, 2)]
 n = 4
 for(shp in shp_list){
       assign(paste("rainy", "0", n, sep = ""), 
-             readOGR(dsn = "shapefiles", layer = shp))
+             readOGR(dsn = "shapefiles", layer = shp, verbose = F))
       n = n + 1
 }
 
 rainy10 <- rainy010; rainy11 <- rainy011 
 rainy12 <- rainy012; rainy14 <- rainy013
 rm(list = ls(pattern = "01"))
-rm(list = "tmp","shp","files","f","i","n","fname","shp_list")
+rm(list = "tmp","shp","files","n","shp_list")
 ```
 
 ## Visualize cross-validation values from `v.surf.rast`
-```{r 2D}
-head(ppt2d_cv)
+```{r plot cross validation of each rainy season, echo=F}
+ggplot(ppt2d_cv, aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      facet_grid(year ~.) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation Rainy Seasons (v.surf.rst)") +
+      theme_bw()
+```
+
+```{r min MAE 2D, echo=F}
+# head(ppt2d_cv)
 summary(ppt2d_cv)
 ppt2d_cv$smoothing <- ppt2d_cv$smoothing/100
 
@@ -76,61 +83,167 @@ ppt2d_cvmin <- rbind(
       filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs)),
       filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
 )
-ppt2d_cvmin
-#####
+knitr::kable(ppt2d_cvmin, caption = "Minimum MAE of precipitation estimation for each rainy season")
+```
 
+
+This gives the values for the minimum MAE (mean_abs) for each year from the cross-validation and the associated parameters. Since there is a lot of variability in the MAE especially for tension values between 1 and 10, I am going to get parameters minimum MAE at each tension value. This would result in 24 surfaces to qualitatively examine for each season, however, it appears that in many cases the MAE value no longer changes much after a certain tension is reached. If I can roughly identify this "break" then I can reduce the number of surfaces for qualitative comparison. (*I think this will likely be the same for assessing the results from 3-D interpolations*)
+
+
+### 2004 2D Cross-Validation
+```{r plot summary 2004 2D cross-validation, echo=F}
+##### 2004 2-D Cross-validation
 ggplot(filter(ppt2d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2004 Rainy Season (v.surf.rst)") +
       theme_bw()
-summary(filter(ppt2d_cv, year == 2004), digits = 7)
-# minimum MAE parameters
-filter(ppt2d_cv, year == 2004, tension>10) %>% filter(mean_abs == min(mean_abs))
+summary(filter(ppt2d_cv, year == 2004))
+```
 
-# find mean MAE parameters
-filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 199.7, 200.2))
-# mae=199.78 t=30 s=0.8
+Based on this graph I am going to examine the minimum and maximum MAE for tension values 1-10 and 20-90.
 
-# find median MAE parameters
-filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 192, 192.3))
-# t=140 s=0.8; t=50 s=0.9
+```{r 2004 minimum MAE for tension values, echo=F}
+# minimum MAE for tension 1-10
+mae.min.2004 <- rbind(filter(ppt2d_cv, year == 2004, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2004, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2004), min_mae)
 
-# find ~1st Qu. MAE parameters
-filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 190.7, 190.8))
-# 190.745 t=80 s=0.6
+knitr::kable(mae.min.2004, digits = 2, caption = "Minimum MAE Values - 2004")
 
-# find ~3rd Qu. MAE parameters
-filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 204, 206))
-# 204.2 t=30 s=0.4
+# # tension = 2 minimum MAE parameters
+# filter(ppt2d_cv, year == 2004, tension == 2) %>% filter(mean_abs == min(mean_abs))
+# # mae=164.11 t=2 s=0.2
+# 
+# # tension = 3 minimum MAE parameters
+# filter(ppt2d_cv, year == 2004, tension == 3) %>% filter(mean_abs == min(mean_abs))
+# # mae=161.68 t=3 s=0.5
+# 
+# # tension = 4 MAE parameters
+# filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 183.5, 183.6))
+# # mae=183.56 t=50 s=0.8; mae=183.52 t=7 s=0.5
+# 
+# # find ~3rd Qu. MAE parameters
+# filter(ppt2d_cv, year == 2004) %>% filter(between(mean_abs, 186.15, 186.5))
+# # mae=186.28 t=40 s=0.4; mae=186.39 t=30 s=0.9
+# 
+# # maximum MAE parameters
+# filter(ppt2d_cv, year == 2004) %>% filter(mean_abs == max(mean_abs))
+# # mae=268.79 t=10 s=10
+# filter(ppt2d_cv, year == 2004, tension > 10) %>% filter(mean_abs == max(mean_abs))
+# # mae=208.8 t=20 s=0.1
+```
 
-# maximum MAE parameters
-filter(ppt2d_cv, year == 2004) %>% filter(mean_abs == max(mean_abs))
-# t=10 s=10
+```{r 2004 max MAE for tension values, echo=F}
+mae.max.2004 <- rbind(filter(ppt2d_cv, year == 2004, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2004, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2004), max_mae)
 
+knitr::kable(mae.max.2004, digits = 2, caption = "Maximum MAE Values - 2004")
+```
+
+
+### 2005 2D Cross-Validation
+```{r plot summary 2005 2D cross validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2005 Rainy Season (v.surf.rst)") +
       theme_bw()
-summary(filter(ppt2d_cv, year == 2005), digits = 7)
-filter(ppt2d_cv, year == 2005, tension >= 10) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2005) %>% filter(mean_abs <= mean(mean_abs))
-filter(ppt2d_cv, year == 2005, tension == 60)
+summary(filter(ppt2d_cv, year == 2005))
+```
 
+For this 2005 data I am going to include tension values out to 100. (It just crossed my mind to examine surfaces with maximum MAE for a given value of tension to provide a contrast of the effect from the smoothing value)
+
+```{r 2005 minimum MAE for tension values, echo=F}
+mae.min.2005 <- rbind(filter(ppt2d_cv, year == 2005, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2005, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2005), min_mae)
+
+knitr::kable(mae.min.2005, digits = 2, caption = "Minimum MAE Values - 2005")
+
+
+# # minimum MAE parameters
+# filter(ppt2d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs))
+# # mae=171.80 t=1 s=0.9
+# filter(ppt2d_cv, year == 2005, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+# # mae=184.8 t=150 s=0.9
+# 
+# # mean MAE parameters
+# filter(ppt2d_cv, year == 2005) %>% filter(between(mean_abs, 198, 199))
+# # mae=198.36 t=5 s=0.9; mae=198.37 t=30 s=0.7
+# 
+# # 1st Qu. MAE parameters
+# filter(ppt2d_cv, year == 2005, between(mean_abs, 187, 188))
+# # mae=187.7 t=90 s=0.9
+```
+```{r 2005 maximum MAE for tension values, echo=F}
+mae.max.2005 <- rbind(filter(ppt2d_cv, year == 2005, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2005, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2005), max_mae)
+
+knitr::kable(mae.max.2005, digits = 2, caption = "Maximum MAE Values - 2005")
+```
+
+
+### 2006 2-D Cross-validation
+```{r plot summary 2006 2D cross validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2006 Rainy Season (v.surf.rst)") +
       theme_bw()
-summary(filter(ppt2d_cv, year == 2006), digits = 7)
-filter(ppt2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2006, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+summary(filter(ppt2d_cv, year == 2006))
+```
+
+I am selecting tension values 1-10 and 20-80
+
+```{r 2006 minimum MAE parameters for select tension values, echo=F}
+mae.min.2006 <- rbind(filter(ppt2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2006, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2006), min_mae)
+
+knitr::kable(mae.min.2006, digits = 2, caption = "Minimum MAE Values - 2006")
+
+# # minimum MAE parameters
+# filter(ppt2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
+# # mae=243.47 t=1 s=0.1
+# filter(ppt2d_cv, year == 2006, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+# # mae=291.08 t=90 s=0.9
+# 
+# # 1st Qu. MAE parameters
+# filter(ppt2d_cv, year == 2006, between(mean_abs, 291.08, 291.1))
+# # mae=291.1 t=80 s=0.9
+# 
+# filter(ppt2d_cv, year == 2006, tension == 50)
+# # mae=291.75 t=50 s=0.9; mae=292.48 t=50 s=0.5
+```
+```{r 2006 maximum MAE parameters for select tension values, echo=F}
+mae.max.2006 <- rbind(filter(ppt2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2006, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2006), max_mae)
+
+knitr::kable(mae.max.2006, digits = 2, caption = "Maximum MAE Values - 2006")
+```
 
 
+### 2007 2-D Cross-validation
+```{r plot summary 2007 2D cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -138,9 +251,46 @@ ggplot(filter(ppt2d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2007 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2007))
-filter(ppt2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2007, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+```
 
+It looks like the MAE values start to cluster more strongly around a tension value of 5. I am going to summarize tension values 1-10 and 20-100.
+
+```{r 2007 minimum MAE parameters for select tension values}
+mae.min.2007 <- rbind(filter(ppt2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2007, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2007), min_mae)
+
+knitr::kable(mae.min.2007, digits = 2, caption = "Minimum MAE Values - 2007")
+
+# # minimum MAE parameters
+# filter(ppt2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
+# # mae=96.69 t=1 s=0.9
+# filter(ppt2d_cv, year == 2007, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+# # mae=102.38 t=150 s=0.9
+# 
+# # 1st Qu. MAE parameters
+# filter(ppt2d_cv, year == 2007, between(mean_abs, 102.9, 103.2))
+# # mae=103.12 t=90 s=0.9
+# 
+# # mean MAE parameters
+# filter(ppt2d_cv, year == 2007, between(mean_abs, 105.4, 105.6))
+# # mae=105.5 t=30 s=0.9; mae=105.54 t=40 s=0.3
+```
+```{r 2007 maximum MAE parameters for select tension values}
+mae.max.2007 <- rbind(filter(ppt2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2007, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2007), max_mae)
+
+knitr::kable(mae.max.2007, digits = 2, caption = "Maximum MAE Values - 2007")
+```
+
+
+### 2008 2-D Cross-validation
+```{r plot summary 2008 cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -148,9 +298,35 @@ ggplot(filter(ppt2d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2008 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2008))
-filter(ppt2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2008, tension >= 9) %>% filter(mean_abs == min(mean_abs))
+```
 
+Selecting tension values 1-10 and 20-90.
+
+```{r 2008 minimum MAE parameters for select tension values, echo=F}
+mae.min.2008 <- rbind(filter(ppt2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2008), min_mae)
+
+knitr::kable(mae.min.2008, digits = 2, caption = "Minimum MAE Values - 2008")
+
+# filter(ppt2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt2d_cv, year == 2008, tension >= 9) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2008 maximum MAE parameters for select tension values, echo=F}
+mae.max.2008 <- rbind(filter(ppt2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2008), max_mae)
+
+knitr::kable(mae.max.2008, digits = 2, caption = "Maximum MAE Values - 2008")
+```
+
+
+### 2009 2-D Cross-validation
+```{r plot summary 2009 2d cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -158,10 +334,36 @@ ggplot(filter(ppt2d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2009 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2009))
-filter(ppt2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2009, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+```
+
+This is the reverse of the pattern I have usually been seeing where overall MAE has decreased with increasing tension. I'm going to select values 1-10 and 20-70
+
+```{r 2009 minimum MAE parameters for select tension values, echo=F}
+mae.min.2009 <- rbind(filter(ppt2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2009, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2009), min_mae)
+
+knitr::kable(mae.min.2009, digits = 2, caption = "Minimum MAE Values - 2009")
+
+# 
+# filter(ppt2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt2d_cv, year == 2009, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2009 maximum MAE parameters for select tension values, echo=F}
+mae.max.2009 <- rbind(filter(ppt2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2009, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2009), max_mae)
+
+knitr::kable(mae.max.2009, digits = 2, caption = "maximum MAE Values - 2009")
+```
 
 
+### 2010 2-D Cross-validation
+```{r plot summary 2010 cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -169,10 +371,36 @@ ggplot(filter(ppt2d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2010 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2010))
-filter(ppt2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2010, tension < 20) %>% filter(mean_abs == min(mean_abs))
+```
+
+This has a similar pattern to the 2009 data, though all the MAE values for tension 1-10 are greater than for all other values of tension. I am going to examine tension values 1-10 and 20-90.
+
+```{r 2010 minimum MAE parameters for select tension values, echo=F}
+mae.min.2010 <- rbind(filter(ppt2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2010, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2010), min_mae)
+
+knitr::kable(mae.min.2010, digits = 2, caption = "Minimum MAE Values - 2010")
+
+# 
+# filter(ppt2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt2d_cv, year == 2010, tension < 20) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2010 maximum MAE parameters for select tension values, echo=F}
+mae.max.2010 <- rbind(filter(ppt2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2010, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2010), max_mae)
+
+knitr::kable(mae.max.2010, digits = 2, caption = "Maximum MAE Values - 2010")
+```
 
 
+### 2011 2-D Cross-validation
+```{r plot summary 2011 2D cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -180,9 +408,35 @@ ggplot(filter(ppt2d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2011 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2011))
-filter(ppt2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2011, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+```
 
+Again, a similar pattern to 2009 and 2010 data. The clustering gets very tight for smoothing values as soon as tension values reach 20. I am going to examine tension values 1-10 and 20-60.
+
+```{r 2011 minimum MAE parameters for select tension values, echo=F}
+mae.min.2011 <- rbind(filter(ppt2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2011, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2011), min_mae)
+
+knitr::kable(mae.min.2011, digits = 2, caption = "Minimum MAE Values - 2011")
+# 
+# filter(ppt2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt2d_cv, year == 2011, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2011 maximum MAE parameters for select tension values, echo=F}
+mae.max.2011 <- rbind(filter(ppt2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2011, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2011), max_mae)
+
+knitr::kable(mae.max.2011, digits = 2, caption = "Maximum MAE Values - 2011")
+```
+
+
+### 2012 2-D Cross-validation
+```{r plot summary 2012 2D cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -190,10 +444,34 @@ ggplot(filter(ppt2d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2012 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2012))
-filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
-filter(ppt2d_cv, year == 2012, tension < 30) %>% filter(mean_abs == min(mean_abs))
+```
+
+Some interesting patterns going on with these data. For tension values 1-10 there is a U-shape for values of MAE as values of tension increase, particularly for smoothing values > 0.5. Overall, the pattern is similar to 2009, 2010, and 2011 where MAE values increase with increasing tension values. I am going to examing tension values 1-10 and 20-90.
+
+```{r 2012 minimum MAE parameters for select tension values, echo=F}
+mae.min.2012 <- rbind(filter(ppt2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2012, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2012), min_mae)
+
+knitr::kable(mae.min.2012, digits = 2, caption = "Minimum MAE Values - 2012")
+# filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt2d_cv, year == 2012, tension < 30) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2012 maximum MAE parameters for select tension values, echo=F}
+mae.max.2012 <- rbind(filter(ppt2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2012, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2012), max_mae)
+
+knitr::kable(mae.max.2012, digits = 2, caption = "Maximum MAE Values - 2012")
+```
 
 
+### 2014 2-D Cross-validation
+```{r plot summary 2014 2D cross-validation, echo=F}
 ggplot(filter(ppt2d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
@@ -201,177 +479,343 @@ ggplot(filter(ppt2d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
       ggtitle("Cross-validation 2014 Rainy Season (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2014))
-filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
 ```
+
+Similar overall pattern to 2009-2012 data with increasing MAE values as values for tension increase. I'm going to examine tension values 1-10 and 20-80
+
+```{r 2014 minimum MAE parameters for select tension values, echo=F}
+mae.min.2014 <- rbind(filter(ppt2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2014, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.min.2014), min_mae)
+
+knitr::kable(mae.min.2014, digits = 2, caption = "Minimum 2D MAE Values - 2014")
+# filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+```
+```{r 2014 maximum MAE parameters for select tension values, echo=F}
+mae.max.2014 <- rbind(filter(ppt2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(ppt2d_cv, year == 2014, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2014), max_mae)
+
+knitr::kable(mae.max.2014, digits = 2, caption = "Maximum 2D MAE Values - 2014")
+```
+
 
 ## Visualize cross-validation values from `v.vol.rast`
 ```{r summarize 3D, echo=F}
-head(ppt3d_cv)
-summary(ppt3d_cv)
-ppt3d_cv$smoothing <- ppt3d_cv$smoothing/100
-
-# Create dataframe of each year's minimum MAE
-ppt3d_cvmin <- rbind(
-      filter(ppt3d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs)),
-      filter(ppt3d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
-)
-ppt3d_cvmin
-
 head(ppt3d_cvz)
 summary(ppt3d_cvz)
 ppt3d_cvz$smoothing <- ppt3d_cvz$smoothing/100
+ppt3d_cvz <- rename(ppt3d_cvz, mae = mean_abs, zscale = scale)
+
+# Create dataframe of each year's minimum MAE
+ppt3d_cvmin <- rbind(
+      filter(ppt3d_cvz, year == 2004) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2005) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2006) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2007) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2008) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2009) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2010) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2011) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2012) %>% filter(mae == min(mae)),
+      filter(ppt3d_cvz, year == 2014) %>% filter(mae == min(mae))
+)
+ppt3d_cvmin
 ```
 
-#### Cross-validation v.vol.rst: 2004
-```{r plot 3d 2004 CV}
-ggplot(filter(ppt3d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
+
+### Cross-validation v.vol.rst: 2004
+```{r plot summary 3d 2004 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2004), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst)") +
+      theme_bw()
+# summary(filter(ppt3d_cv, year == 2004))
+
+ggplot(filter(ppt3d_cvz, year == 2004), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      # facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (mm)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst)") +
+      theme_bw()
+
+ggplot(filter(ppt3d_cvz, year == 2004), aes(x = tension, y = mae)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst)") +
       theme_bw()
-ggplot(filter(ppt3d_cv, year == 2004, tension <= 10), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+# MAE in terms of smoothing seems to be all over the place, indicating effect of zscale(?)
+
+ggplot(filter(ppt3d_cvz, year == 2004, tension <= 10), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 10, 1)) +
-      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst), t=1-10") +
+      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst) for tension <= 10") +
       theme_bw()
-# summary(filter(ppt3d_cv, year == 2004))
-```
-```{r 2004 3d MAE minimums}
-filter(ppt3d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2004, tension == 1)
-filter(ppt3d_cv, year == 2004, tension == 2) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2004, tension == 3) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2004, tension == 4) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2004, tension == 5) %>% filter(mean_abs == min(mean_abs))
 ```
 
-#### Cross-validation v.vol.rst: 2005
-```{r plot 3d 2005 CV}
-ggplot(filter(ppt3d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+Small values for the zscale parameter appear to consistently provide the lowest values for MAE across values of tension and smoothing, except for an increase with tension values from 1 to ~5 when the smoothing parameter was set to 0.1. Higher values of the smoothing parameter appears to stabilize the relationship with zscale, where increasing zscale increases MAE. 
+
+For values of tension between 1 and 10 the MAE values are higher for higher zscale values across all values of tension and smoothing. Smoothing appears to have a strong effect on the base minimum MAE, where MAE for a given value of tension and zscale appears to increase with the value of the smoothing parameter. This seems to be true most clearly for smoothing values > 0.2. Over all the tension values, MAE shows a consistent increase with increasing tension.
+
+According to this I want fairly low values for tension, zscale, and smoothing parameters, but I'm not at all sure what the surface will look like (i.e. does it represent a realistic/acceptable spatial pattern of precipitation?)
+
+I'm going to start with looking at tension values between 1 and 10, because the 10 lowest values for MAE fall into this range. This will give me parameters for 10 surfaces to compare.
+
+```{r 2004 3d MAE minimums for select values of tension, echo=F}
+# filter(ppt2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+
+mae3d.min.2004 <- filter(ppt3d_cvz, year == 2004, between(tension, 1, 10)) %>% 
+      group_by(tension) %>% filter(mae == min(mae)) %>% 
+      rename(min_mae = mae)
+mae3d.min.2004 <- ungroup(mae3d.min.2004)
+
+knitr::kable(arrange(mae3d.min.2004, min_mae), caption = "Minimum 3D MAE Values - 2004")
+# 
+# summary(mae3d.min.2004)
+# filter(mae3d.min.2004, min_mae == max(min_mae))
+
+# filter(ppt3d_cv, year == 2004, tension == 1)
+# filter(ppt3d_cv, year == 2004, tension == 2) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cv, year == 2004, tension == 3) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cv, year == 2004, tension == 4) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cv, year == 2004, tension == 5) %>% filter(mean_abs == min(mean_abs))
+```
+
+The 10 values for minimum MAE for each of the tension values are all smaller than the 1st quartile of MAE for all of the 2004 cross-validation data, which is `r 198`.
+
+### Cross-validation v.vol.rst: 2005
+```{r plot 3d 2005 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2005), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2005 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2005))
-filter(ppt3d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2005, tension > 3) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2005, tension < 3) %>% filter(mean_abs == min(mean_abs))
+summary(filter(ppt3d_cvz, year == 2005))
 ```
 
-#### Cross-validation v.vol.rst: 2006
-```{r plot 3d 2006 CV}
-ggplot(filter(ppt3d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+Increasing the value of smoothing decreases MAE. Generally, higher values for tensions also decreases MAE, but this is not consistent for tension values between 1 and 10. For these tension values, MAE increases up to about 3 or 4, then begins to decline. The smallest values for MAE don't appear to vary dramtically for tension values from 20 to 150, though they do get smaller.
+
+```{r 2005 3d MAE minimums for select values of tension, echo=F}
+head(filter(ppt3d_cvz, year == 2005) %>% arrange(mae), 10)
+mae3d.min.2005 <- filter(ppt3d_cvz, year == 2005, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2005, caption = "Minimum 3D MAE Values - 2005")
+# filter(ppt3d_cvz, year == 2005, tension > 3) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2005, tension < 3) %>% filter(mean_abs == min(mean_abs))
+```
+
+### Cross-validation v.vol.rst: 2006
+```{r plot 3d 2006 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2006), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2006 Rainy Season (v.vol.rst)") +
       theme_bw()
+# summary(filter(ppt3d_cvz, year == 2006))
+```
 
-ggplot(filter(ppt3d_cvz, year == 2006), aes(x = tension, y = mean_abs)) +
+Interestingly the relationship between zscale and MAE becomes somewhat inverted as the values for tension increase. The lowest values of zscale correspond with the higher values of MAE, but it appears that a middle value results in the lowest value of MAE when tension is > 3 This pattern appears consistent across values of smoothing. All of the lowest values for MAE are for tension values <= 10.
+
+```{r 2006 3d MAE minimums, echo=F}
+mae3d.min.2006 <- filter(ppt3d_cvz, year == 2006, between(tension, 1, 10)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2006, caption = "Minimum 3D MAE Values - 2006")
+
+# filter(ppt3d_cvz, year == 2006, tension <= 10) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2006, tension == 10) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2006, tension == 20) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2006, tension == 30) %>% filter(mean_abs == min(mean_abs))
+```
+
+### Cross-validation v.vol.rst: 2007
+```{r plot 3d 2007 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2007), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
-      facet_grid(smoothing ~ .) +
-      ylab("Mean Absolute Error (mm)") +
-      scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("z Cross-validation 2004 Rainy Season (v.vol.rst)") +
-      theme_bw()
-      
-      
-# summary(filter(ppt3d_cv, year == 2006))
-```
-```{r 2006 3d MAE minimums}
-filter(ppt3d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cvz, year == 2006) %>% filter(mean_abs == min(mean_abs))
-
-filter(ppt3d_cv, year == 2006, tension <= 10) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2006, tension == 10) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2006, tension == 20) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2006, tension == 30) %>% filter(mean_abs == min(mean_abs))
-```
-
-
-#### Cross-validation v.vol.rst: 2007
-```{r plot 3d 2007 CV}
-ggplot(filter(ppt3d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2007 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2007))
-filter(ppt3d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2007, tension ) %>% filter(mean_abs == min(mean_abs))
+summary(filter(ppt3d_cvz, year == 2007))
+```
+
+```{r 2007 3d MAE minimums, echo=F}
+mae3d.min.2007 <- filter(ppt3d_cvz, year == 2007, between(tension, 1, 20)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2007, caption = "Minimum 3D MAE Values - 2007")
+
+# filter(ppt3d_cvz, year == 2007) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2007, tension ) %>% filter(mean_abs == min(mean_abs))
 # produced only "overshoot" results; >100mm off of the given measurements
+```
 
-
-ggplot(filter(ppt3d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+### Cross-validation v.vol.rst: 2008
+```{r plot 3d 2008 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2008), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
       ggtitle("Cross-validation 2008 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2008))
-filter(ppt3d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2008) %>% filter(mean_abs < 5.513)
+summary(filter(ppt3d_cvz, year == 2008))
+```
 
-ggplot(filter(ppt3d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+```{r 2008 3d MAE minimums, echo=F}
+mae3d.min.2008 <- filter(ppt3d_cvz, year == 2008, between(tension, 1, 20)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2008, caption = "Minimum 3D MAE Values - 2008")
+
+# filter(ppt3d_cvz, year == 2008) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2008) %>% filter(mean_abs < 5.513)
+```
+
+### Cross-validation v.vol.rst: 2009
+```{r plot 3d 2009 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2009), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error") +
       ggtitle("2009 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2009))
-filter(ppt3d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2009) %>% filter(mean_abs < 9.56)
+summary(filter(ppt3d_cvz, year == 2009))
+```
 
-ggplot(filter(ppt3d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+```{r 2009 3d MAE minimums, echo=F}
+mae3d.min.2009 <- filter(ppt3d_cvz, year == 2009, between(tension, 1, 20)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2009, caption = "Minimum 3D MAE Values - 2009")
+
+# filter(ppt3d_cvz, year == 2009) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2009) %>% filter(mean_abs < 9.56)
+```
+
+### Cross-validation v.vol.rst: 2010
+```{r plot 3d 2010 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2010), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error") +
       ggtitle("2010 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2010))
-filter(ppt3d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2010) %>% filter(mean_abs < 6.594)
+summary(filter(ppt3d_cvz, year == 2010))
+```
 
-ggplot(filter(ppt3d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+```{r 2010 3d MAE minimums, echo=F}
+mae3d.min.2010 <- filter(ppt3d_cvz, year == 2010, between(tension, 1, 30)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2010, caption = "Minimum 3D MAE Values - 2010")
+# filter(ppt3d_cvz, year == 2010) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2010) %>% filter(mean_abs < 6.594)
+```
+
+### Cross-validation v.vol.rst: 2011 
+```{r plot 3d 2011 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2011), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error") +
       ggtitle("2011 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2011))
-filter(ppt3d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2011) %>% filter(mean_abs < 12.85)
+summary(filter(ppt3d_cvz, year == 2011))
+```
 
-ggplot(filter(ppt3d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+
+```{r 2011 3d MAE minimums, echo=F}
+mae3d.min.2011 <- filter(ppt3d_cvz, year == 2011, between(tension, 1, 30)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2011, caption = "Minimum 3D MAE Values - 2011")
+
+# filter(ppt3d_cvz, year == 2011) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2011) %>% filter(mean_abs < 12.85)
+```
+
+### Cross-validation v.vol.rst: 2012
+```{r plot 3d 2012 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2012), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error") +
       ggtitle("2012 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2012))
-filter(ppt3d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2012) %>% filter(mean_abs < 4.932)
+summary(filter(ppt3d_cvz, year == 2012))
+```
 
-ggplot(filter(ppt3d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
-      geom_point(aes(color = (smoothing))) +
+
+```{r 2012 3d MAE minimums, echo=F}
+mae3d.min.2012 <- filter(ppt3d_cvz, year == 2012, between(tension, 1, 10)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2012, caption = "Minimum 3D MAE Values - 2012")
+
+# filter(ppt3d_cvz, year == 2012) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2012) %>% filter(mean_abs < 4.932)
+```
+
+### Cross-validation v.vol.rst: 2014
+```{r plot 3d 2014 CV, echo=F}
+ggplot(filter(ppt3d_cvz, year == 2014), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error") +
       ggtitle("2014 Rainy Season (v.vol.rst)") +
       theme_bw()
-summary(filter(ppt3d_cv, year == 2014))
-filter(ppt3d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
-filter(ppt3d_cv, year == 2014) %>% filter(mean_abs < 8.735)
+summary(filter(ppt3d_cvz, year == 2014))
+```
+
+
+```{r 2014 3d MAE minimums, echo=F}
+mae3d.min.2014 <- filter(ppt3d_cvz, year == 2014, between(tension, 1, 10)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.min.2014, caption = "Minimum 3D MAE Values - 2014")
+
+# filter(ppt3d_cvz, year == 2014) %>% filter(mean_abs == min(mean_abs))
+# filter(ppt3d_cvz, year == 2014) %>% filter(mean_abs < 8.735)
 ```
 
 ## PRISM Comparison to Measured Values
-```{r prism comparison}
+```{r prism comparison, echo=F, eval=F}
 summary(rainy04)
 plot(totppt_mm ~ psm_totppt, data = rainy04@data, main = 2004)
 cor(rainy04@data$totppt_mm, rainy04@data$psm_totppt)
