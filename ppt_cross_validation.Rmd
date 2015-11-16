@@ -16,15 +16,25 @@ I converted the original values in inches to millimeters, so the values reported
 library(plyr); library(dplyr); library(ggplot2)
 ```
 
-```{r load 2D files, echo=FALSE}
+```{r load 2D ppt amount files, echo=FALSE}
 files <- list.files("cross_validation_grass/surf_rst/", full.names = T)
 ppt2d_cv <- ldply(files, function(i){read.csv(i)})
 ```
+```{r load 2D ppt days files, echo=F}
+files <- list.files("cross_validation_grass/surf_rst_days/", full.names = T)
+pptdys2d_cv <- ldply(files, function(i){read.csv(i)})
+```
 
-```{r load 3D files, echo=FALSE}
+
+```{r load 3D ppt amount files, echo=FALSE}
 files <- list.files("cross_validation_grass/vol_zrst/", full.names = T)
 ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
 ```
+```{r load 3D ppt days files, echo=F}
+files <- list.files("cross_validation_grass/vol_zrst_days/", full.names = T)
+pptdys3d_cvz <- ldply(files, function(i){read.csv(i)})
+```
+
 
 ```{r remove dataframes, echo=F}
 # rm(list = ls(pattern = "^rain"))
@@ -61,7 +71,15 @@ ggplot(ppt2d_cv, aes(x = tension, y = mean_abs)) +
       facet_grid(year ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation Rainy Seasons (v.surf.rst)") +
+      ggtitle("Cross-validation Rainy Seasons Total Precipitation (v.surf.rst)") +
+      theme_bw()
+
+ggplot(pptdys2d_cv, aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      facet_grid(year ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation Rainy Seasons Days of Precipitation (v.surf.rst)") +
       theme_bw()
 ```
 
@@ -70,7 +88,9 @@ ggplot(ppt2d_cv, aes(x = tension, y = mean_abs)) +
 summary(ppt2d_cv)
 ppt2d_cv$smoothing <- ppt2d_cv$smoothing/100
 
-##### 
+summary(pptdys2d_cv)
+pptdys2d_cv$smoothing <- pptdys2d_cv$smoothing/100
+
 ppt2d_cvmin <- rbind(
       filter(ppt2d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs)),
       filter(ppt2d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs)),
@@ -84,6 +104,20 @@ ppt2d_cvmin <- rbind(
       filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
 )
 knitr::kable(ppt2d_cvmin, caption = "Minimum MAE of precipitation estimation for each rainy season")
+
+pptdys2d_cvmin <- rbind(
+      filter(pptdys2d_cv, year == 2004) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2005) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs)),
+      filter(pptdys2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+)
+knitr::kable(pptdys2d_cvmin, caption = "Minimum MAE of rainy days for each rainy season")
 ```
 
 
@@ -97,14 +131,23 @@ ggplot(filter(ppt2d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2004 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2004 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2004))
+
+ggplot(filter(pptdys2d_cv, year == 2004), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2004))
 ```
 
-Based on this graph I am going to examine the minimum and maximum MAE for tension values 1-10 and 20-90.
+Based on these graphs I am going to examine the minimum and maximum MAE for tension values 1-10 and 20-90 for total precipitation and number of days of precipitation.
 
-```{r 2004 minimum MAE for tension values, echo=F}
+```{r 2004 minimum MAE for selected tension values, echo=F}
+## Total precipitation 
 # minimum MAE for tension 1-10
 mae.min.2004 <- rbind(filter(ppt2d_cv, year == 2004, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
 # minimum MAE for tension [20,90,10]
@@ -112,7 +155,17 @@ filter(ppt2d_cv, year == 2004, between(tension, 20, 90)) %>% group_by(tension) %
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2004), min_mae)
 
-knitr::kable(mae.min.2004, digits = 2, caption = "Minimum MAE Values - 2004")
+knitr::kable(mae.min.2004, digits = 2, caption = "Minimum MAE Values - 2004 total precipitation")
+
+## Days of precipitation
+# minimum MAE for tension 1-10
+mae.dys.min.2004 <- rbind(filter(pptdys2d_cv, year == 2004, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2004, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2004), min_mae)
+
+knitr::kable(mae.min.2004, digits = 2, caption = "Minimum MAE Values - 2004 days")
 
 # # tension = 2 minimum MAE parameters
 # filter(ppt2d_cv, year == 2004, tension == 2) %>% filter(mean_abs == min(mean_abs))
@@ -138,6 +191,7 @@ knitr::kable(mae.min.2004, digits = 2, caption = "Minimum MAE Values - 2004")
 ```
 
 ```{r 2004 max MAE for tension values, echo=F}
+## Total precipitation
 mae.max.2004 <- rbind(filter(ppt2d_cv, year == 2004, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
 # minimum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2004, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
@@ -154,21 +208,39 @@ ggplot(filter(ppt2d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2005 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2005 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2005))
+
+ggplot(filter(pptdys2d_cv, year == 2005), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2005 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2005))
 ```
 
-For this 2005 data I am going to include tension values out to 100. (It just crossed my mind to examine surfaces with maximum MAE for a given value of tension to provide a contrast of the effect from the smoothing value)
+For this 2005 data I am going to include tension values out to 100 for total precipitation and out to 70 for rainy days. (It just crossed my mind to examine surfaces with maximum MAE for a given value of tension to provide a contrast of the effect from the smoothing value)
 
 ```{r 2005 minimum MAE for tension values, echo=F}
+## Total precipitation
 mae.min.2005 <- rbind(filter(ppt2d_cv, year == 2005, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
 # minimum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2005, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2005), min_mae)
 
-knitr::kable(mae.min.2005, digits = 2, caption = "Minimum MAE Values - 2005")
+knitr::kable(mae.min.2005, digits = 2, caption = "Minimum MAE Values - 2005 total precipitation")
+
+## Days of precipitation
+mae.dys.min.2005 <- rbind(filter(pptdys2d_cv, year == 2005, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2005, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2005), min_mae)
+
+knitr::kable(mae.dys.min.2005, digits = 2, caption = "Minimum MAE Values - 2005 - rainy days")
 
 
 # # minimum MAE parameters
@@ -186,8 +258,9 @@ knitr::kable(mae.min.2005, digits = 2, caption = "Minimum MAE Values - 2005")
 # # mae=187.7 t=90 s=0.9
 ```
 ```{r 2005 maximum MAE for tension values, echo=F}
+## Total precipitation
 mae.max.2005 <- rbind(filter(ppt2d_cv, year == 2005, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
-# maximum MAE for tension [20,90,10]
+# maximum MAE for tension [20,100,10]
 filter(ppt2d_cv, year == 2005, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2005), max_mae)
@@ -202,21 +275,40 @@ ggplot(filter(ppt2d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2006 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2006 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2006))
+
+ggplot(filter(pptdys2d_cv, year == 2006), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2006 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2006))
 ```
 
-I am selecting tension values 1-10 and 20-80
+I am selecting tension values 1-10 and 20-60 for total precipitation, and out to 90 for rainy days
 
 ```{r 2006 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2006 <- rbind(filter(ppt2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2006, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+# minimum MAE for tension [20,60,10]
+filter(ppt2d_cv, year == 2006, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2006), min_mae)
 
-knitr::kable(mae.min.2006, digits = 2, caption = "Minimum MAE Values - 2006")
+knitr::kable(mae.min.2006, digits = 2, caption = "Minimum MAE Values - 2006 total precipitation")
+
+## Rainy days
+mae.dys.min.2006 <- rbind(filter(pptdys2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2006, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2006), min_mae)
+
+knitr::kable(mae.dys.min.2006, digits = 2, caption = "Minimum MAE Values - 2006 rainy days")
+
 
 # # minimum MAE parameters
 # filter(ppt2d_cv, year == 2006) %>% filter(mean_abs == min(mean_abs))
@@ -232,13 +324,23 @@ knitr::kable(mae.min.2006, digits = 2, caption = "Minimum MAE Values - 2006")
 # # mae=291.75 t=50 s=0.9; mae=292.48 t=50 s=0.5
 ```
 ```{r 2006 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2006 <- rbind(filter(ppt2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
-# maximum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2006, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+# maximum MAE for tension [20,60,10]
+filter(ppt2d_cv, year == 2006, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2006), max_mae)
 
-knitr::kable(mae.max.2006, digits = 2, caption = "Maximum MAE Values - 2006")
+knitr::kable(mae.max.2006, digits = 2, caption = "Maximum MAE Values - 2006 total precipitation")
+
+## Rainy days
+mae.dys.max.2006 <- rbind(filter(pptdys2d_cv, year == 2006, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2006, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.dys.max.2006), max_mae)
+
+knitr::kable(mae.dys.max.2006, digits = 2, caption = "Maximum MAE Values - 2006 rainy days")
 ```
 
 
@@ -248,21 +350,39 @@ ggplot(filter(ppt2d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2007 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2007 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2007))
+
+ggplot(filter(pptdys2d_cv, year == 2007), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2007 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2007))
 ```
 
-It looks like the MAE values start to cluster more strongly around a tension value of 5. I am going to summarize tension values 1-10 and 20-100.
+For total precipitation the MAE values start to cluster more strongly around a tension value of 5; I am going to summarize tension values 1-10 and 20-100. Clustering of MAE values for rainy days doesn't start until tension values of 20, but tighten up more quickly. I am going to assess tension values out to 90.
 
 ```{r 2007 minimum MAE parameters for select tension values}
+## Total precipitation
 mae.min.2007 <- rbind(filter(ppt2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
+# minimum MAE for tension [20,100,10]
 filter(ppt2d_cv, year == 2007, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2007), min_mae)
 
-knitr::kable(mae.min.2007, digits = 2, caption = "Minimum MAE Values - 2007")
+knitr::kable(mae.min.2007, digits = 2, caption = "Minimum MAE Values - 2007 total precipitation")
+
+## Rainy days
+mae.dys.min.2007 <- rbind(filter(pptdys2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2007, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2007), min_mae)
+
+knitr::kable(mae.dys.min.2007, digits = 2, caption = "Minimum MAE Values - 2007 rainy days")
 
 # # minimum MAE parameters
 # filter(ppt2d_cv, year == 2007) %>% filter(mean_abs == min(mean_abs))
@@ -279,6 +399,7 @@ knitr::kable(mae.min.2007, digits = 2, caption = "Minimum MAE Values - 2007")
 # # mae=105.5 t=30 s=0.9; mae=105.54 t=40 s=0.3
 ```
 ```{r 2007 maximum MAE parameters for select tension values}
+## Total rainfall
 mae.max.2007 <- rbind(filter(ppt2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
 # maximum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2007, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
@@ -286,6 +407,15 @@ filter(ppt2d_cv, year == 2007, between(tension, 20, 100)) %>% group_by(tension) 
 arrange(ungroup(mae.max.2007), max_mae)
 
 knitr::kable(mae.max.2007, digits = 2, caption = "Maximum MAE Values - 2007")
+
+## Rainy days
+mae.dys.max.2007 <- rbind(filter(pptdys2d_cv, year == 2007, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2007, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.dys.max.2007), max_mae)
+
+knitr::kable(mae.dys.max.2007, digits = 2, caption = "Maximum MAE Values - 2007 rainy days")
 ```
 
 
@@ -295,33 +425,61 @@ ggplot(filter(ppt2d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2008 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2008 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2008))
+
+ggplot(filter(pptdys2d_cv, year == 2008), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2008 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2008))
 ```
 
-Selecting tension values 1-10 and 20-90.
+Selecting tension values 1-10 and 20-80 for total precipitation, and out to 90 for rainy days.
 
 ```{r 2008 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2008 <- rbind(filter(ppt2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+# minimum MAE for tension [20,80,10]
+filter(ppt2d_cv, year == 2008, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2008), min_mae)
 
-knitr::kable(mae.min.2008, digits = 2, caption = "Minimum MAE Values - 2008")
+knitr::kable(mae.min.2008, digits = 2, caption = "Minimum MAE Values - 2008 total precipitation")
 
 # filter(ppt2d_cv, year == 2008) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt2d_cv, year == 2008, tension >= 9) %>% filter(mean_abs == min(mean_abs))
+
+## Rainy days
+mae.dys.min.2008 <- rbind(filter(pptdys2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2008), min_mae)
+
+knitr::kable(mae.dys.min.2008, digits = 2, caption = "Minimum MAE Values - 2008 rainy days")
 ```
 ```{r 2008 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2008 <- rbind(filter(ppt2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
-# maximum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+# maximum MAE for tension [20,80,10]
+filter(ppt2d_cv, year == 2008, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2008), max_mae)
 
-knitr::kable(mae.max.2008, digits = 2, caption = "Maximum MAE Values - 2008")
+knitr::kable(mae.max.2008, digits = 2, caption = "Maximum MAE Values - 2008 total precipitation")
+
+## Rainy days
+mae.max.2008 <- rbind(filter(pptdys2d_cv, year == 2008, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2008, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2008), max_mae)
+
+knitr::kable(mae.max.2008, digits = 2, caption = "Maximum MAE Values - 2008 rainy days")
 ```
 
 
@@ -331,34 +489,63 @@ ggplot(filter(ppt2d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2009 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2009 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2009))
+
+ggplot(filter(pptdys2d_cv, year == 2009), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2009 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2009))
 ```
 
-This is the reverse of the pattern I have usually been seeing where overall MAE has decreased with increasing tension. I'm going to select values 1-10 and 20-70
+This is the reverse of the pattern previously seen, where overall MAE has decreased with increasing tension for total precipitation. I'm going to select values 1-10 and 20-70 for total precipitation. 
+
+For rainy days, MAE generally decreases with increasing tension, specifically for tension values from 20-150. I'm going to examine tension values 1-10 and 90-150 for rain days estimation.
 
 ```{r 2009 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2009 <- rbind(filter(ppt2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
+# minimum MAE for tension [20,70,10]
 filter(ppt2d_cv, year == 2009, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2009), min_mae)
 
-knitr::kable(mae.min.2009, digits = 2, caption = "Minimum MAE Values - 2009")
-
+knitr::kable(mae.min.2009, digits = 2, caption = "Minimum MAE Values - 2009 total precipitation")
 # 
 # filter(ppt2d_cv, year == 2009) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt2d_cv, year == 2009, tension >= 10) %>% filter(mean_abs == min(mean_abs))
+
+## Rainy days
+mae.dys.min.2009 <- rbind(filter(pptdys2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,70,10]
+filter(pptdys2d_cv, year == 2009, between(tension, 90, 150)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2009), min_mae)
+
+knitr::kable(mae.dys.min.2009, digits = 2, caption = "Minimum MAE Values - 2009 rainy days")
 ```
 ```{r 2009 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2009 <- rbind(filter(ppt2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
 # maximum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2009, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2009), max_mae)
 
-knitr::kable(mae.max.2009, digits = 2, caption = "maximum MAE Values - 2009")
+knitr::kable(mae.max.2009, digits = 2, caption = "maximum MAE Values - 2009 total precipitation")
+
+## Rainy days
+mae.dys.max.2009 <- rbind(filter(pptdys2d_cv, year == 2009, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2009, between(tension, 90, 150)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2009), max_mae)
+
+knitr::kable(mae.max.2009, digits = 2, caption = "maximum MAE Values - 2009 rainy days")
 ```
 
 
@@ -368,34 +555,63 @@ ggplot(filter(ppt2d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2010 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2010 Rainy Season Total Precipitation (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2010))
+
+ggplot(filter(pptdys2d_cv, year == 2010), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2010 Rainy Season Rainy Days (v.surf.rst)") +
+      theme_bw()
+summary(filter(pptdys2d_cv, year == 2010))
 ```
 
-This has a similar pattern to the 2009 data, though all the MAE values for tension 1-10 are greater than for all other values of tension. I am going to examine tension values 1-10 and 20-90.
+This has a similar pattern to the 2009 data, though all the MAE values for tension 1-10 are greater than for all other values of tension. I am going to examine tension values 1-10 and 20-90 for total precipitation.
+
+Rainy days has a pattern more like earlier years. I will examine tension values 1-10 and 20-100.
 
 ```{r 2010 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2010 <- rbind(filter(ppt2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
 # minimum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2010, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2010), min_mae)
 
-knitr::kable(mae.min.2010, digits = 2, caption = "Minimum MAE Values - 2010")
-
+knitr::kable(mae.min.2010, digits = 2, caption = "Minimum MAE Values - 2010 total precipitation")
 # 
 # filter(ppt2d_cv, year == 2010) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt2d_cv, year == 2010, tension < 20) %>% filter(mean_abs == min(mean_abs))
+
+## Rainy days
+mae.dys.min.2010 <- rbind(filter(pptdys2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,100,10]
+filter(pptdys2d_cv, year == 2010, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2010), min_mae)
+
+knitr::kable(mae.min.2010, digits = 2, caption = "Minimum MAE Values - 2010 rainy days")
 ```
 ```{r 2010 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2010 <- rbind(filter(ppt2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
 # maximum MAE for tension [20,90,10]
 filter(ppt2d_cv, year == 2010, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2010), max_mae)
 
-knitr::kable(mae.max.2010, digits = 2, caption = "Maximum MAE Values - 2010")
+knitr::kable(mae.max.2010, digits = 2, caption = "Maximum MAE Values - 2010 total precipitation")
+
+## Rainy days
+mae.dys.max.2010 <- rbind(filter(pptdys2d_cv, year == 2010, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,90,10]
+filter(pptdys2d_cv, year == 2010, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2010), max_mae)
+
+knitr::kable(mae.max.2010, digits = 2, caption = "Maximum MAE Values - 2010 rainy days")
 ```
 
 
@@ -405,33 +621,63 @@ ggplot(filter(ppt2d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2011 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2011 Rainy Season Total Precipitation (v.surf.rst)") +
+      theme_bw()
+summary(filter(ppt2d_cv, year == 2011))
+
+ggplot(filter(pptdys2d_cv, year == 2011), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2011 Rainy Season Rainy Days (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2011))
 ```
 
 Again, a similar pattern to 2009 and 2010 data. The clustering gets very tight for smoothing values as soon as tension values reach 20. I am going to examine tension values 1-10 and 20-60.
 
+For rainy days I am going to examine tension values 1-10 and 20-50.
+
 ```{r 2011 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2011 <- rbind(filter(ppt2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
+# minimum MAE for tension [20,60,10]
 filter(ppt2d_cv, year == 2011, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2011), min_mae)
 
-knitr::kable(mae.min.2011, digits = 2, caption = "Minimum MAE Values - 2011")
+knitr::kable(mae.min.2011, digits = 2, caption = "Minimum MAE Values - 2011 total precipitation")
+
+## Rainy days
+mae.dys.min.2011 <- rbind(filter(pptdys2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,50,10]
+filter(pptdys2d_cv, year == 2011, between(tension, 20, 50)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2011), min_mae)
+
+knitr::kable(mae.dys.min.2011, digits = 2, caption = "Minimum MAE Values - 2011 rainy days")
 # 
 # filter(ppt2d_cv, year == 2011) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt2d_cv, year == 2011, tension >= 10) %>% filter(mean_abs == min(mean_abs))
 ```
 ```{r 2011 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2011 <- rbind(filter(ppt2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
-# maximum MAE for tension [20,90,10]
+# maximum MAE for tension [20,60,10]
 filter(ppt2d_cv, year == 2011, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2011), max_mae)
 
-knitr::kable(mae.max.2011, digits = 2, caption = "Maximum MAE Values - 2011")
+knitr::kable(mae.max.2011, digits = 2, caption = "Maximum MAE Values - 2011 total precipitation")
+
+## Rainy days
+mae.dys.max.2011 <- rbind(filter(pptdys2d_cv, year == 2011, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,50,10]
+filter(pptdys2d_cv, year == 2011, between(tension, 20, 50)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.dys.max.2011), max_mae)
+
+knitr::kable(mae.dys.max.2011, digits = 2, caption = "Maximum MAE Values - 2011 rainy days")
 ```
 
 
@@ -441,32 +687,62 @@ ggplot(filter(ppt2d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2012 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2012 Rainy Season Total Precipitation (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2012))
+
+ggplot(filter(pptdys2d_cv, year == 2012), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2012 Rainy Season Rainy Days (v.surf.rst)") +
+      theme_bw()
+summary(filter(pptdys2d_cv, year == 2012))
 ```
 
-Some interesting patterns going on with these data. For tension values 1-10 there is a U-shape for values of MAE as values of tension increase, particularly for smoothing values > 0.5. Overall, the pattern is similar to 2009, 2010, and 2011 where MAE values increase with increasing tension values. I am going to examing tension values 1-10 and 20-90.
+Some interesting patterns going on with these data. For tension values 1-10 there is a U-shape for values of MAE as values of tension increase, particularly for smoothing values > 0.5. Overall, the pattern is similar to 2009, 2010, and 2011 where MAE values increase with increasing tension values. I am going to examing tension values 1-10 and 20-60.
+
+For rainy days I am examining tension values 1-10 and 20-60 as well.
 
 ```{r 2012 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2012 <- rbind(filter(ppt2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2012, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+# minimum MAE for tension [20,60,10]
+filter(ppt2d_cv, year == 2012, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2012), min_mae)
 
-knitr::kable(mae.min.2012, digits = 2, caption = "Minimum MAE Values - 2012")
+knitr::kable(mae.min.2012, digits = 2, caption = "Minimum MAE Values - 2012 total precipitation")
+
+## Rainy days
+mae.dys.min.2012 <- rbind(filter(pptdys2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [20,60,10]
+filter(pptdys2d_cv, year == 2012, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2012), min_mae)
+
+knitr::kable(mae.dys.min.2012, digits = 2, caption = "Minimum MAE Values - 2012 rainy days")
 # filter(ppt2d_cv, year == 2012) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt2d_cv, year == 2012, tension < 30) %>% filter(mean_abs == min(mean_abs))
 ```
 ```{r 2012 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2012 <- rbind(filter(ppt2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
-# maximum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2012, between(tension, 20, 90)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+# maximum MAE for tension [20,60,10]
+filter(ppt2d_cv, year == 2012, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2012), max_mae)
 
-knitr::kable(mae.max.2012, digits = 2, caption = "Maximum MAE Values - 2012")
+knitr::kable(mae.max.2012, digits = 2, caption = "Maximum MAE Values - 2012 total precipitation")
+
+## Rainy days
+mae.dys.max.2012 <- rbind(filter(pptdys2d_cv, year == 2012, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [20,60,10]
+filter(pptdys2d_cv, year == 2012, between(tension, 20, 60)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.max.2012), max_mae)
+
+knitr::kable(mae.dys.max.2012, digits = 2, caption = "Maximum MAE Values - 2012 rainy days")
 ```
 
 
@@ -476,31 +752,61 @@ ggplot(filter(ppt2d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
       geom_point(aes(color = (smoothing))) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2014 Rainy Season (v.surf.rst)") +
+      ggtitle("Cross-validation 2014 Rainy Season Total Precipitation (v.surf.rst)") +
       theme_bw()
 summary(filter(ppt2d_cv, year == 2014))
+
+ggplot(filter(pptdys2d_cv, year == 2014), aes(x = tension, y = mean_abs)) +
+      geom_point(aes(color = (smoothing))) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2014 Rainy Season Rainy Days (v.surf.rst)") +
+      theme_bw()
+summary(filter(pptdys2d_cv, year == 2014))
 ```
 
-Similar overall pattern to 2009-2012 data with increasing MAE values as values for tension increase. I'm going to examine tension values 1-10 and 20-80
+Similar overall pattern to 2009-2012 data with increasing MAE values as values for tension increase for total rainfall. I'm going to examine tension values 1-10 and 20-70.
+
+For rainy days, MAE generally decreases with increasing tension. I'm going to examine tension values 1-10 and 70-150.
 
 ```{r 2014 minimum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.min.2014 <- rbind(filter(ppt2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
-# minimum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2014, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+# minimum MAE for tension [20,70,10]
+filter(ppt2d_cv, year == 2014, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs)
 arrange(ungroup(mae.min.2014), min_mae)
 
-knitr::kable(mae.min.2014, digits = 2, caption = "Minimum 2D MAE Values - 2014")
+knitr::kable(mae.min.2014, digits = 2, caption = "Minimum 2D MAE Values - 2014 total precipitation")
 # filter(ppt2d_cv, year == 2014) %>% filter(mean_abs == min(mean_abs))
+
+## Rainy days
+mae.dys.min.2014 <- rbind(filter(pptdys2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs)),
+# minimum MAE for tension [70,150,10]
+filter(pptdys2d_cv, year == 2014, between(tension, 70, 150)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
+) %>% rename(min_mae = mean_abs)
+arrange(ungroup(mae.dys.min.2014), min_mae)
+
+knitr::kable(mae.dys.min.2014, digits = 2, caption = "Minimum 2D MAE Values - 2014 rainy days")
 ```
 ```{r 2014 maximum MAE parameters for select tension values, echo=F}
+## Total precipitation
 mae.max.2014 <- rbind(filter(ppt2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
 # maximum MAE for tension [20,90,10]
-filter(ppt2d_cv, year == 2014, between(tension, 20, 80)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+filter(ppt2d_cv, year == 2014, between(tension, 20, 70)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
 ) %>% rename(max_mae = mean_abs)
 arrange(ungroup(mae.max.2014), max_mae)
 
-knitr::kable(mae.max.2014, digits = 2, caption = "Maximum 2D MAE Values - 2014")
+knitr::kable(mae.max.2014, digits = 2, caption = "Maximum 2D MAE Values - 2014 total precipitation")
+
+## Rainy days
+mae.dys.max.2014 <- rbind(filter(pptdys2d_cv, year == 2014, between(tension, 1, 10)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs)),
+# maximum MAE for tension [70,150,10]
+filter(pptdys2d_cv, year == 2014, between(tension, 70, 150)) %>% group_by(tension) %>% filter(mean_abs == max(mean_abs))
+) %>% rename(max_mae = mean_abs)
+arrange(ungroup(mae.dys.max.2014), max_mae)
+
+knitr::kable(mae.dys.max.2014, digits = 2, caption = "Maximum 2D MAE Values - 2014 rainy days")
 ```
 
 
