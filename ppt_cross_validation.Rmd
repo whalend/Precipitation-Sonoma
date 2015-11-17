@@ -25,17 +25,6 @@ files <- list.files("cross_validation_grass/surf_rst_days/", full.names = T)
 pptdys2d_cv <- ldply(files, function(i){read.csv(i)})
 ```
 
-
-```{r load 3D ppt amount files, echo=FALSE}
-files <- list.files("cross_validation_grass/vol_zrst/", full.names = T)
-ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
-```
-```{r load 3D ppt days files, echo=F}
-files <- list.files("cross_validation_grass/vol_zrst_days/", full.names = T)
-pptdys3d_cvz <- ldply(files, function(i){read.csv(i)})
-```
-
-
 ```{r remove dataframes, echo=F}
 # rm(list = ls(pattern = "^rain"))
 ```
@@ -811,8 +800,18 @@ knitr::kable(mae.dys.max.2014, digits = 2, caption = "Maximum 2D MAE Values - 20
 
 
 ## Visualize cross-validation values from `v.vol.rast`
+```{r load 3D ppt amount files, echo=FALSE}
+files <- list.files("cross_validation_grass/vol_zrst/", full.names = T)
+ppt3d_cvz <- ldply(files, function(i){read.csv(i)})
+```
+```{r load 3D ppt days files, echo=F}
+files <- list.files("cross_validation_grass/vol_zrst_days/", full.names = T)
+pptdys3d_cvz <- ldply(files, function(i){read.csv(i)})
+rm(files)
+```
+
 ```{r summarize 3D, echo=F}
-head(ppt3d_cvz)
+# head(ppt3d_cvz)
 summary(ppt3d_cvz)
 ppt3d_cvz$smoothing <- ppt3d_cvz$smoothing/100
 ppt3d_cvz <- rename(ppt3d_cvz, mae = mean_abs, zscale = scale)
@@ -831,17 +830,36 @@ ppt3d_cvmin <- rbind(
       filter(ppt3d_cvz, year == 2014) %>% filter(mae == min(mae))
 )
 ppt3d_cvmin
+
+summary(pptdys3d_cvz)
+pptdys3d_cvz$smoothing <- pptdys3d_cvz$smoothing/100
+pptdys3d_cvz <- rename(pptdys3d_cvz, mae = mean_abs, zscale = scale)
+
+# Create dataframe of each year's minimum MAE
+pptdys3d_cvmin <- rbind(
+      filter(pptdys3d_cvz, year == 2004) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2005) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2006) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2007) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2008) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2009) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2010) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2011) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2012) %>% filter(mae == min(mae)),
+      filter(pptdys3d_cvz, year == 2014) %>% filter(mae == min(mae))
+)
+pptdys3d_cvmin
 ```
 
 
-### Cross-validation v.vol.rst: 2004
-```{r plot summary 3d 2004 CV, echo=F}
+### Cross-validation v.vol.rst: 2004 total precipitation
+```{r plot summary 3d total ppt 2004 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2004), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
       facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2004 Rainy Season (v.vol.rst)") +
+      ggtitle("Cross-validation 2004 Rainy Season Total Precipitation (v.vol.rst)") +
       theme_bw()
 # summary(filter(ppt3d_cv, year == 2004))
 
@@ -886,7 +904,7 @@ mae3d.min.2004 <- filter(ppt3d_cvz, year == 2004, between(tension, 1, 10)) %>%
       rename(min_mae = mae)
 mae3d.min.2004 <- ungroup(mae3d.min.2004)
 
-knitr::kable(arrange(mae3d.min.2004, min_mae), caption = "Minimum 3D MAE Values - 2004")
+knitr::kable(arrange(mae3d.min.2004, min_mae), caption = "Minimum 3D MAE Values - 2004 total precipitation")
 # 
 # summary(mae3d.min.2004)
 # filter(mae3d.min.2004, min_mae == max(min_mae))
@@ -900,33 +918,83 @@ knitr::kable(arrange(mae3d.min.2004, min_mae), caption = "Minimum 3D MAE Values 
 
 The 10 values for minimum MAE for each of the tension values are all smaller than the 1st quartile of MAE for all of the 2004 cross-validation data, which is `r 198`.
 
-### Cross-validation v.vol.rst: 2005
-```{r plot 3d 2005 CV, echo=F}
+### Cross-validation v.vol.rst: 2004 rainy days
+```{r plot summary 3d days ppt 2004 CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2004), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2004 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+# summary(filter(ppt3d_cv, year == 2004))
+```
+
+For the rainy days cross validation MAE decreases with increasing tension and smoothing values, while simultaneously being lower for small values of zscale (< 25). I'm going to get parameters of MAE for tension values 1-150, which appear to be all for a smoothing value of 0.9.
+
+```{r 2004 rainy days 3d MAE minimums for select values of tension, echo=F}
+mae3d.dys.min.2004 <- filter(pptdys3d_cvz, year == 2004, between(tension, 1, 150)) %>% 
+      group_by(tension) %>% filter(mae == min(mae)) %>% 
+      rename(min_mae = mae)
+mae3d.dys.min.2004 <- ungroup(mae3d.dys.min.2004)
+
+knitr::kable(arrange(mae3d.dys.min.2004, min_mae), caption = "Minimum 3D MAE Values - 2004 rainy days")
+```
+
+
+### Cross-validation v.vol.rst: 2005 total precipitation
+```{r plot 3d 2005 total ppt CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2005), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
       facet_grid(smoothing ~.) +
       ylab("Mean Absolute Error (mm)") +
       scale_x_continuous(breaks = seq(0, 150, 10)) +
-      ggtitle("Cross-validation 2005 Rainy Season (v.vol.rst)") +
+      ggtitle("Cross-validation 2005 Rainy Season Total Precipitation (v.vol.rst)") +
       theme_bw()
 summary(filter(ppt3d_cvz, year == 2005))
 ```
 
 Increasing the value of smoothing decreases MAE. Generally, higher values for tensions also decreases MAE, but this is not consistent for tension values between 1 and 10. For these tension values, MAE increases up to about 3 or 4, then begins to decline. The smallest values for MAE don't appear to vary dramtically for tension values from 20 to 150, though they do get smaller.
 
-```{r 2005 3d MAE minimums for select values of tension, echo=F}
+```{r 2005 3d MAE total ppt minimums for select values of tension, echo=F}
 head(filter(ppt3d_cvz, year == 2005) %>% arrange(mae), 10)
 mae3d.min.2005 <- filter(ppt3d_cvz, year == 2005, between(tension, 1, 150)) %>%
       group_by(tension) %>% filter(mae == min(mae)) %>%
       ungroup(.) %>% 
       arrange(mae)
 
-knitr::kable(mae3d.min.2005, caption = "Minimum 3D MAE Values - 2005")
+knitr::kable(mae3d.min.2005, caption = "Minimum 3D MAE Values - 2005 total rainfall")
 # filter(ppt3d_cvz, year == 2005, tension > 3) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt3d_cvz, year == 2005, tension < 3) %>% filter(mean_abs == min(mean_abs))
 ```
 
-### Cross-validation v.vol.rst: 2006
+### Cross-validation v.vol.rst: 2005 rainy days
+```{r plot 3d 2005 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2005), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2005 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2005))
+```
+
+For the rainy days, MAE generally decreases with increasing tension values from 1-6 or 7 when the smoothing parameter is 0.4 or greater, however, MAE begins to increase again as tension gets larger. Lower values of zscale correspond with lower values of MAE across all combinations of tension and smoothing. The smallest MAE value corresponds to tension = 10, smoothing = 0.1, and zscale = 1.
+
+```{r 2005 3d MAE days minimums for select values of tension, echo=F}
+# head(filter(pptdys3d_cvz, year == 2005) %>% arrange(mae), 10)
+mae3d.dys.min.2005 <- filter(pptdys3d_cvz, year == 2005, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+
+knitr::kable(mae3d.dys.min.2005, caption = "Minimum 3D MAE Values - 2005 rainy days")
+```
+
+The range of smallest MAE across all tension values is only about 0.7, i.e., less than one day. The majority are when smoothing = 0.1.
+
+### Cross-validation v.vol.rst: 2006 total precipitation
 ```{r plot 3d 2006 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2006), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -954,7 +1022,32 @@ knitr::kable(mae3d.min.2006, caption = "Minimum 3D MAE Values - 2006")
 # filter(ppt3d_cvz, year == 2006, tension == 30) %>% filter(mean_abs == min(mean_abs))
 ```
 
-### Cross-validation v.vol.rst: 2007
+### Cross-validation v.vol.rst: 2006 rainy days
+```{r plot 3d 2006 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2006), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2006 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2006))
+```
+
+Higher values of smoothing result in smaller values of MAE. Generally smaller values of zscale also correspond with smaller values of MAE. MAE initially increases with increasing tension up to tension = 4, but tension = 1 results in one of the lowest values of MAE.
+
+```{r 2006 3d MAE days minimums for select values of tension, echo=F}
+# head(filter(pptdys3d_cvz, year == 2005) %>% arrange(mae), 10)
+mae3d.dys.min.2006 <- filter(pptdys3d_cvz, year == 2006, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2006, caption = "Minimum 3D MAE Values - 2006 rainy days")
+```
+
+The maximum range across all tension values is a little less than one day, about 0.9.
+
+### Cross-validation v.vol.rst: 2007 total precipitation
 ```{r plot 3d 2007 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2007), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -979,7 +1072,32 @@ knitr::kable(mae3d.min.2007, caption = "Minimum 3D MAE Values - 2007")
 # produced only "overshoot" results; >100mm off of the given measurements
 ```
 
-### Cross-validation v.vol.rst: 2008
+### Cross-validation v.vol.rst: 2007 rainy days
+```{r plot 3d 2007 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2007), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2007 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2007))
+```
+
+MAE decreseases with increasing tension values from 2 to about 20, while tension values of one result in an MAE value less than when tension has values from 2-4 depending on the corresponding value for smoothing. Higher values of smoothing shrinks the variation in MAE values and generally results in smaller values of MAE.
+
+```{r 2007 3d MAE days minimums for select values of tension, echo=F}
+# head(filter(pptdys3d_cvz, year == 2005) %>% arrange(mae), 10)
+mae3d.dys.min.2007 <- filter(pptdys3d_cvz, year == 2007, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2007, caption = "Minimum 3D MAE Values - 2007 rainy days")
+```
+
+Variability of minimum MAE values across all tension parameters is less than 0.4 days. Most of the minimum values are when smoothing = 0.1.
+
+### Cross-validation v.vol.rst: 2008 total precipitation
 ```{r plot 3d 2008 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2008), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1003,7 +1121,31 @@ knitr::kable(mae3d.min.2008, caption = "Minimum 3D MAE Values - 2008")
 # filter(ppt3d_cvz, year == 2008) %>% filter(mean_abs < 5.513)
 ```
 
-### Cross-validation v.vol.rst: 2009
+### Cross-validation v.vol.rst: 2008 rainy days
+```{r plot 3d 2008 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2008), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2008 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2008))
+```
+
+Generally MAE decreases with increasing tension, with a nonlinear pattern for tension values 1-10. Higher values of smoothing also result in smaller values of MAE.
+
+```{r 2008 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2008 <- filter(pptdys3d_cvz, year == 2008, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2008, caption = "Minimum 3D MAE Values - 2008 rainy days")
+```
+
+Variability of minimum MAE across all values of tension is about 1.4 days. All of the minimum values occur when smoothing = 0.9.
+
+### Cross-validation v.vol.rst: 2009 total precipitation
 ```{r plot 3d 2009 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2009), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1026,7 +1168,31 @@ knitr::kable(mae3d.min.2009, caption = "Minimum 3D MAE Values - 2009")
 # filter(ppt3d_cvz, year == 2009) %>% filter(mean_abs < 9.56)
 ```
 
-### Cross-validation v.vol.rst: 2010
+### Cross-validation v.vol.rst: 2009 rainy days
+```{r plot 3d 2009 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2009), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2009 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2009))
+```
+
+Relationships between MAE and other parameters are pretty variable. MAE decreases with tension values from 1 to 20 or 30 depending on the value of the smoothing parameter. The relationship with the zscale parameter switches with increasing values of tension, where for low tension values (< 7-10) a low zscale parameter results in lower MAE, and as tension increases (> 20 or 30) higher values of zscale result in lower MAE.
+
+```{r 2009 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2009 <- filter(pptdys3d_cvz, year == 2009, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2009, caption = "Minimum 3D MAE Values - 2009 rainy days")
+```
+
+Variability of minimum MAE values across all tension parameters is about 1.2 days. The zscale parameter is mostly >= 60, while 0.1 is the most frequent value for the smoothing parameter.
+
+### Cross-validation v.vol.rst: 2010 total precipitation
 ```{r plot 3d 2010 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2010), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1048,7 +1214,31 @@ knitr::kable(mae3d.min.2010, caption = "Minimum 3D MAE Values - 2010")
 # filter(ppt3d_cvz, year == 2010) %>% filter(mean_abs < 6.594)
 ```
 
-### Cross-validation v.vol.rst: 2011 
+### Cross-validation v.vol.rst: 2010 rainy days
+```{r plot 3d 2010 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2010), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2010 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2010))
+```
+
+Increasing values for smoothing result in smaller values of MAE, with a very narrow spread of MAE values when smoothing = 0.9. There is nonolinearity in MAE values with tension-zscale combinations when tension values are < 10. 
+
+```{r 2010 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2010 <- filter(pptdys3d_cvz, year == 2010, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2010, caption = "Minimum 3D MAE Values - 2010 rainy days")
+```
+
+The variability of minimum MAE values across values for tension is < 0.3 days. The majority of zscale values are >= 100, while 0.1 and 0.9 are the most common smoothing values.
+
+### Cross-validation v.vol.rst: 2011 total precipitation
 ```{r plot 3d 2011 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2011), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1072,7 +1262,31 @@ knitr::kable(mae3d.min.2011, caption = "Minimum 3D MAE Values - 2011")
 # filter(ppt3d_cvz, year == 2011) %>% filter(mean_abs < 12.85)
 ```
 
-### Cross-validation v.vol.rst: 2012
+### Cross-validation v.vol.rst: 2011 rainy days
+```{r plot 3d 2011 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2011), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2011 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2011))
+```
+
+Generally higher values of all three parameters result in lower MAE. 
+
+```{r 2011 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2011 <- filter(pptdys3d_cvz, year == 2011, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2011, caption = "Minimum 3D MAE Values - 2011 rainy days")
+```
+
+Variability of minimum MAE values across all tension parameter values is about 0.6 days. All zscale values are >= 20 and all smoothing values are either 0.1 or 0.9, with 0.9 being the most frequent.
+
+### Cross-validation v.vol.rst: 2012 total precipitation
 ```{r plot 3d 2012 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2012), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1096,7 +1310,31 @@ knitr::kable(mae3d.min.2012, caption = "Minimum 3D MAE Values - 2012")
 # filter(ppt3d_cvz, year == 2012) %>% filter(mean_abs < 4.932)
 ```
 
-### Cross-validation v.vol.rst: 2014
+### Cross-validation v.vol.rst: 2012 rainy days
+```{r plot 3d 2012 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2012), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2012 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2012))
+```
+
+As tension increases from 1-10 MAE decreases. Higher values of smoothing and zscale also tends to reduce MAE. 
+
+```{r 2012 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2012 <- filter(pptdys3d_cvz, year == 2012, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2011, caption = "Minimum 3D MAE Values - 2012 rainy days")
+```
+
+Variability in minimum MAE across tension values is about 0.6 days, smoothing parameter values are all either 0.1 or 0.9, and zscale values range between 20 and 90.
+
+### Cross-validation v.vol.rst: 2014 total precipitation
 ```{r plot 3d 2014 CV, echo=F}
 ggplot(filter(ppt3d_cvz, year == 2014), aes(x = tension, y = mae)) +
       geom_point(aes(color = (zscale))) +
@@ -1119,6 +1357,30 @@ knitr::kable(mae3d.min.2014, caption = "Minimum 3D MAE Values - 2014")
 # filter(ppt3d_cvz, year == 2014) %>% filter(mean_abs == min(mean_abs))
 # filter(ppt3d_cvz, year == 2014) %>% filter(mean_abs < 8.735)
 ```
+
+### Cross-validation v.vol.rst: 2014 rainy days
+```{r plot 3d 2014 rainy days CV, echo=F}
+ggplot(filter(pptdys3d_cvz, year == 2014), aes(x = tension, y = mae)) +
+      geom_point(aes(color = (zscale))) +
+      facet_grid(smoothing ~.) +
+      ylab("Mean Absolute Error (days)") +
+      scale_x_continuous(breaks = seq(0, 150, 10)) +
+      ggtitle("Cross-validation 2014 Rainy Season Rainy Days (v.vol.rst)") +
+      theme_bw()
+summary(filter(pptdys3d_cvz, year == 2014))
+```
+
+Values of MAE generally decrease with increasing tension and smoothing. Lower values of zscale (< 20) mostly appear to produce smaller values of MAE.
+
+```{r 2014 3d MAE days minimums for select values of tension, echo=F}
+mae3d.dys.min.2014 <- filter(pptdys3d_cvz, year == 2014, between(tension, 1, 150)) %>%
+      group_by(tension) %>% filter(mae == min(mae)) %>%
+      ungroup(.) %>% 
+      arrange(mae)
+knitr::kable(mae3d.dys.min.2014, caption = "Minimum 3D MAE Values - 2014 rainy days")
+```
+
+Variability of minimum MAE values is about 0.8 days, all smoothing values are 0.9, and nearly all of the zscale values are 1 with two exceptions, one of 40 and one of 60. The two outlying zscale values correspond to tension values of 1 and 2 respectively.
 
 ## PRISM Comparison to Measured Values
 ```{r prism comparison, echo=F, eval=F}
