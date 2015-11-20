@@ -23,7 +23,8 @@ beltane|50|60
 ```{r create wide data frame}
 monthly
 
-wide_monthly <- ungroup(monthly) %>% select(id, date, monthly_ppt_mm) %>%
+wide_monthly <- ungroup(monthly) %>% 
+      select(stationid, date, monthly_ppt_mm) %>%
       filter(date >= "2003-11-01" & date <= "2014-05-01") %>% 
       spread(date, monthly_ppt_mm)
 wide_monthly
