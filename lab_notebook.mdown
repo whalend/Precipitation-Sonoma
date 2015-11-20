@@ -1,0 +1,77 @@
+# Precipitation Modeling "Lab" Notebook
+
+## 2015/11/18 - Sonoma County GRASS GIS Database
+
+I'm removing shapefiles from the GRASS database that were generated during the various cross-validation processing. I don't know precisely how many files this is, but it is a whole bunch, especially for the 3D cross validation. 
+
+
+## 2015/11/19 - Sonoma County GRASS GIS Database
+
+I am making new voronoi polygon surfaces in GRASS that will include the additional rain gauge locations. These will use the "rain_gaugesXX" files as input and overwrite the "rainXX_voronoi" shapefiles. 
+
+Export new voronoi polygon shapefiles to "soco_ppt/shapefiles" with filenames "rgXX_vpolys" to overwrite existing files.
+
+Interpolate total precipitation for 2004 rainy season using `v.surf.rst` function in grass and applying parameters from cross-validation analysis. Here is a brief summary of the rainfall data for 2004 (rainfall values rounded to nearest mm):
+
+ - 19 rain gauge stations
+ - range of rainfall totals: 266 mm to 1193 mm (927 mm)
+ - mean = 685 mm
+ 
+I set the computational region to the extent of the "dem10m" raster surface, with resolution set to 100m for 2D and 3D, i.e.:
+    - `g.region raster=dem10m@PERMANENT res=100 tbres=100 t=1000 b=0 res3=100`
+
+Using values from the table I produced in "ppt_cross_validation.html" of the lowest mean absolute error (MAE) for 18 values of tension I will interpolate and compare surfaces of estimated total rainfall. I'm starting with the smallest MAE value of 161.68 (mean of estimates = 2.25), which has parameter values of:
+
+ - `tension` = 3, `smoothing` = 0.5, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+    - the value of `npmin` is equal to the total number of points so that the entire map is interpolated at once
+    - the output "elevation" map name is "ppt04tot_t3s5" and I will follow this naming convention for all maps
+    - This results in the warning, **Strip exists with insufficient data**, but still provides an output. This warning essentially means that there are parts of the computational region without enough points to provide a reliable estimation. These areas are likely the corners of the region, which is okay because we don't have any plots in those areas anyway. The resulting surface shows a gradient of increasing rainfall from west to east. This would correspond with distance from the Pacific Ocean and maximum elevation.
+    - The range of estimated values is 332 mm - 971 mm (639 mm), which is a substantially narrower range than the actual measured values. The minimum value is larger and the maximum value smaller than the range of actual measurements. The maximum value is underestimated by 222 mm, while the minimum value is overestimated by   66 mm.
+
+***
+
+Next, I want to contrast the surface using parameters for minimum MAE to the surface using parameters for maximum MAE of 223.66 mm. The mean of the estimates is -10.42.
+
+ - `tension` = 10, `smoothing` = 0.1, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This produces a more strongly contoured pattern while retaining the general trend of increasing rainfall moving west to east. There was an additional warning: **Overshoot - increase in tension suggested. Overshoot occures at (177,179) cell. Z-value 1286.019749, zmin 266.446000, zmax 1193.038000.** indicating some instability of the estimates under these parameter settings. The range of estimated values is 321 mm - 1361 mm (1040 mm), which is larger than the range of the actual measurements and overestimates the smallest and largest values. The overestimation of the larges value is relatively dramatic at 168 mm. Ideally there is a "happy medium" that captures the general trend while also adding some variability that matches the landscape.
+
+Also, ideally the mean of the estimates would be 0, indicating that the errors cancel each other out. So, while I want to have small MAE, I also want to have a the mean value of the estimates close to zero.
+
+***
+
+The next smallest value of MAE is 163.10 mm (mean of estimates = 1.58), with corresponding parameter values:
+
+ - `tension` = 4, `smoothing` = 0.8, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This has a similar pattern, but appears to extend the higher estimated values toward the middle of the surface. The range of estimated values is smaller, 355 mm - 937 mm (582 mm).
+
+***
+
+The third smallest MAE value is 164.11 mm (mean of estimates = 2.85), with parameter values:
+
+ - `tension` = 2, `smoothing` = 0.2, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This surface also has a similar pattern to the other smaller values of MAE, but produces a wider range of estimated values: 288 mm - 1062 mm (774 mm) than either of those surfaces. The minimum and maximum values are notably closer to those values from original measurements, though still overestimating the minimum and underestimating the maximum.
+
+***
+
+The fourth smallest value of MAE is 165.69 (mean of estimates = 2.88), with parameter values:
+
+ - `tension` = 1, `smoothing` = 0.1, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This again shows a strong pattern of increasing rainfall as you go from west to east. It also expands the range of estimated values beyond the original minimum measurement, 256 mm - 1166 mm (910 mm), getting close to the range of the original measurements (927 mm).
+
+***
+
+The fifth smallest MAE value is 166.58 (mean of estimates = 0.73), with parameter values:
+
+ - `tension` = 5, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This surface has more noticeable contours and is back to a narrower range of estimated values: 367 mm - 933 mm (566 mm). 
+
+***
+
+The sixth smallest MAE value is 171.14 (mean of estimates = -0.30, the absolute closest to zero), giving parameter values:
+
+ - `tension` = 6, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+ - This has a very similar pattern to the previous surface, with the minimum and maximum of the estimated range of values shifted higher, but having a nearly identical range: 376 mm - 945 mm (569). The relatively minor differences are expected with the small change in the tension value.
+
+***
+
+
