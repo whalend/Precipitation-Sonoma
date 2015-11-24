@@ -33,9 +33,41 @@ Using values from the table I produced in "ppt_cross_validation.html" of the low
 Next, I want to contrast the surface using parameters for minimum MAE to the surface using parameters for maximum MAE of 223.66 mm. The mean of the estimates is -10.42.
 
  - `tension` = 10, `smoothing` = 0.1, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
- - This produces a more strongly contoured pattern while retaining the general trend of increasing rainfall moving west to east. There was an additional warning: **Overshoot - increase in tension suggested. Overshoot occures at (177,179) cell. Z-value 1286.019749, zmin 266.446000, zmax 1193.038000.** indicating some instability of the estimates under these parameter settings. The range of estimated values is 321 mm - 1361 mm (1040 mm), which is larger than the range of the actual measurements and overestimates the smallest and largest values. The overestimation of the larges value is relatively dramatic at 168 mm. Ideally there is a "happy medium" that captures the general trend while also adding some variability that matches the landscape.
+ - This produces a more strongly contoured pattern while retaining the general trend of increasing rainfall moving west to east. There was an additional warning: **Overshoot - increase in tension suggested. Overshoot occures at (177,179) cell. Z-value 1286.019749, zmin 266.446000, zmax 1193.038000.** indicating some instability of the estimates under these parameter settings. The range of estimated values is 321 mm - 1361 mm (1040 mm), which is larger than the range of the actual measurements and overestimates the smallest and largest values. The overestimation of the larges value is relatively dramatic at 168 mm. Ideally there is a "happy medium" that captures the general trend while also adding some variability that matches the landscape. Also, I am trying to predict at least a little bit beyond the range of measured values because some of the plot locations are at higher/lower elevation and outside the minimum/maximum latitude and longitude of the rain gauge stations.
 
 Also, ideally the mean of the estimates would be 0, indicating that the errors cancel each other out. So, while I want to have small MAE, I also want to have a the mean value of the estimates close to zero.
+
+***
+
+### Table of Interpolated Surfaces Statistics - 2004
+
+Surface Name|mae|mean|int. min|int. max|int. range|int. mean|int. sd
+---|---|---|---|---|---|---|---
+**original data**|NA|**685**|**266**|**1193**|**927**|NA|**267**
+ppt04tot_t3s5|162|2.25|332|971|639|701|181
+ppt04tot_t10s1|224|-10.42|321|1361|1041|755|258
+ppt04tot_t4s8|163|1.58|355|937|582|697|170
+ppt04tot_t2s2|164|2.85|288|1062|774|708|200
+ppt04tot_t2s9|173|1.81|374|1001|628|707|156
+ppt04tot_t1s1|166|2.88|256|1166|910|718|199
+ppt04tot_t5s9|167|0.73|367|933|565|696|166
+ppt04tot_t6s9|171|-0.30|376|945|567|697|165
+ppt04tot_t7s9|175|-1.30|381|962|582|700|166
+ppt04tot_t8s9|178|-2.18|383|981|599|703|168
+ppt04tot_t9s9|182|-2.90|382|999|617|705|170
+ppt04tot_t50s9|184|-1.14|318|1119|801|698|147
+ppt04tot_t50s1|186|-1.81|272|1186|914|700|159
+ppt04tot_t70s3|184|-1.10|283|1169|886|698|147
+ppt04tot_t70s1|184|-1.23|272|1185|913|698|150
+ppt04tot_t70s9|184|-0.78|313|1127|815|697|140
+ppt04tot_t60s6|184|-1.10|300|1144|844|698|147
+ppt04tot_t80s1|184|-1.06|272|1186|913|698|147
+ppt04tot_t90s1|184|-0.92|272|1186|914|698|144
+ppt04tot_t10s9|184|-3.42|380|1014|634|707|171
+ppt04tot_t40s9|184|-1.47|322|1112|790|699|151
+ppt04tot_t40s1|188|-2.35|272|1187|915|702|165
+ppt04tot_t30s9|186|-2.02|330|1101|771|701|157
+ppt04tot_t20s9|190|-3.17|347|1079|732|705|166
 
 ***
 
@@ -74,4 +106,127 @@ The sixth smallest MAE value is 171.14 (mean of estimates = -0.30, the absolute 
 
 ***
 
+MAE value = 174.71, mean of estimates = -1.30
 
+ - `tension` = 7, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 178.29, mean of estimates = -2.18
+
+ - `tension` = 8, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 181.55, mean of estimates = -2.90
+
+ - `tension` = 9, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 183.56, mean of estimates = -1.14
+
+ - `tension` = 50, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 183.56, mean of estimates = -1.10
+
+ - `tension` = 70, `smoothing` = 0.3, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 183.56, mean of estimates = -1.10
+
+ - `tension` = 60, `smoothing` = 0.6, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 183.56, mean of estimates = -1.06
+
+ - `tension` = 80, `smoothing` = 0.1, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 183.60, mean of estimates = -0.92
+
+ - `tension` = 90, `smoothing` = 0.1, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 184.31, mean of estimates = -3.42
+
+ - `tension` = 10, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 184.33, mean of estimates = -1.47
+
+ - `tension` = 40, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 186.39, mean of estimates = -2.02
+
+ - `tension` = 30, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+***
+
+MAE value = 189.55, mean of estimates = -3.17
+
+ - `tension` = 40, `smoothing` = 0.9, `segmax` = 700, `npmin` = 19 and all other parameter values as defaults
+
+## 2015/11/23
+
+### Table of Interpolated 2D Surfaces Statistics - 2005
+
+Surface Name|mae|mean|int. min|int. max|int. range|int. mean|int. median|int. sd
+---|---|---|---|---|---|---|---|---
+**original data**|NA|**810**|**355**|**1248**|**893**|NA|**806**|**16**
+ppt05tot_t1s9|172|0.30|763|871|108|818|818|26
+ppt05tot_t2s9|179|0.21|736|910|174|824|823|46
+ppt05tot_t3s9|186|-0.64|713|926|213|825|823|46
+ppt05tot_t100s9|187|-5.52|421|1164|742|830|839|68
+ppt05tot_t90s9|188|-5.77|423|1161|738|831|839|70
+ppt05tot_t80s9|188|-6.07|425|1158|733|832|839|72
+ppt05tot_t70s9|189|-6.45|428|1155|727|833|840|74
+ppt05tot_t60s9|191|-6.94|432|1150|718|834|840|77
+ppt05tot_t50s9|192|-7.63|436|1145|709|835|841|81
+ppt05tot_t4s9|192|-2.28|686|942|256|828|823|63
+ppt05tot_t40s9|194|-8.66|441|1140|699|837|842|85
+ppt05tot_t30s9|197|-10.40|444|1138|694|841|844|92
+ppt05tot_t5s9|198|-4.63|676|964|288|833|823|71
+ppt05tot_t20s9|203|-13.61|463|1140|677|848|851|100
+ppt05tot_t6s9|204|-7.35|674|989|315|838|829|79
+ppt05tot_t7s9|208|-10.01|673|1011|338|844|837|87
+ppt05tot_t8s9|212|-12.28|662|1029|366|849|843|93
+ppt05tot_t9s9|214|-13.98|635|1041|406|852|849|97
+ppt05tot_t10s9|214|-15.11|635|1041|406|852|849|97
+ppt05tot_t30s1|202|-14.44|329|1297|968|849|853|116
+ppt05tot_t2s1|200|-0.69|642|972|330|829|826|73
+ppt05tot_t40s1|198|-11.34|353|1264|911|843|845|103
+ppt05tot_t50s1|196|-9.68|359|1251|892|839|843|95
+ppt05tot_t60s1|194|-8.63|362|1245|884|837|842|90
+
+
+
+### Table of Interpolated 2D Surfaces Statistics - 2006
+
+Surface Name|mae|mean|int. min|int. max|int. range|int. mean|int. median|int. sd
+---|---|---|---|---|---|---|---|---
+**original data**|NA|**1096**|**568**|**1640**|**1072**|NA|**1133**|**29**
+ppt06tot_t1s1|243|7.26|739|1633|894|1162|1153|200
+ppt06tot_t2s3|248|11.06|829|1584|755|1159|1134|196
+ppt06tot_t3s6|255|11.16|880|1529|648|1152|1120|184
+ppt06tot_t4s9|263|11.31|901|1500|599|1146|1111|174
+ppt06tot_t5s9|278|15.37|889|1504|615|1144|1107|175
+ppt06tot_t6s9|291|18.27|867|1508|641|1142|1106|175
+ppt06tot_t60s9|291|9.31|657|1587|930|1117|1106|127
+ppt06tot_t50s9|292|10.47|664|1584|920|1118|1107|131
+ppt06tot_t40s9|293|12.13|672|1579|908|1119|1108|136
+ppt06tot_t30s9|296|14.68|683|1572|889|1120|1109|143
+ppt06tot_t20s9|310|18.76|699|1558|859|1123|1109|153
+ppt06tot_t7s9|301|20.35|841|1513|672|1140|1105|174
+ppt06tot_t8s9|308|21.77|815|1518|703|1138|1105|173
+ppt06tot_t9s9|313|22.64|792|1523|731|1136|1105|171
+ppt06tot_t10s9|317|23.06|772|1528|756|1134|1105|170
