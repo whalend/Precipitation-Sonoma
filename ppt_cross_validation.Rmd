@@ -574,7 +574,7 @@ mae.dys.min.2010 <- rbind(filter(pptdys2d_cv, year == 2010, between(tension, 1, 
 filter(pptdys2d_cv, year == 2010, between(tension, 20, 100)) %>% group_by(tension) %>% filter(mean_abs == min(mean_abs))
 ) %>% rename(min_mae = mean_abs) %>% ungroup(.) %>% arrange(min_mae)
 
-knitr::kable(mae.min.2010, digits = 2, caption = "Minimum MAE Values - 2010 rainy days")
+knitr::kable(mae.dys.min.2010, digits = 2, caption = "Minimum MAE Values - 2010 rainy days")
 ```
 ```{r 2010 maximum MAE parameters for select tension values, echo=F}
 ## Total precipitation
@@ -1310,7 +1310,7 @@ mae3d.dys.min.2012 <- filter(pptdys3d_cvz, year == 2012, between(tension, 1, 150
       group_by(tension) %>% filter(mae == min(mae)) %>%
       ungroup(.) %>% 
       arrange(mae)
-knitr::kable(mae3d.dys.min.2011, caption = "Minimum 3D MAE Values - 2012 rainy days")
+knitr::kable(mae3d.dys.min.2012, caption = "Minimum 3D MAE Values - 2012 rainy days")
 ```
 
 Variability in minimum MAE across tension values is about 0.6 days, smoothing parameter values are all either 0.1 or 0.9, and zscale values range between 20 and 90.
