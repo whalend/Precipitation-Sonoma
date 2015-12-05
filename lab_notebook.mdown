@@ -230,3 +230,36 @@ ppt06tot_t7s9|301|20.35|841|1513|672|1140|1105|174
 ppt06tot_t8s9|308|21.77|815|1518|703|1138|1105|173
 ppt06tot_t9s9|313|22.64|792|1523|731|1136|1105|171
 ppt06tot_t10s9|317|23.06|772|1528|756|1134|1105|170
+
+
+## 2015/11/24
+
+I finished creating interpolated 2D surfaces of total precipitation for all seasons. I still need to assess the patterns and their value range to select a suitable precipitation surface for extracting to plot point locations.
+
+## 2015/11/30
+
+I'm working on making 3D interpolated surfaces using the `v.vol.rast` function. I already created surfaces for 2004, but still need to assess those. For 2005, I know I definitely don't want to use the last 3 surfaces of minimum MAE values (tension 6, 5, and 4), because the transitions appear too sharp.
+
+I finished making 3D interpolated surfaces of total precipitation for all seasons, but still need to assess these surfaces to select one that is suitable.
+
+## 2015/12/03
+
+Since I also want to use number of days with recorded rainfall (rainy days) as an explanatory variable I am going to work on interpolating those surfaces using the 2D and 3D interpolation functions in GRASS GIS.
+
+ - Finished making potential 2D surfaces, but still need to make 3D surfaces.
+
+## 2015/12/04
+
+To make 3D surfaces of rainy days I need to make new 3D shapefiles with the number of rainy days column as the z value. I'm not sure if I should adjust the vertical axis of the 3D region or not. I really expect much less variation in number of rainy days across the landscape and elevation values compared to the amount of rainfall.
+
+The 3D shapefiles for total rainfall are each named 'rainYR_3d' so I will follow this convention for naming the days of rain 3D shapefiles I need to make 'daysYR_3d'. This uses the 'v.to.3d' function to transform 2D vector features to 3D.
+
+ - Code example: `v.to.3d input=rain_gauges04 output=days04_3d column=rain04_dys`
+
+ - Completed making 3D surfaces of rainy days
+
+
+
+
+
+
