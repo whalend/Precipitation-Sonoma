@@ -258,6 +258,180 @@ The 3D shapefiles for total rainfall are each named 'rainYR_3d' so I will follow
 
  - Completed making 3D surfaces of rainy days
 
+## 2015/12/07
+
+### Precipitation Variables Calculated 5 Ways:
+
+ 1. 2D regularized spline with tension
+   - total precipitation
+   - number of rainy days
+
+ 2. 3D volume cross section regularized spline with tension
+   - total precipitation
+   - number of rainy days
+
+ 3. Voronoi polygons
+   - total precipitation
+   - number of rainy days
+
+ 4. Downscaled PRISM
+   - total precipitation
+
+ 5. Linear regression model (location + elevation)
+   - total precipitation
+   - number of rainy days
+
+Added column for total precipitation (in mm) labels to improve map visualizations for each rain gauge season. This column is populated with integer values from the 'totppt_mm' resulting in unrounded values, just dropping all the values after the decimal point.
+
+### Selecting Interpolated Surfaces
+
+The parameters I used to interpolated 2D/3D surfaces were based on minimizing MAE for select values. For selecting a good surface, I am thinking that I can try matching the histogram shape and range of the original data as well as making a qualitative judgement on the pattern of the surface.
+
+#### 2004 Total Rainfall
+
+**Range of original data: 266 - 1193, mean: 685, CV: 39**
+
+ 1. 2D Surfaces
+   - surface 'ppt04tot_t10s9', range: 380 - 1014, mean: 707, CV: 24, MAE: 184
+   - surface 'ppt04tot_t10s1', range: 321 - 1361, mean: 755, CV: 34, MAE: 224
+   - correlation between these surfaces is 0.92
+
+ 2. 3D Surfaces
+   - surface 'ppt04tot3d_t10s1z10', range: 265 - 1196, mean: 689, CV: 19, MAE: 197
+   - surface 'ppt04tot3d_t10s1z20', range: 340 - 1063, mean: 692, CV: 24, MAE: 193
+   - correlation between these surfaces is 0.95
+   
+
+#### 2005 Total Rainfall
+
+**Range of original data: 355 - 1248, mean: 810, CV: 27**
+
+ 1. 2D Surfaces
+   - surface 'ppt05tot_t30s1', range: 329 - 1297, mean: 849, CV: 14, MAE: 202
+   - surface 'ppt05tot_t30s9', range: 444 - 1138, mean: 841, CV: 11, MAE: 197
+   - surface 'ppt05tot_t20s9', range: 463 - 1140, mean: 848, CV: 12, MAE: 203
+   - correlation between these surfaces is >0.98
+
+ 2. 3D Surfaces
+   - surface 'ppt05tot3d_t10s9z1', range: 653 - 932, mean: 818, CV: 4, MAE: 172
+   - surface 'ppt05tot3d_t10s9z5', range: 678 - 929, mean: 821, CV: 4, MAE: 177
+   - surface 'ppt05tot3d_t10s1z5', range: 429 - 1173, mean: 835, CV: 11, MAE: 198
+   - correlation between these surfaces is between 0.94 and 0.97
+
+#### 2006 Total Rainfall
+
+**Range of original data: 568 - 1640, mean: 1096, CV: 31**
+
+ 1. 2D Surfaces
+   - surface 'ppt06tot_t20s9', range: 699 - 1558, mean: 1123, CV: 14, MAE: 310
+
+ 2. 3D Surfaces
+   - surface 'ppt06tot3d_t4s1z30', range: 761 - 1534, mean: 1126, CV: 15, MAE: 252
+   - surface 'ppt06tot3d_t6s1z40', range: 699 - 1549, mean: 1115, CV: 13, MAE: 263
+
+#### 2007 Total Rainfall
+
+**Range of original data: 374 - 679, mean: 523, CV: 20**
+
+ 1. 2D Surfaces
+   - surface 'ppt07tot_t20s9', range: 396 - 649, mean: 519, CV: 9, MAE: 107
+   - surface 'ppt07tot_t10s9', range: 397 - 634, mean: 518, CV: 10, MAE: 108
+   - surface 'ppt07tot_t8s2', range: 363 - 705, mean: 517, CV: 14, MAE: 108
+
+ 2. 3D Surfaces
+   - surface 'ppt07tot3d_t10s1z100', range: 395 - 651, mean: 522, CV: 9, MAE: 99
+   - surface 'ppt07tot3d_t10s9z100', range: 466 - 576, mean: 524, CV: 4, MAE: 96 
+   - surface 'ppt07tot3d_t3s9z100', range: 479 - 564, mean: 526, CV: 5, MAE: 93
+
+#### 2008 Total Rainfall
+
+**Range of original data: 361 - 903, mean: 570, CV: 26**
+
+ 1. 2D Surfaces
+   - surface 'ppt08tot_t10s9', range: 474 - 826, mean: 592, CV: 15, MAE: 132
+   - surface 'ppt08tot_t8s9', range: 470 - 816, mean: 593, CV: 15, MAE: 128
+   - surface 'ppt08tot_t20s9', range: 430 - 846, mean: 591, CV: 15, MAE: 134
+
+ 2. 3D Surfaces (continued 2015/12/9)
+   - surface 'ppt08tot3d_t1s1z60', range: 471 - 687, mean: 570, CV: 8, MAE: 118
+   - surface 'ppt08tot3d_t7s4z30', range: 492 - 738, mean: 582, CV: 10, MAE: 123
+   - surface 'ppt08tot3d_t8s3z40', range: 474 - 759, mean: 583, CV: 10, MAE: 124
+   - surface 'ppt08tot3d_t9s3z30', range: 470 - 764, mean: 582, CV: 10, MAE: 124
+   - surface 'ppt08tot3d_t10s3z40', range: 464 - 765, mean: 580, CV: 10, MAE: 125
+   - correlation between the last 4 surfaces is >0.98, but between the first surface and the other 4 it is only 0.76 - 0.81
+  
+  I'm inclined to use the surface where tension = 10.
+
+#### 2009 Total Rainfall
+
+**Range of original data: 296 - 934, mean: 520, CV: 36**
+
+ 1. 2D Surfaces
+   - surface 'ppt09tot_t10s1', range: 198 - 953, mean: 513, CV: 24, MAE: 143, histogram pattern seems a little spiky
+   - surface 'ppt09tot_t6s1', range: 211 - 990, mean: 515, CV: 27, MAE: 149
+
+ 2. 3D Surfaces
+   - surface 'ppt09tot3d_t4s1z1', range: 345 - 861, mean: 511, CV: 16, MAE: 145
+   - surface 'ppt09tot3d_t5s1z1', range: 345 - 866, mean: 511, CV: 15, MAE: 142
+   - surface 'ppt09tot3d_t1s2z100', range: 418 - 728, mean: 524, CV: 15, MAE: 136
+
+#### 2010 Total Rainfall
+
+**Range of original data: 478 - 1081, mean: 768, CV: 22**
+
+ 1. 2D Surfaces
+   - surface 'ppt10tot_t30s2', range: 492 - 1070, mean: 761, CV: 15, MAE: 126
+   - surface 'ppt10tot_t20s9', range: 546 - 1031, mean: 762, CV: 14, MAE: 128
+   - surface 'ppt10tot_t10s9', range: 566 - 1013, mean: 764, CV: 15, MAE: 137
+
+ 2. 3D Surfaces
+   - surface 'ppt10tot3d_t10s1z4', range: 530 - 1028, mean: 756, CV: 11, MAE: 124
+   - surface 'ppt10tot3d_t20s1z10', range: 525 - 1030, mean: 758, CV: 9, MAE: 125
+   - surface 'ppt10tot3d_t5s1z1', range: 535 - 1027, mean: 755, CV: 13, MAE: 125
+
+#### 2011 Total Rainfall
+
+**Range of original data: 340 - 1184, mean: 794, CV: 38**
+
+ 1. 2D Surfaces
+   - surface 'ppt11tot_t30s1', range: 333 - 1229, mean: 769, CV: 22, MAE: 270
+   - surface 'ppt11tot_t20s1', range: 307 - 1305, mean: 768, CV: 25, MAE: 270
+   - surface 'ppt11tot_t10s9', range: 508 - 1175, mean: 769, CV: 19, MAE: 287
+
+ 2. 3D Surfaces
+   - surface 'ppt11tot3d_t4s1z30', range: 520 - 1174, mean: 790, CV: 17, MAE: 260
+   - surface 'ppt11tot3d_t9s1z2', range: 423 - 1152, mean: 771, CV: 16, MAE: 264
+
+#### 2012 Total Rainfall
+
+**Range of original data: 364 - 726, mean: 530, CV: 24**
+
+ 1. 2D Surfaces
+   - surface 'ppt12tot_t2s1', range: 289 - 778, mean: 574, CV: 21, MAE: 68
+   - surface 'ppt12tot_t4s3', range: 330 - 750, mean: 570, CV: 21, MAE: 71
+   - surface 'ppt12tot_t9s2', range: 350 - 725, mean: 559, CV: 19, MAE: 74
+   - surface 'ppt12tot_t20s1', range: 359 - 725, mean: 554, CV: 17, MAE: 77
+ 
+ 2. 3D Surfaces
+   - surface 'ppt12tot3d_t3s1z20', range: 367 - 733, mean: 558, CV: 19, MAE: 92
+   - surface 'ppt12tot3d_t4s1z20', range: 379 - 728, mean: 555, CV: 19, MAE: 94
+   - surface 'ppt12tot3d_t6s1z8', range: 397 - 700, mean: 551, CV: 14, MAE: 97
+   - surface 'ppt12tot3d_t7s1z9', range: 304 - 701, mean: 550, CV: 13, MAE: 99
+
+#### 2014 Total Rainfall
+
+**Range of original data: 191 - 714, mean: 499, CV: 32**
+
+ 1. 2D Surfaces
+   - surface 'ppt14tot_t10s1', range: 169 - 710, mean: 487, CV: 26, MAE: 133
+   - surface 'ppt14tot_t20s1', range: 196 - 713, mean: 494, CV: 20, MAE: 136
+   - surface 'ppt14tot_t7s1', range: 107 - 716, mean: 475, CV: 29, MAE: 133
+
+ 2. 3D Surfaces
+   - surface 'ppt14tot3d_t2s1z90', range: 349 - 694, mean: 508, CV: 22, MAE: 98
+   - surface 'ppt14tot3d_t5s1z30', range: 283 - 692, mean: 508, CV: 19, MAE: 117
+   - surface 'ppt14tot3d_t1s1z100', range: 372 - 702, mean: 499, CV: 19, MAE: 99
+
 
 
 
