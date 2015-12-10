@@ -300,7 +300,20 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt04tot3d_t10s1z10', range: 265 - 1196, mean: 689, CV: 19, MAE: 197
    - surface 'ppt04tot3d_t10s1z20', range: 340 - 1063, mean: 692, CV: 24, MAE: 193
    - correlation between these surfaces is 0.95
-   
+
+#### 2004 Rainy Days
+
+**Range of original data: 12 - 89, mean: 66, CV: 31**
+
+ 1. 2D Surfaces
+   - surface 'ppt04dys_t6s9', range: 51 - 83, mean: 69, CV: 10
+   - surface 'ppt04dys_t10s9', range: 47 - 85, mean: 70, CV: 11
+   - surface 'ppt04dys_t20s9', range: 41 - 85, mean: 70, CV: 12
+ 
+ 2. 3D Surfaces
+   - surface 'ppt04dys3d_t3s9z3', range: 55 - 74, mean: 68, CV: 6, MAE: 16
+   - surface 'ppt04dys3d_t5s9z8', range: 56 - 74, mean: 68, CV: 5, MAE: 16
+   - surface 'ppt04dys3d_t8s9z10', range: 56 - 74, mean: 68, CV: 4, MAE: 17
 
 #### 2005 Total Rainfall
 
@@ -318,6 +331,19 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt05tot3d_t10s1z5', range: 429 - 1173, mean: 835, CV: 11, MAE: 198
    - correlation between these surfaces is between 0.94 and 0.97
 
+#### 2005 Rainy Days
+
+**Range of original data: 27 - 100, mean: 69, CV: 25**
+
+ 1. 2D Surfaces
+   - surface 'ppt05dys_t20s9', range: 37 - 94, mean: 71, CV: 13, MAE: 14
+   - surface 'ppt05dys_t10s9', range: 45 - 93, mean: 71, CV: 13, MAE: 15
+   - surface 'ppt05dys_t7s9', range: 48 - 91, mean: 70, CV: 13, MAE: 14
+
+ 2. 3D Surfaces
+   - surface 'ppt05dys3d_t5s8z1', range: 51 - 82, mean: 70, CV: 6, MAE: 13
+   - surface 'ppt05dys3d_t3s9z1', range: 52 - 81, mean: 70, CV: 7, MAE: 13 
+
 #### 2006 Total Rainfall
 
 **Range of original data: 568 - 1640, mean: 1096, CV: 31**
@@ -328,6 +354,19 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
  2. 3D Surfaces
    - surface 'ppt06tot3d_t4s1z30', range: 761 - 1534, mean: 1126, CV: 15, MAE: 252
    - surface 'ppt06tot3d_t6s1z40', range: 699 - 1549, mean: 1115, CV: 13, MAE: 263
+
+#### 2006 Rainy Days
+
+**Range of original data: 47 - 104, mean: 87, CV: 21**
+
+ 1. 2D Surfaces
+   - surface 'ppt06dys_t3s9', range: 80 - 95, mean: 88, CV: 5, MAE: 17
+   - surface 'ppt06dys_t10s9', range: 66 - 98, mean: 89, CV: 8, MAE: 19
+
+ 2. 3D Surfaces
+   - surface 'ppt06dys3d_t3s9z20', range: 81 - 92, mean: 87, CV: 2, MAE: 16
+   - surface 'ppt06dys3d_t4s9z20', range: 79 - 91, mean: 87, CV: 2, MAE: 16
+   - surface 'ppt06dys3d_t5s9z1', range: 74 - 92, mean: 87, CV: 2, MAE: 16  
 
 #### 2007 Total Rainfall
 
@@ -342,6 +381,20 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt07tot3d_t10s1z100', range: 395 - 651, mean: 522, CV: 9, MAE: 99
    - surface 'ppt07tot3d_t10s9z100', range: 466 - 576, mean: 524, CV: 4, MAE: 96 
    - surface 'ppt07tot3d_t3s9z100', range: 479 - 564, mean: 526, CV: 5, MAE: 93
+
+#### 2007 Rainy Days
+
+**Range of original data: 31 - 78, mean: 52, CV: 23**
+
+ 1. 2D Surfaces
+   - surface 'ppt07dys_t20s9', range: 36 - 73, mean: 52, CV: 11, MAE: 10
+   - surface 'ppt07dys_t10s9', range: 38 - 72, mean: 52, CV: 12, MAE: 11
+   - surface 'ppt07dys_t6s9', range: 41 - 69, mean: 51, CV: 12, MAE: 11
+
+ 2. 3D Surfaces
+   - surface 'ppt07dys3d_t4s9z1', range: 45 - 62, mean: 52, CV: 3, MAE: 9
+   - surface 'ppt07dys3d_t6s6z1', range: 44 - 65, mean: 52, CV: 3, MAE: 9
+   - surface 'ppt07dys3d_t2s9z1', range: 46 - 61, mean: 52, CV: 4, MAE: 10  
 
 #### 2008 Total Rainfall
 
@@ -362,6 +415,19 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
   
   I'm inclined to use the surface where tension = 10.
 
+#### 2008 Rainy Days
+
+**Range of original data: 46 - 90, mean: 60, CV: 25**
+
+ 1. 2D Surfaces
+   - surface 'ppt08dys_t3s9', range: 51 - 63, mean: 59, CV: 4, MAE: 14
+   - surface 'ppt08dys_t6s9', range: 49 - 68, mean: 58, CV: 8, MAE: 16
+   - surface 'ppt08dys_t10s9', range: 50 - 74, mean: 59, CV: 10, MAE: 16
+
+ 2. 3D Surfaaces
+   - surface 'ppt08dys3d_t4s9z1', range: 55 - 69, mean: 59, CV: 3, MAE: 14
+   - surface 'ppt08dys3d_t3s9z20', range: 55 - 65, mean: 59, CV: 3, MAE: 13
+
 #### 2009 Total Rainfall
 
 **Range of original data: 296 - 934, mean: 520, CV: 36**
@@ -374,6 +440,18 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt09tot3d_t4s1z1', range: 345 - 861, mean: 511, CV: 16, MAE: 145
    - surface 'ppt09tot3d_t5s1z1', range: 345 - 866, mean: 511, CV: 15, MAE: 142
    - surface 'ppt09tot3d_t1s2z100', range: 418 - 728, mean: 524, CV: 15, MAE: 136
+
+#### 2009 Rainy Days
+
+**Range of original data: 32 - 81, mean: 65, CV: 22**
+
+ 1. 2D Surfaces
+   - surface 'ppt09dys_t10s9', range: 40 - 75, mean: 64, CV: 12, MAE: 12
+   - surface 'ppt09dys_t6s9', range: 42 - 73, mean: 64, CV: 11, MAE: 12
+
+ 2. 3D Surface
+   - surface 'ppt09dys3d_t9s7z60', range: 51 - 70, mean: 65, CV: 4, MAE: 11
+   - surface 'ppt09dys3d_t3s6z1', range: 49 - 73, mean: 65, CV: 6, MAE: 11  
 
 #### 2010 Total Rainfall
 
@@ -389,6 +467,20 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt10tot3d_t20s1z10', range: 525 - 1030, mean: 758, CV: 9, MAE: 125
    - surface 'ppt10tot3d_t5s1z1', range: 535 - 1027, mean: 755, CV: 13, MAE: 125
 
+#### 2010 Rainy Days
+
+**Range of original data: 58 - 106, mean: 81, CV: 14**
+
+ 1. 2D Surfaces
+   - surface 'ppt10dys_t5s9', range: 72 - 92, mean: 81, CV: 6, MAE: 10
+   - surface 'ppt10dys_t7s9', range: 72 - 93, mean: 81, CV: 6, MAE: 10
+   - surface 'ppt10dys_t20s9', range: 65 - 100, mean: 80, CV: 7, MAE: 10
+
+ 2. 3D Surfaces
+   - surface 'ppt10dys3d_t7s9z7', range: 75 - 89, mean: 81, CV: 3, MAE: 8
+   - surface 'ppt10dys3d_t3s9z50', range: 75 - 87, mean: 81, CV: 3, MAE: 8
+   - surface 'ppt10dys3d_t2s9z10', range: 75 - 87, mean: 81, CV: 4, MAE: 8 
+
 #### 2011 Total Rainfall
 
 **Range of original data: 340 - 1184, mean: 794, CV: 38**
@@ -401,6 +493,18 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
  2. 3D Surfaces
    - surface 'ppt11tot3d_t4s1z30', range: 520 - 1174, mean: 790, CV: 17, MAE: 260
    - surface 'ppt11tot3d_t9s1z2', range: 423 - 1152, mean: 771, CV: 16, MAE: 264
+
+#### 2011 Rainy Days
+
+**Range of original data: 37 - 95, mean: 71, CV: 27**
+
+ 1. 2D Surfaces
+   - surface 'ppt11dys_t20s1', range: 34 - 100, mean: 70, CV: 21, MAE: 
+   - surface 'ppt11dys_t10s9', range: 50 - 92, mean: 70, CV: 16, MAE: 
+
+ 2. 3D Surfaces
+   - surface 'ppt11dys3d_t3s1z20', range: 57 - 96, mean: 75, CV: 13, MAE: 17
+   - surface 'ppt11dys3d_t7s1z30', range: 53 - 90, mean: 73, CV: 8, MAE: 17
 
 #### 2012 Total Rainfall
 
@@ -418,6 +522,21 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt12tot3d_t6s1z8', range: 397 - 700, mean: 551, CV: 14, MAE: 97
    - surface 'ppt12tot3d_t7s1z9', range: 304 - 701, mean: 550, CV: 13, MAE: 99
 
+#### 2012 Rainy Days
+
+**Range of original data: 44 - 96, mean: 58, CV: 28**
+
+ 1. 2D Surfaces
+   - surface 'ppt12dys_t8s1', range: 37 - 102, mean: 56, CV: 22, MAE: 11
+   - surface 'ppt12dys_t10s1', range 37 - 100, mean: 56, CV: 22, MAE: 12
+   - surface 'ppt12dys_t20s1', range 43 - 96, mean: 56, CV: 18, MAE: 12
+
+ 2. 3D Surfaces
+   - surface 'ppt12dys3d_t9s6z60', range: 50 - 71, mean: 58, CV: 4, MAE: 8
+   - surface 'ppt12dys3d_t6s7z70', range: 50 - 69, mean: 58, CV: 5, MAE: 8
+   - surface 'ppt12dys3d_t3s4z90', range: 49 - 70, mean: 60, CV: 7, MAE: 8
+   - surface 'ppt12dys3d_t2s4z1', range: 48 - 76, mean: 57, CV: 9, MAE: 9   
+
 #### 2014 Total Rainfall
 
 **Range of original data: 191 - 714, mean: 499, CV: 32**
@@ -432,7 +551,17 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - surface 'ppt14tot3d_t5s1z30', range: 283 - 692, mean: 508, CV: 19, MAE: 117
    - surface 'ppt14tot3d_t1s1z100', range: 372 - 702, mean: 499, CV: 19, MAE: 99
 
+#### 2014 Rainy Days
 
+**Range of original data: 23 - 95, mean: 43, CV: 44**
+
+ 1. 2D Surfaces
+   - surface 'ppt14dys_t4s1', range: 17 - 95, mean: 44, CV: 30, MAE: 17
+   - surface 'ppt14dys_t10s9', range: 26 - 81, mean: 43, CV: 23, MAE: 17
+
+ 2. 3D Surfaces
+   - surface 'ppt14dys3d_t1s9z40', range: 41 - 48, mean: 44, CV: 4, MAE: 9
+   - surface 'ppt14dys3d_t3s9z1', range: 36 - 61, mean: 43, CV: 8, MAE: 10  
 
 
 
