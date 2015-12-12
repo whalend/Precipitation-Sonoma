@@ -1,0 +1,184 @@
+---
+title: "interpolation_extractions"
+author: "Whalen Dillon"
+date: "December 12, 2015"
+output: html_document
+---
+
+# Examine Extracted 2D/3D Interpolation Data
+```{r load pkgs & extracted data, message=F}
+library(sp); library(rgdal); library(dplyr)
+ppt_test <- readOGR(dsn = "shapefiles", layer = "plot202test", verbose = F)
+summary(ppt_test)
+```
+
+```{r interpolated total rainfall 2004}
+pairs(select(ppt_test@data, starts_with("ppt04")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2004")
+```
+
+The distributions of the sampled data points for total rainfall is fairly normal. The samples from the 3D surfaces of total rainfall are very tightly correlated; they had the same tension, smoothing, zscale (`tsz`) parameters except for zscale being 10 vs. 20. The only difference between the 2D surfaces of total rainfall is smoothing 9 vs. smoothing 1.
+
+I'm going to use data from surface 'b' of the 2D interpolation and surface 'a' of the 3D interpolation (`ppt04b2d` and `ppt04a3d`). 
+
+```{r interpolated rainy days 2004}
+pairs(select(ppt_test@data, starts_with("dys04")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2004")
+```
+
+The distributions of the sampled data points for number of rainy days tend to have a right skew across the 2D and 3D interpolations (i.e. mostly higher values). The correlation among the samples of the 3D surfaces is pretty tight (>0.90), but there is a relatively low correlation between the 'a' and 'c' 2D surfaces. Surface 'c' of the 2D data has the strongest right skew of the 3 potential surfaces.
+
+I'm going to use data from surface 'c' of the 2D interpolation and surface 'a' of the 3D interpolation.
+
+```{r interpolated total rainfall 2005}
+pairs(select(ppt_test@data, starts_with("ppt05")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2005")
+```
+
+The sampled data points for both 2D and 3D are very tightly correlated (>0.95) among all the total rainfall surfaces. I'm going to use data from surface 'a' of the 2D interpolation and surface 'c' of the 3D interpolation.
+
+```{r interpolated rainy days 2005}
+pairs(select(ppt_test@data, starts_with("dys05")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2005")
+```
+
+There is a very strong right skew of the number of rainy days samples. All of the samples are strongly correlated among the 2D and 3D surfaces (>0.96). I'm going to use surface 'a' of the 2D interpolation and surface 'a' of the 3D interpolation.
+
+```{r interpolated total rainfall 2006}
+pairs(select(ppt_test@data, starts_with("ppt06")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2006")
+```
+
+The distributions of the samples of the total rainfall surfaces have a fairly normal shape. I'm going to use surface 'b' of the 3D interpolation and the only surface I selected of the 2D interpolation.
+
+```{r interpolated rainy days 2006}
+pairs(select(ppt_test@data, starts_with("dys06")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2006")
+```
+
+For number of rainy days samples I'm going to use data from surface 'b' for the 2D and 3D interpolations.
+
+```{r interpolated total rainfall 2007}
+pairs(select(ppt_test@data, starts_with("ppt07")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2007")
+```
+
+The distribution of the sampled data from the 'a' and 'b' 3D total rainfall surfaces have a sharp drop-off on the right hand side while the distributions of the data from the 2D surfaces is a bit more normal looking. I'm going to use data from surface 'c' of the 2D interpolation and surface 'a' of the 3D interpolation of total rainfall.
+
+```{r interpolated rainy days 2007}
+pairs(select(ppt_test@data, starts_with("dys07")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2007")
+```
+
+Pretty tight correlation within the 2D and the 3D surfaces of number of days of rainfall. The sample distributions of all the surfaces are skewed to the right. I'm going to use surface 'a' from the 2D interpolation and surface 'c' from the 3D interpolation.
+
+```{r interpolated total rainfall 2008}
+pairs(select(ppt_test@data, starts_with("ppt08")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2008")
+```
+
+The sample distributions of the total rainfall 2D and 3D surfaces have a bit of left skew (longer right-hand tail). The correlation of the samples of the 2D surfaces is very tight (>0.97). I'm going to use surface 'c' from the 2D interpolation. Samples from surface 'a' of the 3D interpolation is much more weakly correlated with the other 4 surfaces, whereas correlation among samples from surfaces b-e is very strong (>0.98). I'm going to use surface 'e' from the 3D interpolation.
+
+```{r interpolated rainy days 2008}
+pairs(select(ppt_test@data, starts_with("dys08")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2008")
+```
+
+The samples of surface 'a' and 'b' of 2D rainy days interpolation have some slight right skew while samples of surface 'c' has a fairly normal shape to the distribution. Samples of surface 'b' is pretty strongly correlated  to each of the other surfaces (>=0.90), while 'a' and 'c' are more weakly correlated (0.67). I'm going to use surface 'c' from the 2D interpolation.
+
+The samples of the 3D surfaces of rainy days have a correlation of 0.66, with surface 'a' having left skew in the sample distribution and surface 'b' looking relatively normal. I'm going to use data sampled from surface 'a'.
+
+```{r interpolated total rainfall 2009}
+pairs(select(ppt_test@data, starts_with("ppt09")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2009")
+```
+
+The 2D sampled surfaces of total rainfall show some left skew and varying strength of correlation between them (a-b 0.95, a-c 0.85, b-c 0.76). I'm going to use data from surface 'b' of the 2D interpolation. 
+
+I'm going to use surface 'a' from the 3D interpolation. The sampled data from surfaces 'a' and 'b' are very tightly correlated (0.99), but both of these are weakly correlated with data sampled from surface 'c' (0.34).
+
+```{r interpolated rainy days 2009}
+pairs(select(ppt_test@data, starts_with("dys09")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2009")
+```
+
+Correlation of the sampled data from the rainy days 2D surfaces is 0.94. The distribution of the sample from the 'a' surface looks bimodal, with two distinct peaks. The sample of the 'b' surface also hase two distinct peaks, but the data distribution is shifted to the right. I'm going to use data from surface 'a' of the 2D interpolation. 
+
+The correlation of the samples from the 3D surfaces is weaker (0.43), with surface 'a' having a narrower, more peaked distribution compared to the wider, almost uniform-looking (?) distribution of surface 'b'. I'm going to use data from surface 'b' of the 3D interpolation.
+
+```{r interpolated total rainfall 2010}
+pairs(select(ppt_test@data, starts_with("ppt10")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2010")
+```
+
+The sample distributions of the total precipitation surfaces are fairly normal looking for the 2D and 3D interpolations, though generally a little narrow in the middle with longer tails. Within the 2D or 3D surfaces the correlation among the sample is pretty strong (>0.92). I'm going to use surface 'b' from the 2D interpolation and surface 'a' from the 3D interpolation.
+
+```{r interpolated rainy days 2010}
+pairs(select(ppt_test@data, starts_with("dys10")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2010")
+```
+
+The sample distributions for number of rainy days shows a little more variation in the pattern, with a couple of them appearing to have a bit of skewness. The correlations generally aren't as strong within the 2D or 3D sets compared to the total rainfall. I'm going to use surface 'c' from the 2D interpolation and surface 'a' from the 3D interpolation.
+
+```{r interpolated total rainfall 2011}
+pairs(select(ppt_test@data, starts_with("ppt11")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2011")
+```
+
+Correlation between the sampled surfaces of total rainfall vary for the 2D interpolations, with a-c and b-c correlations being <0.86. The distributions across the 2D and 3D samples are fairly normal in shape, but do appear to have some skewness to the right in a couple of instances. The correlation between the sampled 3D surfaces is only 0.45. I'm going to use surface 'b' from the 2D and 3D interpolation.
+
+```{r interpolated rainy days 2011}
+pairs(select(ppt_test@data, starts_with("dys11")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2011")
+```
+
+Correlation between sampled surfaces of number of rainy days for the 2D interpolation is 0.87 and for the 3D interpolation 0.82. For the number of rainy days I'm going to use data sampled from surface 'b' of the 2D interpolation and surface 'a' of the 3D interpolation. 
+
+```{r interpolated total rainfall 2012}
+pairs(select(ppt_test@data, starts_with("ppt12")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2012")
+```
+
+For total rainfall I'm going to use the sampled data from surface 'c' from the 2D interpolation and the sampled data from surface 'b' from the 3D interpolation. The correlation between these sample data is 0.93. The 2D data distribution shows some left-skew while the distribution of the 3D data appears fairly normal.
+
+```{r interpolated rainy days 2012}
+pairs(select(ppt_test@data, starts_with("dys12")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2012")
+```
+
+The correlation among the sample data for the 2D rainy days surfaces is very strong (0.99), but shows much more variability among the 3D surfaces (0.49 - 0.98). I'm going to use surface 'b' from the 2D interpolation and surface 'd' from the 3D interpolation. The sample distributions from both of these surfaces have dominant right-skew (long right-hand tails).
+
+```{r interpolated total rainfall 2014}
+pairs(select(ppt_test@data, starts_with("ppt14")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Total Precip 2014")
+```
+
+The correlations between the total rainfall data sampled from the 2D interpolations are pretty strong (>0.92). For the 3D data the correlations are >0.83. The distributions all have at least some left-skew. I'm going to use surface 'b' for both the 2D and 3D interpolations.
+
+```{r interpolated rainy days 2014}
+pairs(select(ppt_test@data, starts_with("dys14")),
+      lower.panel = panel.cor, diag.panel = panel.hist,
+      main = "Plots Days of Precip 2014")
+```
+
+The rainy days sample data appears to possibily have a bimodal distribution, especially from the 2D interpolation. The correlation of the 2D sample data is strong (0.94), but the 3D correlation is only 0.29. I'm going to use data from surface 'a' of the 2D interpolation and data from surface 'b' of the 3D interpolation.
+

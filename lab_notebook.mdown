@@ -292,276 +292,521 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
 **Range of original data: 266 - 1193, mean: 685, CV: 39**
 
  1. 2D Surfaces
-   - surface 'ppt04tot_t10s9', range: 380 - 1014, mean: 707, CV: 24, MAE: 184
-   - surface 'ppt04tot_t10s1', range: 321 - 1361, mean: 755, CV: 34, MAE: 224
+   a. surface 'ppt04tot_t10s9', range: 380 - 1014, mean: 707, CV: 24, MAE: 184
+     - plot point samples: range = 407 - 1010, mean = 743
+   b. surface 'ppt04tot_t10s1', range: 321 - 1361, mean: 755, CV: 34, MAE: 224
+     - plot point samples: range = 335 - 1287, mean = 763
    - correlation between these surfaces is 0.92
 
  2. 3D Surfaces
-   - surface 'ppt04tot3d_t10s1z10', range: 265 - 1196, mean: 689, CV: 19, MAE: 197
-   - surface 'ppt04tot3d_t10s1z20', range: 340 - 1063, mean: 692, CV: 24, MAE: 193
+   a. surface 'ppt04tot3d_t10s1z10', range: 265 - 1196, mean: 689, CV: 19, MAE: 197
+     - plot point samples: range = 275 - 1033, mean = 718
+     - this surface has tighter hotspots around the extreme values
+   b. surface 'ppt04tot3d_t10s1z20', range: 340 - 1063, mean: 692, CV: 24, MAE: 193
+     - plot point samples: range = 356 - 1062, mean = 706
    - correlation between these surfaces is 0.95
+
+I'm inclined to go with the surfaces that provide the wider range of possible values (higher CV). This would be surface 'a' for the 3D interpolation and surface 'b' for the 2D interpolation.
 
 #### 2004 Rainy Days
 
 **Range of original data: 12 - 89, mean: 66, CV: 31**
 
  1. 2D Surfaces
-   - surface 'ppt04dys_t6s9', range: 51 - 83, mean: 69, CV: 10
-   - surface 'ppt04dys_t10s9', range: 47 - 85, mean: 70, CV: 11
-   - surface 'ppt04dys_t20s9', range: 41 - 85, mean: 70, CV: 12
+   a. surface 'ppt04dys_t6s9', range: 51 - 83, mean: 69, CV: 10, MAE: 17
+     - plot point samples: range = 51 - 77, mean = 66
+   b. surface 'ppt04dys_t10s9', range: 47 - 85, mean: 70, CV: 11, MAE: 18
+     - plot point samples: range = 48 - 78, mean = 67
+   c. surface 'ppt04dys_t20s9', range: 41 - 85, mean: 70, CV: 12, MAE: 19
+     - plot point samples: range = 41 - 80, mean = 68
+   - correlation between these surfaces is >0.84
+      - 1.000000
+        0.946096 1.000000
+        0.845101 0.939512 1.000000
  
+Use data from surface 'c'.
+
  2. 3D Surfaces
-   - surface 'ppt04dys3d_t3s9z3', range: 55 - 74, mean: 68, CV: 6, MAE: 16
-   - surface 'ppt04dys3d_t5s9z8', range: 56 - 74, mean: 68, CV: 5, MAE: 16
-   - surface 'ppt04dys3d_t8s9z10', range: 56 - 74, mean: 68, CV: 4, MAE: 17
+   a. surface 'ppt04dys3d_t3s9z3', range: 55 - 74, mean: 68, CV: 6, MAE: 16
+     - plot point samples: range = 56 - 72, mean = 67
+   b. surface 'ppt04dys3d_t5s9z8', range: 56 - 74, mean: 68, CV: 5, MAE: 16
+     - plot point samples: range = 56 - 72, mean = 68
+   c. surface 'ppt04dys3d_t8s9z10', range: 56 - 74, mean: 68, CV: 4, MAE: 17
+     - plot point samples: range = 57 - 71, mean = 68
+   - correlation between these surfaces is >0.93
+      - 1.000000
+        0.974677 1.000000
+        0.936511 0.987204 1.000000
+
+Use data from surface 'a'.
 
 #### 2005 Total Rainfall
 
 **Range of original data: 355 - 1248, mean: 810, CV: 27**
 
  1. 2D Surfaces
-   - surface 'ppt05tot_t30s1', range: 329 - 1297, mean: 849, CV: 14, MAE: 202
-   - surface 'ppt05tot_t30s9', range: 444 - 1138, mean: 841, CV: 11, MAE: 197
-   - surface 'ppt05tot_t20s9', range: 463 - 1140, mean: 848, CV: 12, MAE: 203
+   a. surface 'ppt05tot_t30s1', range: 329 - 1297, mean: 849, CV: 14, MAE: 202
+     - plot point samples: range = 338 - 1110, mean = 846
+   b. surface 'ppt05tot_t30s9', range: 444 - 1138, mean: 841, CV: 11, MAE: 197
+     - plot point samples: range = 447 - 1068, mean = 843
+   c. surface 'ppt05tot_t20s9', range: 463 - 1140, mean: 848, CV: 12, MAE: 203
+     - plot point samples: range = 465 - 1057, mean = 848
    - correlation between these surfaces is >0.98
+      - 1.000000
+        0.991861 1.000000
+        0.985403 0.989665 1.000000
+
+There is very little qualitative difference between these 2D interpolated surfaces. Use surface 'a'.
 
  2. 3D Surfaces
-   - surface 'ppt05tot3d_t10s9z1', range: 653 - 932, mean: 818, CV: 4, MAE: 172
-   - surface 'ppt05tot3d_t10s9z5', range: 678 - 929, mean: 821, CV: 4, MAE: 177
-   - surface 'ppt05tot3d_t10s1z5', range: 429 - 1173, mean: 835, CV: 11, MAE: 198
+   a. surface 'ppt05tot3d_t10s9z1', range: 653 - 932, mean: 818, CV: 4, MAE: 172
+     - plot point samples: range = 654 - 927, mean = 821
+   b. surface 'ppt05tot3d_t10s9z5', range: 678 - 929, mean: 821, CV: 4, MAE: 177
+     - plot point samples: range = 685 - 927, mean = 826
+   c. surface 'ppt05tot3d_t10s1z5', range: 429 - 1173, mean: 835, CV: 11, MAE: 198
+     - plot point samples: range = 443 - 1069, mean = 840
    - correlation between these surfaces is between 0.94 and 0.97
+      - 1.000000
+        0.967583 1.000000
+        0.943850 0.945820 1.000000
+
+Use surface 'c'.
 
 #### 2005 Rainy Days
 
 **Range of original data: 27 - 100, mean: 69, CV: 25**
 
  1. 2D Surfaces
-   - surface 'ppt05dys_t20s9', range: 37 - 94, mean: 71, CV: 13, MAE: 14
-   - surface 'ppt05dys_t10s9', range: 45 - 93, mean: 71, CV: 13, MAE: 15
-   - surface 'ppt05dys_t7s9', range: 48 - 91, mean: 70, CV: 13, MAE: 14
+   a. surface 'ppt05dys_t20s9', range: 37 - 94, mean: 71, CV: 13, MAE: 14
+     - plot point samples: range = 38 - 80, mean = 69
+   b. surface 'ppt05dys_t10s9', range: 45 - 93, mean: 71, CV: 13, MAE: 15
+     - plot point samples: range = 45 - 79, mean = 69
+   c. surface 'ppt05dys_t7s9', range: 48 - 91, mean: 70, CV: 13, MAE: 14
+     - plot point samples: range = 48 - 79, mean = 69
+   - correlation between these surfaces is >0.93 
+      - 1.000000
+        0.979335 1.000000
+        0.938049 0.979912 1.000000
+
+Use surface 'a'.  
 
  2. 3D Surfaces
-   - surface 'ppt05dys3d_t5s8z1', range: 51 - 82, mean: 70, CV: 6, MAE: 13
-   - surface 'ppt05dys3d_t3s9z1', range: 52 - 81, mean: 70, CV: 7, MAE: 13 
+   a. surface 'ppt05dys3d_t5s8z1', range: 51 - 82, mean: 70, CV: 6, MAE: 13
+     - plot point samples: range = 51 - 75, mean = 69
+   b. surface 'ppt05dys3d_t3s9z1', range: 52 - 81, mean: 70, CV: 7, MAE: 13
+     - plot point samples: range = 53 - 75, mean = 69
+   - correlation between these surfaces is >0.99
+
+Not a strong difference between these surfaces. Use surface 'a'.
 
 #### 2006 Total Rainfall
 
 **Range of original data: 568 - 1640, mean: 1096, CV: 31**
 
  1. 2D Surfaces
-   - surface 'ppt06tot_t20s9', range: 699 - 1558, mean: 1123, CV: 14, MAE: 310
+   a. surface 'ppt06tot_t20s9', range: 699 - 1558, mean: 1123, CV: 14, MAE: 310
+     - plot point samples: range = 812 - 1529, mean = 1152
+
+Use this surface (obviously).
 
  2. 3D Surfaces
-   - surface 'ppt06tot3d_t4s1z30', range: 761 - 1534, mean: 1126, CV: 15, MAE: 252
-   - surface 'ppt06tot3d_t6s1z40', range: 699 - 1549, mean: 1115, CV: 13, MAE: 263
+   a. surface 'ppt06tot3d_t4s1z30', range: 761 - 1534, mean: 1126, CV: 15, MAE: 252
+     - plot point samples: range = 792 - 1491, mean = 1114
+   b. surface 'ppt06tot3d_t6s1z40', range: 699 - 1549, mean: 1115, CV: 13, MAE: 263
+     - plot point samples: range = 718 - 1529, mean = 1105
+   - correlation between these surfaces is >0.96
+
+Use surface 'b'.
 
 #### 2006 Rainy Days
 
 **Range of original data: 47 - 104, mean: 87, CV: 21**
 
  1. 2D Surfaces
-   - surface 'ppt06dys_t3s9', range: 80 - 95, mean: 88, CV: 5, MAE: 17
-   - surface 'ppt06dys_t10s9', range: 66 - 98, mean: 89, CV: 8, MAE: 19
+   a. surface 'ppt06dys_t3s9', range: 80 - 95, mean: 88, CV: 5, MAE: 17
+     - plot point samples: range = 83 - 95, mean = 89
+   b. surface 'ppt06dys_t10s9', range: 66 - 98, mean: 89, CV: 8, MAE: 19
+     - plot point samples: range = 80 - 98, mean = 93
+   - correlation is 0.74
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt06dys3d_t3s9z20', range: 81 - 92, mean: 87, CV: 2, MAE: 16
-   - surface 'ppt06dys3d_t4s9z20', range: 79 - 91, mean: 87, CV: 2, MAE: 16
-   - surface 'ppt06dys3d_t5s9z1', range: 74 - 92, mean: 87, CV: 2, MAE: 16  
+   a. surface 'ppt06dys3d_t3s9z20', range: 81 - 92, mean: 87, CV: 2, MAE: 16
+     - plot point samples: range = 86 - 91, mean = 88
+   b. surface 'ppt06dys3d_t4s9z20', range: 79 - 91, mean: 87, CV: 2, MAE: 16
+     - plot point samples: range = 86 - 90, mean = 88
+   c. surface 'ppt06dys3d_t5s9z1', range: 74 - 92, mean: 87, CV: 2, MAE: 16
+     - plot point samples: range = 82 - 91, mean = 87
+   - correlation between these surfaces is >0.70, weakest between 1 & 3 then 2 & 3
+      - 1.000000
+        0.984857 1.000000
+        0.708979 0.761273 1.000000
+
+Use surface 'b'. 
 
 #### 2007 Total Rainfall
 
 **Range of original data: 374 - 679, mean: 523, CV: 20**
 
  1. 2D Surfaces
-   - surface 'ppt07tot_t20s9', range: 396 - 649, mean: 519, CV: 9, MAE: 107
-   - surface 'ppt07tot_t10s9', range: 397 - 634, mean: 518, CV: 10, MAE: 108
-   - surface 'ppt07tot_t8s2', range: 363 - 705, mean: 517, CV: 14, MAE: 108
+   a. surface 'ppt07tot_t20s9', range: 396 - 649, mean: 519, CV: 9, MAE: 107
+     - plot point samples: range = 
+   b. surface 'ppt07tot_t10s9', range: 397 - 634, mean: 518, CV: 10, MAE: 108
+   c. surface 'ppt07tot_t8s2', range: 363 - 705, mean: 517, CV: 14, MAE: 108
+   - correlation between these surfaces is >0.92
+      - 1.000000
+        0.981389 1.000000
+        0.920655 0.964612 1.000000 
+
+Use surface 'c'.
 
  2. 3D Surfaces
-   - surface 'ppt07tot3d_t10s1z100', range: 395 - 651, mean: 522, CV: 9, MAE: 99
-   - surface 'ppt07tot3d_t10s9z100', range: 466 - 576, mean: 524, CV: 4, MAE: 96 
-   - surface 'ppt07tot3d_t3s9z100', range: 479 - 564, mean: 526, CV: 5, MAE: 93
+   a. surface 'ppt07tot3d_t10s1z100', range: 395 - 651, mean: 522, CV: 9, MAE: 99
+   b. surface 'ppt07tot3d_t10s9z100', range: 466 - 576, mean: 524, CV: 4, MAE: 96 
+   c. surface 'ppt07tot3d_t3s9z100', range: 479 - 564, mean: 526, CV: 5, MAE: 93
+   - correlation between these surfaces is >0.88
+      - 1.000000
+        0.987797 1.000000
+        0.887166 0.929890 1.000000
+
+Use surface 'a'. These 3D surfaces appear to have a bit of a "ring-effect" in some areas of the map. 
 
 #### 2007 Rainy Days
 
 **Range of original data: 31 - 78, mean: 52, CV: 23**
 
  1. 2D Surfaces
-   - surface 'ppt07dys_t20s9', range: 36 - 73, mean: 52, CV: 11, MAE: 10
-   - surface 'ppt07dys_t10s9', range: 38 - 72, mean: 52, CV: 12, MAE: 11
-   - surface 'ppt07dys_t6s9', range: 41 - 69, mean: 51, CV: 12, MAE: 11
+   a. surface 'ppt07dys_t20s9', range: 36 - 73, mean: 52, CV: 11, MAE: 10
+   b. surface 'ppt07dys_t10s9', range: 38 - 72, mean: 52, CV: 12, MAE: 11
+   c. surface 'ppt07dys_t6s9', range: 41 - 69, mean: 51, CV: 12, MAE: 11
+   - correlation between these surfaces is >0.93
+      - 1.000000
+        0.986601 1.000000
+        0.939515 0.972796 1.000000
+
+Use surface 'a'.
 
  2. 3D Surfaces
-   - surface 'ppt07dys3d_t4s9z1', range: 45 - 62, mean: 52, CV: 3, MAE: 9
-   - surface 'ppt07dys3d_t6s6z1', range: 44 - 65, mean: 52, CV: 3, MAE: 9
-   - surface 'ppt07dys3d_t2s9z1', range: 46 - 61, mean: 52, CV: 4, MAE: 10  
+   a. surface 'ppt07dys3d_t4s9z1', range: 45 - 62, mean: 52, CV: 3, MAE: 9
+   b. surface 'ppt07dys3d_t6s6z1', range: 44 - 65, mean: 52, CV: 3, MAE: 9
+   c. surface 'ppt07dys3d_t2s9z1', range: 46 - 61, mean: 52, CV: 4, MAE: 10
+   - correlation between these surfaces is >0.94
+      - 1.000000
+        0.991863 1.000000
+        0.973383 0.941262 1.000000  
+
+Use surface 'c'.
 
 #### 2008 Total Rainfall
 
 **Range of original data: 361 - 903, mean: 570, CV: 26**
 
  1. 2D Surfaces
-   - surface 'ppt08tot_t10s9', range: 474 - 826, mean: 592, CV: 15, MAE: 132
-   - surface 'ppt08tot_t8s9', range: 470 - 816, mean: 593, CV: 15, MAE: 128
-   - surface 'ppt08tot_t20s9', range: 430 - 846, mean: 591, CV: 15, MAE: 134
+   a. surface 'ppt08tot_t10s9', range: 474 - 826, mean: 592, CV: 15, MAE: 132
+   b. surface 'ppt08tot_t8s9', range: 470 - 816, mean: 593, CV: 15, MAE: 128
+   c. surface 'ppt08tot_t20s9', range: 430 - 846, mean: 591, CV: 15, MAE: 134
+   - correlation between these surfaces is >0.98
+      - 1.000000
+        0.995511 1.000000
+        0.982714 0.964477 1.000000
+
+Use surface 'c'. 
 
  2. 3D Surfaces (continued 2015/12/9)
-   - surface 'ppt08tot3d_t1s1z60', range: 471 - 687, mean: 570, CV: 8, MAE: 118
-   - surface 'ppt08tot3d_t7s4z30', range: 492 - 738, mean: 582, CV: 10, MAE: 123
-   - surface 'ppt08tot3d_t8s3z40', range: 474 - 759, mean: 583, CV: 10, MAE: 124
-   - surface 'ppt08tot3d_t9s3z30', range: 470 - 764, mean: 582, CV: 10, MAE: 124
-   - surface 'ppt08tot3d_t10s3z40', range: 464 - 765, mean: 580, CV: 10, MAE: 125
+   a. surface 'ppt08tot3d_t1s1z60', range: 471 - 687, mean: 570, CV: 8, MAE: 118
+   b. surface 'ppt08tot3d_t7s4z30', range: 492 - 738, mean: 582, CV: 10, MAE: 123
+   c. surface 'ppt08tot3d_t8s3z40', range: 474 - 759, mean: 583, CV: 10, MAE: 124
+   d. surface 'ppt08tot3d_t9s3z30', range: 470 - 764, mean: 582, CV: 10, MAE: 124
+   e. surface 'ppt08tot3d_t10s3z40', range: 464 - 765, mean: 580, CV: 10, MAE: 125
    - correlation between the last 4 surfaces is >0.98, but between the first surface and the other 4 it is only 0.76 - 0.81
+      - 1.000000
+        0.806087 1.000000
+        0.790413 0.989832 1.000000
+        0.758806 0.991221 0.992687 1.000000
+        0.767494 0.979043 0.995845 0.992629 1.000000 
   
   I'm inclined to use the surface where tension = 10.
+
+Use surface 'e'.
 
 #### 2008 Rainy Days
 
 **Range of original data: 46 - 90, mean: 60, CV: 25**
 
  1. 2D Surfaces
-   - surface 'ppt08dys_t3s9', range: 51 - 63, mean: 59, CV: 4, MAE: 14
-   - surface 'ppt08dys_t6s9', range: 49 - 68, mean: 58, CV: 8, MAE: 16
-   - surface 'ppt08dys_t10s9', range: 50 - 74, mean: 59, CV: 10, MAE: 16
+   a. surface 'ppt08dys_t3s9', range: 51 - 63, mean: 59, CV: 4, MAE: 14
+   b. surface 'ppt08dys_t6s9', range: 49 - 68, mean: 58, CV: 8, MAE: 16
+   c. surface 'ppt08dys_t10s9', range: 50 - 74, mean: 59, CV: 10, MAE: 16
+   - correlation between these surfaces is >0.77, strongest between b & c at 0.93
+      - 1.000000
+        0.907163 1.000000
+        0.774065 0.934482 1.000000
 
- 2. 3D Surfaaces
-   - surface 'ppt08dys3d_t4s9z1', range: 55 - 69, mean: 59, CV: 3, MAE: 14
-   - surface 'ppt08dys3d_t3s9z20', range: 55 - 65, mean: 59, CV: 3, MAE: 13
+Use surface 'c'.
+
+ 2. 3D Surfaces
+   a. surface 'ppt08dys3d_t4s9z1', range: 55 - 69, mean: 59, CV: 3, MAE: 14
+   b. surface 'ppt08dys3d_t3s9z20', range: 55 - 65, mean: 59, CV: 3, MAE: 13
+   - correlation is 0.68
+
+Use surface 'a', though it does produce tight hotspots around the data points.
 
 #### 2009 Total Rainfall
 
 **Range of original data: 296 - 934, mean: 520, CV: 36**
 
  1. 2D Surfaces
-   - surface 'ppt09tot_t10s1', range: 198 - 953, mean: 513, CV: 24, MAE: 143, histogram pattern seems a little spiky
-   - surface 'ppt09tot_t6s1', range: 211 - 990, mean: 515, CV: 27, MAE: 149
+   a. surface 'ppt09tot_t10s1', range: 198 - 953, mean: 513, CV: 24, MAE: 143, histogram pattern seems a little spiky
+   b. surface 'ppt09tot_t6s1', range: 211 - 990, mean: 515, CV: 27, MAE: 149
+   - correlation is 0.95
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt09tot3d_t4s1z1', range: 345 - 861, mean: 511, CV: 16, MAE: 145
-   - surface 'ppt09tot3d_t5s1z1', range: 345 - 866, mean: 511, CV: 15, MAE: 142
-   - surface 'ppt09tot3d_t1s2z100', range: 418 - 728, mean: 524, CV: 15, MAE: 136
+   a. surface 'ppt09tot3d_t4s1z1', range: 345 - 861, mean: 511, CV: 16, MAE: 145
+   b. surface 'ppt09tot3d_t5s1z1', range: 345 - 866, mean: 511, CV: 15, MAE: 142
+   c. surface 'ppt09tot3d_t1s2z100', range: 418 - 728, mean: 524, CV: 15, MAE: 136
+   - correlation between these surfaces is 0.50 - 0.99, 1 & 3 is 0.50, 1 & 2 is 0.50
+      - 1.000000
+        0.995011 1.000000
+        0.507000 0.501608 1.000000
+
+Use surface 'a'. 
 
 #### 2009 Rainy Days
 
 **Range of original data: 32 - 81, mean: 65, CV: 22**
 
  1. 2D Surfaces
-   - surface 'ppt09dys_t10s9', range: 40 - 75, mean: 64, CV: 12, MAE: 12
-   - surface 'ppt09dys_t6s9', range: 42 - 73, mean: 64, CV: 11, MAE: 12
+   a. surface 'ppt09dys_t10s9', range: 40 - 75, mean: 64, CV: 12, MAE: 12
+   b. surface 'ppt09dys_t6s9', range: 42 - 73, mean: 64, CV: 11, MAE: 12
+   - correlation is 0.98
+
+Use surface 'a'.
 
  2. 3D Surface
-   - surface 'ppt09dys3d_t9s7z60', range: 51 - 70, mean: 65, CV: 4, MAE: 11
-   - surface 'ppt09dys3d_t3s6z1', range: 49 - 73, mean: 65, CV: 6, MAE: 11  
+   a. surface 'ppt09dys3d_t9s7z60', range: 51 - 70, mean: 65, CV: 4, MAE: 11
+   b. surface 'ppt09dys3d_t3s6z1', range: 49 - 73, mean: 65, CV: 6, MAE: 11
+   - correlation is 0.82  
+
+Use surface 'b'.
 
 #### 2010 Total Rainfall
 
 **Range of original data: 478 - 1081, mean: 768, CV: 22**
 
  1. 2D Surfaces
-   - surface 'ppt10tot_t30s2', range: 492 - 1070, mean: 761, CV: 15, MAE: 126
-   - surface 'ppt10tot_t20s9', range: 546 - 1031, mean: 762, CV: 14, MAE: 128
-   - surface 'ppt10tot_t10s9', range: 566 - 1013, mean: 764, CV: 15, MAE: 137
+   a. surface 'ppt10tot_t30s2', range: 492 - 1070, mean: 761, CV: 15, MAE: 126
+   b. surface 'ppt10tot_t20s9', range: 546 - 1031, mean: 762, CV: 14, MAE: 128
+   c. surface 'ppt10tot_t10s9', range: 566 - 1013, mean: 764, CV: 15, MAE: 137
+   - correlation between these surfaces is >0.96
+      - 1.000000
+        0.996176 1.000000
+        0.969339 0.985469 1.000000
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt10tot3d_t10s1z4', range: 530 - 1028, mean: 756, CV: 11, MAE: 124
-   - surface 'ppt10tot3d_t20s1z10', range: 525 - 1030, mean: 758, CV: 9, MAE: 125
-   - surface 'ppt10tot3d_t5s1z1', range: 535 - 1027, mean: 755, CV: 13, MAE: 125
+   a. surface 'ppt10tot3d_t10s1z4', range: 530 - 1028, mean: 756, CV: 11, MAE: 124
+   b. surface 'ppt10tot3d_t20s1z10', range: 525 - 1030, mean: 758, CV: 9, MAE: 125
+   c. surface 'ppt10tot3d_t5s1z1', range: 535 - 1027, mean: 755, CV: 13, MAE: 125
+   - correlation between these surfaces is >0.95
+      - 1.000000
+        0.978009 1.000000
+        0.994690 0.954193 1.000000
+
+Use surface 'a'.
 
 #### 2010 Rainy Days
 
 **Range of original data: 58 - 106, mean: 81, CV: 14**
 
  1. 2D Surfaces
-   - surface 'ppt10dys_t5s9', range: 72 - 92, mean: 81, CV: 6, MAE: 10
-   - surface 'ppt10dys_t7s9', range: 72 - 93, mean: 81, CV: 6, MAE: 10
-   - surface 'ppt10dys_t20s9', range: 65 - 100, mean: 80, CV: 7, MAE: 10
+   a. surface 'ppt10dys_t5s9', range: 72 - 92, mean: 81, CV: 6, MAE: 10
+   b. surface 'ppt10dys_t7s9', range: 72 - 93, mean: 81, CV: 6, MAE: 10
+   c. surface 'ppt10dys_t20s9', range: 65 - 100, mean: 80, CV: 7, MAE: 10
+   - correlation between these surfaces is >0.82, weakest between 1 & 3
+      - 1.000000
+        0.971657 1.000000
+        0.825683 0.911404 1.000000 
+
+Use surface 'c'.        
 
  2. 3D Surfaces
-   - surface 'ppt10dys3d_t7s9z7', range: 75 - 89, mean: 81, CV: 3, MAE: 8
-   - surface 'ppt10dys3d_t3s9z50', range: 75 - 87, mean: 81, CV: 3, MAE: 8
-   - surface 'ppt10dys3d_t2s9z10', range: 75 - 87, mean: 81, CV: 4, MAE: 8 
+   a. surface 'ppt10dys3d_t7s9z7', range: 75 - 89, mean: 81, CV: 3, MAE: 8
+   b. surface 'ppt10dys3d_t3s9z50', range: 75 - 87, mean: 81, CV: 3, MAE: 8
+   c. surface 'ppt10dys3d_t2s9z10', range: 75 - 87, mean: 81, CV: 4, MAE: 8 
+   - correlation between these surfaces is >0.83, weakest between 1 & 2 at 0.84
+      - 1.000000
+        0.837707 1.000000
+        0.916155 0.936364 1.000000
+
+Use surface 'a'.        
 
 #### 2011 Total Rainfall
 
 **Range of original data: 340 - 1184, mean: 794, CV: 38**
 
  1. 2D Surfaces
-   - surface 'ppt11tot_t30s1', range: 333 - 1229, mean: 769, CV: 22, MAE: 270
-   - surface 'ppt11tot_t20s1', range: 307 - 1305, mean: 768, CV: 25, MAE: 270
-   - surface 'ppt11tot_t10s9', range: 508 - 1175, mean: 769, CV: 19, MAE: 287
+   a. surface 'ppt11tot_t30s1', range: 333 - 1229, mean: 769, CV: 22, MAE: 270
+   b. surface 'ppt11tot_t20s1', range: 307 - 1305, mean: 768, CV: 25, MAE: 270
+   c. surface 'ppt11tot_t10s9', range: 508 - 1175, mean: 769, CV: 19, MAE: 287
+   - correlation between these surfaces is >0.89
+      - 1.000000
+        0.989507 1.000000
+        0.897370 0.910074 1.000000
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt11tot3d_t4s1z30', range: 520 - 1174, mean: 790, CV: 17, MAE: 260
-   - surface 'ppt11tot3d_t9s1z2', range: 423 - 1152, mean: 771, CV: 16, MAE: 264
+   a. surface 'ppt11tot3d_t4s1z30', range: 520 - 1174, mean: 790, CV: 17, MAE: 260
+   b. surface 'ppt11tot3d_t9s1z2', range: 423 - 1152, mean: 771, CV: 16, MAE: 264
+   - correlation is 0.60
+
+Use surface 'b'.
 
 #### 2011 Rainy Days
 
 **Range of original data: 37 - 95, mean: 71, CV: 27**
 
  1. 2D Surfaces
-   - surface 'ppt11dys_t20s1', range: 34 - 100, mean: 70, CV: 21, MAE: 
-   - surface 'ppt11dys_t10s9', range: 50 - 92, mean: 70, CV: 16, MAE: 
+   a. surface 'ppt11dys_t20s1', range: 34 - 100, mean: 70, CV: 21, MAE: 18
+   b. surface 'ppt11dys_t10s9', range: 50 - 92, mean: 70, CV: 16, MAE: 19
+   - correlation is 0.93
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt11dys3d_t3s1z20', range: 57 - 96, mean: 75, CV: 13, MAE: 17
-   - surface 'ppt11dys3d_t7s1z30', range: 53 - 90, mean: 73, CV: 8, MAE: 17
+   a. surface 'ppt11dys3d_t3s1z20', range: 57 - 96, mean: 75, CV: 13, MAE: 17
+   b. surface 'ppt11dys3d_t7s1z30', range: 53 - 90, mean: 73, CV: 8, MAE: 17
+   - correlation is 0.86
+
+Use surface 'a'.
 
 #### 2012 Total Rainfall
 
 **Range of original data: 364 - 726, mean: 530, CV: 24**
 
  1. 2D Surfaces
-   - surface 'ppt12tot_t2s1', range: 289 - 778, mean: 574, CV: 21, MAE: 68
-   - surface 'ppt12tot_t4s3', range: 330 - 750, mean: 570, CV: 21, MAE: 71
-   - surface 'ppt12tot_t9s2', range: 350 - 725, mean: 559, CV: 19, MAE: 74
-   - surface 'ppt12tot_t20s1', range: 359 - 725, mean: 554, CV: 17, MAE: 77
+   a. surface 'ppt12tot_t2s1', range: 289 - 778, mean: 574, CV: 21, MAE: 68
+   b. surface 'ppt12tot_t4s3', range: 330 - 750, mean: 570, CV: 21, MAE: 71
+   c. surface 'ppt12tot_t9s2', range: 350 - 725, mean: 559, CV: 19, MAE: 74
+   d. surface 'ppt12tot_t20s1', range: 359 - 725, mean: 554, CV: 17, MAE: 77
+   - correlation between these surfaces is >0.87, weakest between 1 & 4
+      - 1.000000
+        0.987313 1.000000
+        0.910965 0.949626 1.000000
+        0.874295 0.914875 0.988480 1.000000 
+
+Use surface 'c'.        
  
  2. 3D Surfaces
-   - surface 'ppt12tot3d_t3s1z20', range: 367 - 733, mean: 558, CV: 19, MAE: 92
-   - surface 'ppt12tot3d_t4s1z20', range: 379 - 728, mean: 555, CV: 19, MAE: 94
-   - surface 'ppt12tot3d_t6s1z8', range: 397 - 700, mean: 551, CV: 14, MAE: 97
-   - surface 'ppt12tot3d_t7s1z9', range: 304 - 701, mean: 550, CV: 13, MAE: 99
+   a. surface 'ppt12tot3d_t3s1z20', range: 367 - 733, mean: 558, CV: 19, MAE: 92
+   b. surface 'ppt12tot3d_t4s1z20', range: 379 - 728, mean: 555, CV: 19, MAE: 94
+   c. surface 'ppt12tot3d_t6s1z8', range: 397 - 700, mean: 551, CV: 14, MAE: 97
+   d. surface 'ppt12tot3d_t7s1z9', range: 304 - 701, mean: 550, CV: 13, MAE: 99
+   - correlation between these surfaces is >0.89
+      - 1.000000 
+        0.992432 1.000000
+        0.909932 0.945547 1.000000
+        0.895282 0.934022 0.998920 1.000000
+
+Use surface 'b'.
 
 #### 2012 Rainy Days
 
 **Range of original data: 44 - 96, mean: 58, CV: 28**
 
  1. 2D Surfaces
-   - surface 'ppt12dys_t8s1', range: 37 - 102, mean: 56, CV: 22, MAE: 11
-   - surface 'ppt12dys_t10s1', range 37 - 100, mean: 56, CV: 22, MAE: 12
-   - surface 'ppt12dys_t20s1', range 43 - 96, mean: 56, CV: 18, MAE: 12
+   a. surface 'ppt12dys_t8s1', range: 37 - 102, mean: 56, CV: 22, MAE: 11
+   b. surface 'ppt12dys_t10s1', range 37 - 100, mean: 56, CV: 22, MAE: 12
+   c. surface 'ppt12dys_t20s1', range 43 - 96, mean: 56, CV: 18, MAE: 12
+   - correlation between these surfaces is >0.97
+      - 1.000000 
+        0.998031 1.000000
+        0.973139 0.981335 1.000000
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt12dys3d_t9s6z60', range: 50 - 71, mean: 58, CV: 4, MAE: 8
-   - surface 'ppt12dys3d_t6s7z70', range: 50 - 69, mean: 58, CV: 5, MAE: 8
-   - surface 'ppt12dys3d_t3s4z90', range: 49 - 70, mean: 60, CV: 7, MAE: 8
-   - surface 'ppt12dys3d_t2s4z1', range: 48 - 76, mean: 57, CV: 9, MAE: 9   
+   a. surface 'ppt12dys3d_t9s6z60', range: 50 - 71, mean: 58, CV: 4, MAE: 8
+   b. surface 'ppt12dys3d_t6s7z70', range: 50 - 69, mean: 58, CV: 5, MAE: 8
+   c. surface 'ppt12dys3d_t3s4z90', range: 49 - 70, mean: 60, CV: 7, MAE: 8
+   d. surface 'ppt12dys3d_t2s4z1', range: 48 - 76, mean: 57, CV: 9, MAE: 9
+   - correlation of these surfaces is between 0.58 and 0.98, weakest between 3 & 4 (0.58)
+      - 1.000000 
+        0.983799 1.000000
+        0.840506 0.911602 1.000000
+        0.797258 0.764766 0.581243 1.000000 
+
+Use surface 'd'.
 
 #### 2014 Total Rainfall
 
 **Range of original data: 191 - 714, mean: 499, CV: 32**
 
  1. 2D Surfaces
-   - surface 'ppt14tot_t10s1', range: 169 - 710, mean: 487, CV: 26, MAE: 133
-   - surface 'ppt14tot_t20s1', range: 196 - 713, mean: 494, CV: 20, MAE: 136
-   - surface 'ppt14tot_t7s1', range: 107 - 716, mean: 475, CV: 29, MAE: 133
+   a. surface 'ppt14tot_t10s1', range: 169 - 710, mean: 487, CV: 26, MAE: 133
+   b. surface 'ppt14tot_t20s1', range: 196 - 713, mean: 494, CV: 20, MAE: 136
+   c. surface 'ppt14tot_t7s1', range: 107 - 716, mean: 475, CV: 29, MAE: 133
+   - correlation between these surfaces is >0.91
+      - 1.000000
+        0.969062 1.000000
+        0.979779 0.911723 1.000000
+
+Use surface 'b'.
 
  2. 3D Surfaces
-   - surface 'ppt14tot3d_t2s1z90', range: 349 - 694, mean: 508, CV: 22, MAE: 98
-   - surface 'ppt14tot3d_t5s1z30', range: 283 - 692, mean: 508, CV: 19, MAE: 117
-   - surface 'ppt14tot3d_t1s1z100', range: 372 - 702, mean: 499, CV: 19, MAE: 99
+   a. surface 'ppt14tot3d_t2s1z90', range: 349 - 694, mean: 508, CV: 22, MAE: 98
+   b. surface 'ppt14tot3d_t5s1z30', range: 283 - 692, mean: 508, CV: 19, MAE: 117
+   c. surface 'ppt14tot3d_t1s1z100', range: 372 - 702, mean: 499, CV: 19, MAE: 99
+   - correlation between these surfaces is >0.83
+      - 1.000000  
+        0.874875 1.000000
+        0.983025 0.834120 1.000000 
+
+Use surface 'b'.
 
 #### 2014 Rainy Days
 
 **Range of original data: 23 - 95, mean: 43, CV: 44**
 
  1. 2D Surfaces
-   - surface 'ppt14dys_t4s1', range: 17 - 95, mean: 44, CV: 30, MAE: 17
-   - surface 'ppt14dys_t10s9', range: 26 - 81, mean: 43, CV: 23, MAE: 17
+   a. surface 'ppt14dys_t4s1', range: 17 - 95, mean: 44, CV: 30, MAE: 17
+   b. surface 'ppt14dys_t10s9', range: 26 - 81, mean: 43, CV: 23, MAE: 17
+   - correlation is 0.97
+
+Use surface 'a'.
 
  2. 3D Surfaces
-   - surface 'ppt14dys3d_t1s9z40', range: 41 - 48, mean: 44, CV: 4, MAE: 9
-   - surface 'ppt14dys3d_t3s9z1', range: 36 - 61, mean: 43, CV: 8, MAE: 10  
+   a. surface 'ppt14dys3d_t1s9z40', range: 41 - 48, mean: 44, CV: 4, MAE: 9
+   b. surface 'ppt14dys3d_t3s9z1', range: 36 - 61, mean: 43, CV: 8, MAE: 10
+   - correlation is 0.53
+
+Use surface 'b'.
+
+## 2015/12/10
+
+I made a copy of plots shapefiles that I will extract precipitation values to: 'plot202_ppt'. I want to extract values from the 2D/3D interpolations and voronoi polygons for total rainfall and number of rainy days, the total rainfall from the downscaled PRISM surfaces, and estimates from simple regression models fit using XY coordinates of each plot location and elevation as predictors based on a model fit to the rain gauge data for each season.
+
+I am extracting the data from the GIS surfaces in GRASS using `v.what.vect` for the voronoi surfaces, and `v.what.rast` for the raster surfaces (2D/3D interpolations and PRISM surfaces).
+
+ - extracted rainfall and number of rainy days data for all seasons from voronoi polygons
+
+I'm using a test/temporary shapefile ('plot202test') to extract and compare values from the selected interpolated raster surfaces for each season.
+ 
+ - extracted interpolated values of rainfall and number of rainy days from selected raster surfaces (listed above) for all seasons to this shapefile
+ - exported file to 'soco_ppt/shapefiles' directory
+
+Using this shapefile I am going to examine pairs plots in R to see what the correlation and distribution of the data extracted to the plot locations looks like.
+
+## 2015/12/12
+
+I finished selecting the 2D and 3D interpolated surfaces that I am going to used the extracted data from by examining the data extracted to plot locations in R concurrently with qualitatively (visually) assessing the surfaces in GRASS GIS. The assessment in R is saved in the 'interpolation_extractions.Rmd' file.
+
+
+
 
 
 
