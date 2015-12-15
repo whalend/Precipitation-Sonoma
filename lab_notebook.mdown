@@ -797,13 +797,34 @@ I am extracting the data from the GIS surfaces in GRASS using `v.what.vect` for 
 I'm using a test/temporary shapefile ('plot202test') to extract and compare values from the selected interpolated raster surfaces for each season.
  
  - extracted interpolated values of rainfall and number of rainy days from selected raster surfaces (listed above) for all seasons to this shapefile
+ 
  - exported file to 'soco_ppt/shapefiles' directory
 
 Using this shapefile I am going to examine pairs plots in R to see what the correlation and distribution of the data extracted to the plot locations looks like.
 
 ## 2015/12/12
 
-I finished selecting the 2D and 3D interpolated surfaces that I am going to used the extracted data from by examining the data extracted to plot locations in R concurrently with qualitatively (visually) assessing the surfaces in GRASS GIS. The assessment in R is saved in the 'interpolation_extractions.Rmd' file.
+I finished selecting the 2D and 3D interpolated surfaces that I am going to use the extracted data from by examining the data extracted to plot locations in R concurrently with qualitatively (visually) assessing the surfaces in GRASS GIS. The assessment in R is saved in the 'interpolation_extractions.Rmd' file.
+
+## 2015/12/14
+
+Based on my assessment of the extracted data and the associated surfaces, I reduced the attribute data of the shapefile with extracted interpolated data to that of the selected surfaces. I exported this to the 'shapefiles' directory under the name 'interpolated_ppt'.
+
+I made a shapefile with data extracted to plot locations from the Voronoi polygons (number of days & total rainfall) for each season. This is in the 'Sonoma County' GRASS GIS location and in the 'shapefiles' directory with the name 'plot202ppt_voronoi'.
+
+I made another shapefile with downscaled PRISM data (2004-2010, currently our most recent) extracted to plot point locations. This has the rainy season total and average precipitation, and is in the 'ContAlbersUSGS_CaOrPRISM_8010' GRASS GIS location on my 'Coruscant' external hard drive, as well as a copy in the 'shapefiles' directory.
+
+Now I can shift my focus to rebuilding regression models based on the available rain gauge data and fitting these to the relevant plot data of a form:
+
+ - rainfall(or number of rainy days) ~ elevation + distance to coast(or Pacific)
+
+This will give me one more estimate of the precipitation at each plot location.
+
+
+
+
+
+
 
 
 
