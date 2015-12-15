@@ -609,11 +609,10 @@ save.image("~/Documents/soco_ppt/analysis201511.RData")
 At this point these shapefiles need to be imported to GRASS for doing the precipitation interpolation.
 
 #### Pairs plots and linear models of seasonally aggregated data
-```{r read in spatial data frames}
+```{r read in 'rain_gaugesXX' shapefiles}
 library(rgdal)
-shp_list <- list.files("shapefiles", pattern = "^[rain_]")
+shp_list <- list.files("shapefiles", pattern = "^rain_gauges")
 shp_list <- grep(".shp$", shp_list, value = TRUE)
-shp_list <- shp_list[1:10]
 
 shp_list <- strsplit(shp_list, ".shp")
 tmp <- strsplit(unlist(shp_list), "rain_gauges")
