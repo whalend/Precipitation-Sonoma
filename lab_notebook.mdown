@@ -820,8 +820,13 @@ Now I can shift my focus to rebuilding regression models based on the available 
 
 This will give me one more estimate of the precipitation at each plot location.
 
+## 2015/12/15
 
+Export 'rain_gaugesXX' shapefiles to the 'shapefiles' directory, overwriting the existing files. Read these into the R working environment suing Chunk 23 of the 'analysis_1.Rmd' file.
 
+## 2015/12/16
+
+Estimated total rainfall and number of rainy days at each plot for each season using regression models. I did this in R, with code written in the 'spatial_analysis.Rmd' file. These data are saved in a shapefile named 'plot202ppt_regression' in the 'shapefiles' directory.
 
 
 
