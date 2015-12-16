@@ -294,5 +294,3 @@ ppt_test@data <- select(ppt_test@data, -ppt14a2d, -ppt14c2d, -ppt14c3d, -ppt14a3
 writeOGR(ppt_test, "shapefiles/", "interpolated_ppt", driver = "ESRI Shapefile")
 ```
 
-
-
