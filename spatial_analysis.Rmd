@@ -47,7 +47,7 @@ wide_monthly
 ```
  
 Join monthly totals to spatial data frames that cover multiple years
-```{r read in spatial data frames}
+```{r read in rain gauge shapefiles}
 stations_0308 <- readOGR("shapefiles", "RainGauges2003_2008")
 stations_0911 <- readOGR("shapefiles", "RainGauges2009_2011")
 stations_1214 <- readOGR("shapefiles", "RainGauges2012_2014")
@@ -97,6 +97,7 @@ stations_0911 <- spRbind(stations_0911, glen_ellen_rg)
 stations_1214 <- spRbind(stations_1214, glen_ellen_rg[, c("station", "lat_utm", "lon_utm")])
 ```
 
+Join rainfall data to rain gauge shapefiles.
 ```{r join data}
 summary(stations_0308)
 stations_0308@data <- left_join(stations_0308@data, select(wide_monthly, id, ppt_nov03:ppt_may08), by = c("station" = "id"))
@@ -111,9 +112,57 @@ stations_1214@data <- left_join(stations_1214@data, select(wide_monthly, id, ppt
 summary(stations_1214)
 ```
 
-#### Rain Gauge Distance to Coast
+Read in seasonal rain gauge shapefiles.
+```{r read in 'rain_gaugesXX' shapefiles}
+library(rgdal)
+shp_list <- list.files("shapefiles", pattern = "^rain_gauges")
+shp_list <- grep(".shp$", shp_list, value = TRUE)
+
+shp_list <- strsplit(shp_list, ".shp")
+tmp <- strsplit(unlist(shp_list), "rain_gauges")
+tmp <- unlist(tmp)
+tmp <- tmp[seq(2, 20, 2)]
+
+n = 4
+for(shp in shp_list){
+      assign(paste("rainy", "0", n, sep = ""), 
+             readOGR(dsn = "shapefiles", layer = shp))
+      n = n + 1
+}
+rainy10 <- rainy010; rainy11 <- rainy011 
+rainy12 <- rainy012; rainy14 <- rainy013
+rm(list = ls(pattern = "01"))
+```
+
+Add latitude and longitiude to the attribute table.
+```{r add lat/long to attributes, echo=F}
+rainy04@data$lon_utm <- rainy04@coords[,1]
+rainy04@data$lat_utm <- rainy04@coords[,2]
+rainy05@data$lon_utm <- rainy05@coords[,1]
+rainy05@data$lat_utm <- rainy05@coords[,2]
+rainy06@data$lon_utm <- rainy06@coords[,1]
+rainy06@data$lat_utm <- rainy06@coords[,2]
+rainy07@data$lon_utm <- rainy07@coords[,1]
+rainy07@data$lat_utm <- rainy07@coords[,2]
+rainy08@data$lon_utm <- rainy08@coords[,1]
+rainy08@data$lat_utm <- rainy08@coords[,2]
+rainy09@data$lon_utm <- rainy09@coords[,1]
+rainy09@data$lat_utm <- rainy09@coords[,2]
+rainy10@data$lon_utm <- rainy10@coords[,1]
+rainy10@data$lat_utm <- rainy10@coords[,2]
+rainy11@data$lon_utm <- rainy11@coords[,1]
+rainy11@data$lat_utm <- rainy11@coords[,2]
+rainy12@data$lon_utm <- rainy12@coords[,1]
+rainy12@data$lat_utm <- rainy12@coords[,2]
+rainy14@data$lon_utm <- rainy14@coords[,1]
+rainy14@data$lat_utm <- rainy14@coords[,2]
+```
+
+#### Distance to Coast
+
 ```{r calculate distance to coast}
 library(rgeos)
+soco_plots <- readOGR("shapefiles/", "soco_plots_metric", verbose = F)
 cal_bnd <- readOGR("shapefiles/", "ca_border", verbose = F)
 pac_coast <- readOGR("shapefiles/", "soco_pac_coast", verbose = F)
 stations_0308@data$d2pacific <- apply(gDistance(pac_coast, stations_0308, byid = T), MARGIN = 1, FUN = min)
@@ -145,6 +194,8 @@ rainy11@data$d2pacific <- apply(gDistance(pac_coast, rainy11, byid = T), MARGIN 
 rainy12@data$d2pacific <- apply(gDistance(pac_coast, rainy12, byid = T), MARGIN = 1, FUN = min)
 rainy14@data$d2pacific <- apply(gDistance(pac_coast, rainy14, byid = T), MARGIN = 1, FUN = min)
 
+soco_plots@data$d2pacific <- apply(gDistance(pac_coast, soco_plots, byid = T), MARGIN = 1, FUN = min)
+
 rainy04@data$d2coast <- apply(gDistance(cal_bnd, rainy04, byid = T), MARGIN = 1, FUN = min)
 rainy05@data$d2coast <- apply(gDistance(cal_bnd, rainy05, byid = T), MARGIN = 1, FUN = min)
 rainy06@data$d2coast <- apply(gDistance(cal_bnd, rainy06, byid = T), MARGIN = 1, FUN = min)
@@ -155,8 +206,9 @@ rainy10@data$d2coast <- apply(gDistance(cal_bnd, rainy10, byid = T), MARGIN = 1,
 rainy11@data$d2coast <- apply(gDistance(cal_bnd, rainy11, byid = T), MARGIN = 1, FUN = min)
 rainy12@data$d2coast <- apply(gDistance(cal_bnd, rainy12, byid = T), MARGIN = 1, FUN = min)
 rainy14@data$d2coast <- apply(gDistance(cal_bnd, rainy14, byid = T), MARGIN = 1, FUN = min)
-```
 
+soco_plots@data$d2coast <- apply(gDistance(cal_bnd, soco_plots, byid = T), MARGIN = 1, FUN = min)
+```
 
 ```{r seasonal rain gauge PRISM correlation}
 rs04 <- select(rainy04@data, station, lat, lon, elev_m, totppt_mm, psm_totppt, starts_with("d2")) %>% mutate(year = 2004)
@@ -424,7 +476,7 @@ source("~/Documents/Rscratch/panel_cor.R")
 ```
 
 ```{r RS 2004 OLS models, echo=F}
-pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2004 Rainy Season")
 
@@ -433,7 +485,7 @@ pairs(select(rainy04@data, totppt_mm, rain04_dys, elev_m, lat_utm, lon_utm, psm_
 #       main = "2004 Rainy Season")
 
 elev_m.sqr <- (rainy04@data$elev_m)^2
-elev_m.log <- log1p(rainy04@data$elev_m)
+elev_m.log <- log(rainy04@data$elev_m)
 
 # Total rainfall ~ elevation only models
 rstot04.lm1 <- lm(totppt_mm ~ elev_m, data = rainy04)
@@ -520,10 +572,15 @@ summary(rsdys04.lm4)# indicates that model is better w/elevation
 # dredge(rs04rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs04psm.lm)
 # summary(rs04rg_elev.lm)
+
+rstot04.lm <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
+summary(rstot04.lm)
+elev04.coeff <- rstot04.lm$coefficients[2]
+d2pac04.coeff <- rstot04.lm$coefficients[3]
 ```
 
 ```{r RS 2005 OLS models, echo=F}
-pairs(select(rainy05@data, totppt_mm, rain05_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy05@data, totppt_mm, rain05_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2005 Rainy Season")
 
@@ -622,10 +679,15 @@ summary(rsdys05.lm4c)
 # dredge(rs05rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs05psm.lm)
 # summary(rs05rg_elev.lm)
+
+rstot05.lm <- lm(totppt_mm ~ elev_m + lon_utm, data = rainy05)
+summary(rstot05.lm)
+elev05.coeff <- rstot05.lm$coefficients[2]
+lon_utm05.coeff <- rstot05.lm$coefficients[3]
 ```
 
 ```{r RS 2006 OLS models, echo=F}
-pairs(select(rainy06@data, totppt_mm, rain06_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy06@data, totppt_mm, rain06_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2006 Rainy Season")
 
@@ -712,10 +774,16 @@ summary(rs06rg.lm)
 # dredge(rs06rg.lm, extra = c("adjR^2", "R^2")
 summary(rs06psm.lm)
 summary(rs06rg_elev.lm)
+
+rstot06.lm <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy06)
+summary(rstot06.lm)
+elev06.coeff <- rstot06.lm$coefficients[2]
+d2pac06.coeff <- rstot06.lm$coefficients[3]
+d2coast06.coeff <- rstot06.lm$coefficients[4]
 ```
 
 ```{r RS 2007 OLS models}
-pairs(select(rainy07@data, totppt_mm, rain07_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy07@data, totppt_mm, rain07_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2007 Rainy Season")
 
@@ -800,10 +868,16 @@ summary(rsdys07.lm4b)# adj. R-squared = 0.737
 # dredge(rs07rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs07psm.lm)
 # summary(rs07rg_elev.lm)
+
+rstot07.lm <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy07)
+summary(rstot07.lm)
+elev07.coeff <- rstot07.lm$coefficients[2]
+d2pac07.coeff <- rstot07.lm$coefficients[3]
+d2coast07.coeff <- rstot07.lm$coefficients[4]
 ```
 
 ```{r RS 2008 OLS models}
-pairs(select(rainy08@data, totppt_mm, rain08_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy08@data, totppt_mm, rain08_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2008 Rainy Season")
 
@@ -892,10 +966,16 @@ summary(rstot08.lm4c)
 # dredge(rs08rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs08psm.lm)
 # summary(rs08rg_elev.lm)
+
+rstot08.lm <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy08)
+summary(rstot08.lm)
+elev08.coeff <- rstot08.lm$coefficients[2]
+d2pac08.coeff <- rstot08.lm$coefficients[3]
+d2coast08.coeff <- rstot08.lm$coefficients[4]
 ```
 
 ```{r RS 2009 OLS models}
-pairs(select(rainy09@data, totppt_mm, rain09_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy09@data, totppt_mm, rain09_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2009 Rainy Season")
 
@@ -1019,10 +1099,16 @@ summary(rsdys09.lm5b)# adj. R-squared = 0.094
 # dredge(rs09rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs09psm.lm)
 # summary(rs09rg_elev.lm)
+
+rstot09.lm <- lm(totppt_mm ~ elev_m + d2coast + d2pacific, data = rainy09)
+summary(rstot09.lm)
+elev09.coeff <- rstot09.lm$coefficients[2]
+d2coast09.coeff <- rstot09.lm$coefficients[3]
+d2pac09.coeff <- rstot09.lm$coefficients[4]
 ```
 
 ```{r RS 2010 OLS models}
-pairs(select(rainy10@data, totppt_mm, rain10_dys, elev_m, lat_utm, lon_utm, psm_totppt, d2coast, d2pacific),
+pairs(select(rainy10@data, totppt_mm, rain10_dys, elev_m, lat_utm, lon_utm, d2coast, d2pacific),
       upper.panel = panel.cor, diag.panel = panel.hist,
       main = "2010 Rainy Season")
 
@@ -1139,6 +1225,12 @@ summary(rsdys10.lm5b)# adj. R-squared = 0.131
 # # dredge(rs10rg.lm, extra = c("adjR^2", "R^2"))
 # summary(rs10psm.lm)
 # summary(rs10rg_elev.lm)
+
+rstot10.lm <- lm(totppt_mm ~ elev_m + d2coast + d2pacific, data = rainy10)
+summary(rstot10.lm)
+elev10.coeff <- rstot10.lm$coefficients[2]
+d2coast10.coeff <- rstot10.lm$coefficients[3]
+d2pac10.coeff <- rstot10.lm$coefficients[4]
 ```
 
 ```{r RS 2011 OLS models}
@@ -1257,6 +1349,11 @@ summary(rsdys11.lm5b)# adj. R-squared is negative
 # rs11rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy11)
 # summary(rs11rg.lm)
 # summary(rs11rg_elev.lm)
+rstot11.lm <- lm(totppt_mm ~ elev_m + d2coast + d2pacific, data = rainy10)
+summary(rstot11.lm)
+elev11.coeff <- rstot11.lm$coefficients[2]
+d2coast11.coeff <- rstot11.lm$coefficients[3]
+d2pac11.coeff <- rstot11.lm$coefficients[4]
 ```
 
 ```{r RS 2012 OLS models}
@@ -1378,6 +1475,12 @@ summary(rsdys12.lm5b)# adj. R-squared is negative
 # rs12rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy12)
 # summary(rs12rg.lm)
 # summary(rs12rg_elev.lm)
+
+rstot12.lm <- lm(totppt_mm ~ elev_m + d2pacific + d2coast, data = rainy12)
+summary(rstot12.lm)
+elev12.coeff <- rstot12.lm$coefficients[2]
+d2pac12.coeff <- rstot12.lm$coefficients[3]
+d2coast12.coeff <- rstot12.lm$coefficients[4]
 ```
 
 ```{r RS 2014 OLS models}
@@ -1496,6 +1599,41 @@ summary(rsdys14.lm5b)# adj. R-squared = 0.568
 # rs14rg_elev.lm <- lm(totppt_mm ~ elev_m, data = rainy14)
 # summary(rs14rg.lm)
 # summary(rs14rg_elev.lm)
+
+rstot14.lm <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy14)
+summary(rstot14.lm)
+elev14.coeff <- rstot14.lm$coefficients[2]
+d2pac14.coeff <- rstot14.lm$coefficients[3]
+```
+
+```{r regression rainfall estimates}
+summary(soco_plots)
+soco_plots$ppt04tot_r <- with(soco_plots@data, elevation*elev04.coeff + d2coast*d2pac04.coeff)
+
+soco_plots$ppt05tot_r <- with(soco_plots@data, elevation*elev05.coeff + X*lon_utm05.coeff)# wildly overpredicts the values
+
+soco_plots$ppt06tot_r <- with(soco_plots@data, elevation*elev06.coeff + d2pacific*d2pac06.coeff + d2coast*d2coast06.coeff)
+
+soco_plots$ppt07tot_r <- with(soco_plots@data, elevation*elev07.coeff + d2pacific*d2pac07.coeff + d2coast*d2coast07.coeff)
+
+soco_plots$ppt08tot_r <- with(soco_plots@data, elevation*elev08.coeff + d2pacific*d2pac08.coeff + d2coast*d2coast08.coeff)
+
+soco_plots$ppt09tot_r <- with(soco_plots@data, elevation*elev09.coeff + d2pacific*d2pac09.coeff + d2coast*d2coast09.coeff)
+
+soco_plots$ppt10tot_r <- with(soco_plots@data, elevation*elev10.coeff + d2pacific*d2pac10.coeff + d2coast*d2coast10.coeff)
+
+soco_plots$ppt11tot_r <- with(soco_plots@data, elevation*elev11.coeff + d2pacific*d2pac11.coeff + d2coast*d2coast11.coeff)
+
+soco_plots$ppt12tot_r <- with(soco_plots@data, elevation*elev12.coeff + d2pacific*d2pac12.coeff + d2coast*d2coast12.coeff)
+
+soco_plots$ppt14tot_r <- with(soco_plots@data, elevation*elev14.coeff + d2pacific*d2pac14.coeff)
+
+summary(soco_plots@data)
+writeOGR(soco_plots, "shapefiles/", "plot202ppt_regression", "ESRI Shapefile")
+```
+
+```{r remove coefficient estimates}
+rm(list = ls(pattern = "*coeff"))
 ```
 
 
@@ -1512,7 +1650,6 @@ stations_1214$elev_m <- extract(elev * .3048, stations_1214)
 rm(elev)
 detach("package:raster", unload=TRUE)
 save.image("~/Documents/soco_ppt/spatial_201510.RData")
-
 
 
 ppt_nov03.sp <- stations_0308[, c("station", "lat_utm", "lon_utm", "elev_m", "ppt_nov03")]
