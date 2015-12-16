@@ -577,6 +577,11 @@ rstot04.lm <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy04)
 summary(rstot04.lm)
 elev04.coeff <- rstot04.lm$coefficients[2]
 d2pac04.coeff <- rstot04.lm$coefficients[3]
+
+rsdys04.lm <- lm(rain04_dys ~ elev_m + d2pacific, data = rainy04)
+summary(rsdys04.lm)
+elevdys04.coeff <- rsdys04.lm$coefficients[2]
+d2pacdys04.coeff <- rsdys04.lm$coefficients[3]
 ```
 
 ```{r RS 2005 OLS models, echo=F}
@@ -684,6 +689,12 @@ rstot05.lm <- lm(totppt_mm ~ elev_m + lon_utm, data = rainy05)
 summary(rstot05.lm)
 elev05.coeff <- rstot05.lm$coefficients[2]
 lon_utm05.coeff <- rstot05.lm$coefficients[3]
+
+rsdys05.lm <- lm(rain05_dys ~ elev_m + d2pacific + d2coast, data = rainy05)
+summary(rsdys05.lm)
+elevdys05.coeff <- rsdys05.lm$coefficients[2]
+d2pacdys05.coeff <- rsdys05.lm$coefficients[3]
+d2cstdys05.coeff <- rsdys05.lm$coefficients[4]
 ```
 
 ```{r RS 2006 OLS models, echo=F}
@@ -780,6 +791,11 @@ summary(rstot06.lm)
 elev06.coeff <- rstot06.lm$coefficients[2]
 d2pac06.coeff <- rstot06.lm$coefficients[3]
 d2coast06.coeff <- rstot06.lm$coefficients[4]
+
+rsdys06.lm <- lm(rain06_dys ~ d2pacific + d2coast, data = rainy06)
+summary(rsdys06.lm)
+d2pacdys06.coeff <- rsdys06.lm$coefficients[2]
+d2cstdys06.coeff <- rsdys06.lm$coefficients[3]
 ```
 
 ```{r RS 2007 OLS models}
@@ -874,6 +890,12 @@ summary(rstot07.lm)
 elev07.coeff <- rstot07.lm$coefficients[2]
 d2pac07.coeff <- rstot07.lm$coefficients[3]
 d2coast07.coeff <- rstot07.lm$coefficients[4]
+
+rsdys07.lm <- lm(rain07_dys ~ elev_m + d2pacific + d2coast, data = rainy07)
+summary(rsdys07.lm)
+elevdys07.coeff <- rsdys07.lm$coefficients[2]
+d2pacdys07.coeff <- rsdys07.lm$coefficients[3]
+d2cstdys07.coeff <- rsdys07.lm$coefficients[4]
 ```
 
 ```{r RS 2008 OLS models}
@@ -972,6 +994,10 @@ summary(rstot08.lm)
 elev08.coeff <- rstot08.lm$coefficients[2]
 d2pac08.coeff <- rstot08.lm$coefficients[3]
 d2coast08.coeff <- rstot08.lm$coefficients[4]
+
+rsdys08.lm <- lm(rain08_dys ~ d2coast, data = rainy08)
+summary(rsdys08.lm)# extremely weak correlation between rainy days and potential predictors
+d2cstdys08.coeff <- rsdys08.lm$coefficients[2]
 ```
 
 ```{r RS 2009 OLS models}
@@ -1105,6 +1131,12 @@ summary(rstot09.lm)
 elev09.coeff <- rstot09.lm$coefficients[2]
 d2coast09.coeff <- rstot09.lm$coefficients[3]
 d2pac09.coeff <- rstot09.lm$coefficients[4]
+
+rsdys09.lm <- lm(rain09_dys ~ elev_m + d2coast + d2pacific, data = rainy09)
+summary(rsdys09.lm)
+elevdys09.coeff <- rsdys09.lm$coefficients[2]
+d2cstdys09.coeff <- rsdys09.lm$coefficients[3]
+d2pacdys09.coeff <- rsdys09.lm$coefficients[4]
 ```
 
 ```{r RS 2010 OLS models}
@@ -1231,6 +1263,12 @@ summary(rstot10.lm)
 elev10.coeff <- rstot10.lm$coefficients[2]
 d2coast10.coeff <- rstot10.lm$coefficients[3]
 d2pac10.coeff <- rstot10.lm$coefficients[4]
+
+rsdys10.lm <- lm(rain10_dys ~ elev_m + d2coast + d2pacific, data = rainy10)
+summary(rsdys10.lm)
+elevdys10.coeff <- rsdys10.lm$coefficients[2]
+d2cstdys10.coeff <- rsdys10.lm$coefficients[3]
+d2pacdys10.coeff <- rsdys10.lm$coefficients[4]
 ```
 
 ```{r RS 2011 OLS models}
@@ -1354,6 +1392,11 @@ summary(rstot11.lm)
 elev11.coeff <- rstot11.lm$coefficients[2]
 d2coast11.coeff <- rstot11.lm$coefficients[3]
 d2pac11.coeff <- rstot11.lm$coefficients[4]
+
+rsdys11.lm <- lm(rain11_dys ~ elev_m + d2pacific, data = rainy11)
+summary(rsdys11.lm)
+elevdys11.coeff <- rsdys11.lm$coefficients[2]
+d2pacdys11.coeff <- rsdys11.lm$coefficients[3]
 ```
 
 ```{r RS 2012 OLS models}
@@ -1481,6 +1524,11 @@ summary(rstot12.lm)
 elev12.coeff <- rstot12.lm$coefficients[2]
 d2pac12.coeff <- rstot12.lm$coefficients[3]
 d2coast12.coeff <- rstot12.lm$coefficients[4]
+
+rsdys12.lm <- lm(rain12_dys ~ elev_m + d2pacific, data = rainy12)
+summary(rsdys12.lm)
+elevdys12.coeff <- rsdys12.lm$coefficients[2]
+d2pacdys12.coeff <- rsdys12.lm$coefficients[3]
 ```
 
 ```{r RS 2014 OLS models}
@@ -1604,32 +1652,48 @@ rstot14.lm <- lm(totppt_mm ~ elev_m + d2pacific, data = rainy14)
 summary(rstot14.lm)
 elev14.coeff <- rstot14.lm$coefficients[2]
 d2pac14.coeff <- rstot14.lm$coefficients[3]
+
+rsdys14.lm <- lm(rain14_dys ~ d2pacific + d2coast, data = rainy14)
+summary(rsdys14.lm)
+d2pacdys14.coeff <- rsdys14.lm$coefficients[2]
+d2cstdys14.coeff <- rsdys14.lm$coefficients[3]
 ```
 
-```{r regression rainfall estimates}
+```{r regression rainfall/rainy days estimates}
 summary(soco_plots)
 soco_plots$ppt04tot_r <- with(soco_plots@data, elevation*elev04.coeff + d2coast*d2pac04.coeff)
+soco_plots$ppt04dys_r <- with(soco_plots@data, elevation*elevdys04.coeff + d2pacific*d2pacdys04.coeff)
 
 soco_plots$ppt05tot_r <- with(soco_plots@data, elevation*elev05.coeff + X*lon_utm05.coeff)# wildly overpredicts the values
+soco_plots$ppt05dys_r <- with(soco_plots@data, elevation*elevdys05.coeff + d2coast*d2cstdys05.coeff + d2pacific*d2pacdys05.coeff)# all negative relationships, so can only get negative predicted values
 
 soco_plots$ppt06tot_r <- with(soco_plots@data, elevation*elev06.coeff + d2pacific*d2pac06.coeff + d2coast*d2coast06.coeff)
+soco_plots$ppt06dys_r <- with(soco_plots@data, d2coast*d2cstdys06.coeff + d2pacific*d2pacdys06.coeff)
 
 soco_plots$ppt07tot_r <- with(soco_plots@data, elevation*elev07.coeff + d2pacific*d2pac07.coeff + d2coast*d2coast07.coeff)
+soco_plots$ppt07dys_r <- with(soco_plots@data, elevation*elevdys07.coeff + d2pacific*d2pacdys07.coeff + d2coast*d2cstdys07.coeff)
 
 soco_plots$ppt08tot_r <- with(soco_plots@data, elevation*elev08.coeff + d2pacific*d2pac08.coeff + d2coast*d2coast08.coeff)
+soco_plots$ppt08dys_r <- with(soco_plots@data, d2coast*d2cstdys08.coeff)
 
 soco_plots$ppt09tot_r <- with(soco_plots@data, elevation*elev09.coeff + d2pacific*d2pac09.coeff + d2coast*d2coast09.coeff)
+soco_plots$ppt09dys_r <- with(soco_plots@data, elevation*elevdys09.coeff + d2pacific*d2pacdys09.coeff + d2coast*d2cstdys09.coeff)
 
 soco_plots$ppt10tot_r <- with(soco_plots@data, elevation*elev10.coeff + d2pacific*d2pac10.coeff + d2coast*d2coast10.coeff)
+soco_plots$ppt10dys_r <- with(soco_plots@data, elevation*elevdys10.coeff + d2pacific*d2pacdys10.coeff + d2coast*d2cstdys10.coeff)
 
 soco_plots$ppt11tot_r <- with(soco_plots@data, elevation*elev11.coeff + d2pacific*d2pac11.coeff + d2coast*d2coast11.coeff)
+soco_plots$ppt11dys_r <- with(soco_plots@data, elevation*elevdys11.coeff + d2pacific*d2pacdys11.coeff)
 
 soco_plots$ppt12tot_r <- with(soco_plots@data, elevation*elev12.coeff + d2pacific*d2pac12.coeff + d2coast*d2coast12.coeff)
+soco_plots$ppt12dys_r <- with(soco_plots@data, elevation*elevdys12.coeff + d2pacific*d2pacdys12.coeff)
 
 soco_plots$ppt14tot_r <- with(soco_plots@data, elevation*elev14.coeff + d2pacific*d2pac14.coeff)
+soco_plots$ppt14dys_r <- with(soco_plots@data, d2pacific*d2pacdys14.coeff + d2coast*d2cstdys14.coeff)
 
 summary(soco_plots@data)
-writeOGR(soco_plots, "shapefiles/", "plot202ppt_regression", "ESRI Shapefile")
+# Quite a few of the estimates for rainy days end up being negative; in short, regression is a pretty terrible way to try and estimate number of rainy days using these data.
+writeOGR(soco_plots, "shapefiles/", "plot202ppt_regression", "ESRI Shapefile", overwrite_layer = T)
 ```
 
 ```{r remove coefficient estimates}
