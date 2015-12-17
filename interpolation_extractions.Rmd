@@ -150,7 +150,7 @@ The samples of the 3D surfaces of rainy days have a correlation of 0.66, with su
 
 ```{r select 2008 data, echo=F}
 summary(ppt_test)
-ppt_test@data <- select(ppt_test@data, -ppt08a2d, -ppt08b2d, -ppt08a3d, -ppt08b3d, -ppt08c3d, -ppt08d3d, -dys08b2d, -dys08b3d)
+ppt_test@data <- select(ppt_test@data, -ppt08a2d, -ppt08b2d, -ppt08a3d, -ppt08b3d, -ppt08c3d, -ppt08d3d, -dys08a2d, -dys08b2d, -dys08b3d)
 ```
 
 ```{r interpolated total rainfall 2009}
@@ -291,6 +291,6 @@ ppt_test@data <- select(ppt_test@data, -ppt14a2d, -ppt14c2d, -ppt14c3d, -ppt14a3
 ```
 
 ```{r write new shapefile, echo=F}
-writeOGR(ppt_test, "shapefiles/", "interpolated_ppt", driver = "ESRI Shapefile")
+writeOGR(ppt_test, "shapefiles/", "interpolated_ppt", driver = "ESRI Shapefile", overwrite_layer = T)
 ```
 
