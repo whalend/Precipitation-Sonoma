@@ -165,8 +165,10 @@ pairs(select(ppt_total@data, contains('14'), -PLOT_ID, -X, -Y),
       main = "2014 Rainfall Estimates")
 #' Correlation of these estimates are all reasonably strong as well (0.49 - 0.86), strongest between 2D and Voronoi, weakest between regression and Voronoi. Model inference from these estimates are likely to all be similar.
 #' ***
-
-
+#' 
+#+ Save RData with ppt_days and ppt_total
+rm(ppt_psm); rm(ppt_reg); rm(ppt_int); rm(ppt_vor)
+save.image("~/Documents/soco_ppt/plot_ppt_estimates.RData")
 
 
 
