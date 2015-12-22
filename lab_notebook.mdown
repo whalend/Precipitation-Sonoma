@@ -812,7 +812,7 @@ Based on my assessment of the extracted data and the associated surfaces, I redu
 
 I made a shapefile with data extracted to plot locations from the Voronoi polygons (number of days & total rainfall) for each season. This is in the 'Sonoma County' GRASS GIS location and in the 'shapefiles' directory with the name 'plot202ppt_voronoi'.
 
-I made another shapefile with downscaled PRISM data (2004-2010, currently our most recent) extracted to plot point locations. This has the rainy season total and average precipitation, and is in the 'ContAlbersUSGS_CaOrPRISM_8010' GRASS GIS location on my 'Coruscant' external hard drive, as well as a copy in the 'shapefiles' directory.
+I made another shapefile with downscaled PRISM data (2004-2010, currently our most recent) extracted to plot point locations. This has the rainy season total and average precipitation, and is in the 'ContAlbersUSGS_CaOrPRISM_8010' GRASS GIS location on my 'Coruscant' external hard drive, as well as a copy in the 'shapefiles' directory with the name 'plot202ppt_PRISM'.
 
 Now I can shift my focus to rebuilding regression models based on the available rain gauge data and fitting these to the relevant plot data of a form:
 
@@ -828,8 +828,9 @@ Export 'rain_gaugesXX' shapefiles to the 'shapefiles' directory, overwriting the
 
 Estimated total rainfall and number of rainy days at each plot for each season using regression models. I did this in R, with code written in the 'spatial_analysis.Rmd' file. These data are saved in a shapefile named 'plot202ppt_regression' in the 'shapefiles' directory.
 
+## 2015/12/17
 
-
+Added a script for examining/comparing the precipitation estimates for the plot locations.
 
 
 
