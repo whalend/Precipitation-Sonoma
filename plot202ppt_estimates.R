@@ -46,11 +46,11 @@ summary(ppt_total)
 
 #' ## Pairs Plots
 #' 
-#+
+#+ load pairs panel functions ####
 source("~/Documents/Rscratch/panel_cor.R")# source panel functions; path specific to machine and file name
 
 #' ### Rainy Days
-#+
+#+ pairs plots of rainy days estimates ####
 summary(ppt_days)
 pairs(select(ppt_days@data, contains('04'), -PLOT_ID, -X, -Y, -contains('_r')),
       upper.panel = panel.cor, diag.panel = panel.hist,
@@ -104,7 +104,7 @@ pairs(select(ppt_days@data, contains('14'), -PLOT_ID, -X, -Y, -contains('_r')),
 #' ***
 
 #' ### Total Rainfall
-#+
+#+ pairs plots of total rainfall estimates ####
 summary(ppt_total)
 pairs(select(ppt_total@data, contains('04'), -PLOT_ID, -X, -Y), 
       upper.panel = panel.cor, diag.panel = panel.hist,
