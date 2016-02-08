@@ -129,7 +129,7 @@ summary(rgs_plots)
 # drop rows with NAs
 rgs_plots <- na.omit(rgs_plots)
 
-write.csv(rgs_plots, "wet-days-temps.csv")
+write.csv(rgs_plots, "wet-days-temps.csv", row.names = F)
 
 
 
