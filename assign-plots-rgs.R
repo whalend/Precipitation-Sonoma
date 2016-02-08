@@ -114,7 +114,7 @@ head(daily_rg)
 summary(daily_rg)
 daily_rg$stationid <- as.factor(daily_rg$stationid)
 
-#' Filter daily rainfall data to days with measurable precipitation
+#' Filter daily rainfall data to days with measurable precipitation, "wet days."
 #+ filter daily rain data ####
 daily_rg <- daily_rg %>% filter(daily_ppt > 0.01)
 summary(daily_rg)
