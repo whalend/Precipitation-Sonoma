@@ -8,10 +8,10 @@ output:
 ---
 
 ## Elevation and Spatial Locations of Rain Gauges
-This reports on some of the exploratory analysis of spatial relationships in the precipitation data, including a comparison of our rain gauge data to estimates from downscaled PRISM data (from 800m to 100m). (These code chunks are mostly pulled from my `spatial_analysis.Rmd` file, but this should function as a stand alone with the `spatial_201510.RData` file.)
+This reports on some of the exploratory analysis of spatial relationships in the precipitation data, including a comparison of our rain gauge data to estimates from downscaled PRISM data (from 800m to 100m). (These code chunks are mostly pulled from my `spatial_analysis.Rmd` file, but this should function as a stand alone with the `analysis201511.RData` file.)
 
 ```{r load spatial data, echo=FALSE, message=FALSE}
-load("~/Documents/soco_ppt/spatial_201510.RData")
+load("~/Documents/soco_ppt/analysis201511.RData")
 ```
 
 ```{r map rain gauges elevation, echo=FALSE, message=FALSE, fig.height=8}
@@ -20,7 +20,7 @@ elev <- raster("dem/sod15m.tif")
 sod_plots <- readOGR("shapefiles/", "soco_plots_metric", verbose = F)
 
 plot(elev, main = "Rain Gauge Locations")
-plot(spTransform(stations_0308, CRSobj = proj4string(elev)), pch = 6, col = "blue", bg="transparent", add=TRUE)
+plot(spTransform(rg0308, CRSobj = proj4string(elev)), pch = 6, col = "blue", bg="transparent", add=TRUE)
 plot(spTransform(sod_plots, CRSobj = proj4string(elev)), pch = 20, cex = .3, add = T)
 ```
 
