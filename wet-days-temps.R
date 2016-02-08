@@ -27,7 +27,7 @@ library(ggplot2)
 #      xlab = "Date", ylab = "Temperature",
 #      main = "2004 Rainy Season Wet Days Temperatures")
 
-# 2004 season -------------------------------------------------------------
+#+ 2004 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2004), aes(date, temp)) +
       geom_point() +
       labs(title = "2004 Rainy Season Wet Days Temperatures",
@@ -48,7 +48,7 @@ ggplot(filter(wet_days, plotid == "lars01", sample_year == 2004),
            x = "Date", y = "Temperature")
 
 #' This set of values in 2004 appear well outside of what the rest of the temperatures were during this particular time period. It looks like the logger may have been brought back to the lab and continued to record for about a month. This may have implications back to filling in the missing temperature data - were these values part of the data used to fill in the missing values or were they missing values that we filled in?
-
+#+
 outliers <- filter(wet_days, date > "2004-01-01", date < "2004-02-28", temp > 18)
 wet_days <- anti_join(wet_days, lars)
 
@@ -56,7 +56,7 @@ ggplot(filter(wet_days, sample_year == 2004), aes(date, temp)) +
       geom_point() +
       labs(title = "2004 Rainy Season Wet Days Temperatures, Outliers Removed",
            x = "Date", y = "Temperature")
-# 2005 season -------------------------------------------------------------
+#+ 2005 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2005), aes(date, temp)) +
       geom_point() +
       labs(title = "2005 Rainy Season Wet Days Temperatures",
@@ -64,7 +64,7 @@ ggplot(filter(wet_days, sample_year == 2005), aes(date, temp)) +
 
 #' No temperature values stand out as outliers on wet days during the 2005 rainy season.
 
-# 2006 season -------------------------------------------------------------
+#+ 2006 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2006), aes(date, temp)) +
       geom_point() +
       labs(title = "2006 Rainy Season Wet Days Temperatures",
@@ -72,14 +72,14 @@ ggplot(filter(wet_days, sample_year == 2006), aes(date, temp)) +
 
 #' No temperature values standing out for wet days during 2006 rainy season
 
-# 2007 season -------------------------------------------------------------
+#+ 2007 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2007), aes(date, temp)) +
       geom_point() +
       labs(title = "2007 Rainy Season Wet Days Temperatures",
            x = "Date", y = "Temperature")
 #' No temperature values standing out for wet days during 2006 rainy season
 
-# 2008 season -------------------------------------------------------------
+#+ 2008 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2008), aes(date, temp)) +
       geom_point() +
       labs(title = "2008 Rainy Season Wet Days Temperatures",
@@ -87,11 +87,11 @@ ggplot(filter(wet_days, sample_year == 2008), aes(date, temp)) +
 unique(filter(wet_days, sample_year == 2008, date > "2008-05-15")$plotid)
 
 #' 89 of the plots had wet days on May 24th and/or May 25th, though it appears that the plots were all either assigned or oddly recorded the same temperature value for these dates. A summary of the filtered data gives shows that all the temperature values were 13.51, which doesn't make sense over multiple hours for multiple days. Since I'm trying to make a combinatorial variable of temperature on wet days I think this could have a strong skewing effect on the data because it would add 2856 hours to the <14 C threshold. 
-
+#+
 outliers <- filter(wet_days, sample_year == 2008, date > "2008-05-15")
 wet_days <- anti_join(wet_days, outliers)
 
-# 2009 season -------------------------------------------------------------
+#+ 2009 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2009), aes(date, temp)) +
       geom_point() +
       labs(title = "2009 Rainy Season Wet Days Temperatures",
@@ -99,7 +99,7 @@ ggplot(filter(wet_days, sample_year == 2009), aes(date, temp)) +
 summary(filter(wet_days, sample_year == 2009, temp > 30))
 
 #' It is a little suspicious to me that only two plots recorded temperatures above 30, and the majority are at KUNDE01, whichi is fairly nearby other plots.
-
+#+
 ggplot(filter(wet_days, sample_year == 2009, date > "2009-04-20", date < "2009-05-15"), aes(date, temp)) +
       geom_point() +
       labs(title = "2009 Rainy Season Wet Days Temperatures - Subset",
@@ -114,7 +114,7 @@ qplot(plotid, temp, data = filter(wet_days, sample_year == 2009, plotid == "kund
 
 #' The one really different period during the end of April through the first week of May, but otherwise the temperatures at these locations seem to track pretty closely.
 
-# 2010 season -------------------------------------------------------------
+#+ 2010 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2010), aes(date, temp)) +
       geom_point() +
       labs(title = "2010 Rainy Season Wet Days Temperatures",
@@ -127,7 +127,7 @@ summary(filter(wet_days, sample_year == 2010, temp > 25))
 outliers <- filter(wet_days, date > "2009-12-01", date < "2010-03-15", temp > 24)
 wet_days <- anti_join(wet_days, outliers)
 
-# 2011 season -------------------------------------------------------------
+#+ 2011 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2011), aes(date, temp)) +
       geom_point() +
       labs(title = "2011 Rainy Season Wet Days Temperatures",
@@ -136,11 +136,11 @@ filter(wet_days, sample_year == 2011, temp > 25)# 209 observations
 filter(wet_days, sample_year == 2011, temp > 22)# 404 observations
 
 #' Again, I'm in disbelief of these temperatures that are well above 25 C. The majority of these are from three plots during November or December (FOP333, FOP340, JROTH05) and account for over half the observations >22 C.
-
+#+
 outliers <- filter(wet_days, date > "2010-11-01", date < "2011-01-01" , temp > 25)
 wet_days <- anti_join(wet_days, outliers)
 
-# 2012 season -------------------------------------------------------------
+#+ 2012 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2012), aes(date, temp)) +
       geom_point() +
       labs(title = "2012 Rainy Season Wet Days Temperatures",
@@ -149,10 +149,10 @@ filter(wet_days, sample_year == 2012, temp > 35)
 # filter(wet_days, sample_year == 2012, temp > 20, date > "2012-03-15", date < "2012-03-30")
 
 #' One outlier that is a single observation (>35 C) should definitely be removed. It looks like there may have a warm spell for a few days during the last half of April.
-
+#+
 wet_days <- filter(wet_days, date != "2012-03-15" | hour != 5 | plotid != "gard01")
 
-# 2014 season -------------------------------------------------------------
+#+ 2014 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2014), aes(date, temp)) +
       geom_point() +
       labs(title = "2014 Rainy Season Wet Days Temperatures",
@@ -160,11 +160,17 @@ ggplot(filter(wet_days, sample_year == 2014), aes(date, temp)) +
 filter(wet_days, sample_year == 2014, temp > 25)
 
 #' I don't see any notable outlying temperature values for this season, at least relatively speaking. There are still a number of observations that were >25 C.
-
+#+
 rm(outliers)
 
+
+#+ outliers investigation summary ------------------------------------------
 2775000 - 2771526# I removed 3474 observations (hours)
-3474/2775000# This is about 1/10th of 1% of the observations
+100*(3474/2775000)# This is about 1/10th of 1% of the observations
+
+
+#+ summarize temperature thresholds ----------------------------------------
+
 
 
 
