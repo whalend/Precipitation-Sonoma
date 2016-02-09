@@ -177,13 +177,13 @@ wet_days_hrs <- wet_days %>%
 
 wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
       select(-stationid, -daily_ppt) %>% 
-      filter(temp < 14) %>% 
+      filter(temp <= 14) %>% 
       group_by(plotid, sample_year) %>% 
       summarise(hrsblw14_wet = length(temp)))
 
 wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
       select(-stationid, -daily_ppt) %>% 
-      filter(temp > 14, temp < 22) %>% 
+      filter(temp > 14, temp <= 22) %>% 
       group_by(plotid, sample_year) %>% 
       summarise(hrs1422_wet = length(temp)))
 
@@ -192,7 +192,69 @@ wet_days_hrs <- left_join(wet_days_hrs, wet_days %>%
       filter(temp > 22) %>% 
       group_by(plotid, sample_year) %>% 
       summarise(hrsabv22_wet = length(temp)))
-wet_days_hrs
 
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      group_by(plotid, sample_year, date) %>% 
+      summarise(daily_tmax = max(temp), daily_tmin = min(temp)) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(avgtmax_wet = mean(daily_tmax), avgtmin_wet = mean(daily_tmin))
+            )
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(avgtemp_wet = mean(temp)))
+
+
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+                                select(-stationid, -daily_ppt) %>% 
+                                filter(temp <= 10) %>% 
+                                group_by(plotid, sample_year) %>% 
+                                summarise(hrsblw10_wet = length(temp)))
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+                                select(-stationid, -daily_ppt) %>% 
+                                filter(temp > 10, temp <= 20) %>% 
+                                group_by(plotid, sample_year) %>% 
+                                summarise(hrs1020_wet = length(temp)))
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+                                select(-stationid, -daily_ppt) %>% 
+                                filter(temp > 20) %>% 
+                                group_by(plotid, sample_year) %>% 
+                                summarise(hrsabv20_wet = length(temp)))
+
+wet_days_hrs
+summary(wet_days_hrs)
+# boxplot(hrsblw14_wet ~ sample_year, data = wet_days_hrs)
+filter(wet_days_hrs, tothrs_wet < 300)
 write.csv(wet_days_hrs, "wet-days-temperature-variables.csv")
+write.csv(wet_days_hrs, "~/GitHub/superspreaders/analysis/datawet-days-temperature-variables.csv")
+
+#' It looks like nearly all of the temperatures recorded during wet days are below 14 C, so that doesn't address questions about different temperature thresholds. I can say something about the variability in the number of hours at or below 14 C in relation to other biological and physical plot characteristics. The 10 C threshold appears to provide a more equitable split between the lower temperature and 'optimal' between 10 C and 20 C grouping.
+
+#+ panel plot ####
+panel.hist <- function(x, ...){
+      usr <- par("usr"); on.exit(par(usr))
+      par(usr = c(usr[1:2], 0, 1.5) )
+      h <- hist(x, plot = FALSE)
+      breaks <- h$breaks; nB <- length(breaks)
+      y <- h$counts; y <- y/max(y)
+      rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){
+      usr <- par("usr"); on.exit(par(usr))
+      par(usr = c(0, 1, 0, 1))
+      r <- abs(cor(x, y))
+      txt <- format(c(r, 0.123456789), digits = digits)[1]
+      txt <- paste0(prefix, txt)
+      if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+      text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+pairs(select(wet_days_hrs, -plotid), diag.panel = panel.hist, lower.panel = panel.cor)
+
+#' The vast majority of the temperatures when it's wet during the rainy season are at or below 14 C, and even at or below 10 C. This is shown by the strong positive correlation between the total number of hours recorded when it's wet and the subsetted number of hours for each of these thresholds.
+
+
+
+
 
