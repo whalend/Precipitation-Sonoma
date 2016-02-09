@@ -170,11 +170,29 @@ rm(outliers)
 
 
 #+ summarize temperature thresholds ----------------------------------------
+wet_days_hrs <- wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(tothrs_wet = length(temp))
 
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      filter(temp < 14) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(hrsblw14_wet = length(temp)))
 
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      filter(temp > 14, temp < 22) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(hrs1422_wet = length(temp)))
 
+wet_days_hrs <- left_join(wet_days_hrs, wet_days %>% 
+      select(-stationid, -daily_ppt) %>% 
+      filter(temp > 22) %>% 
+      group_by(plotid, sample_year) %>% 
+      summarise(hrsabv22_wet = length(temp)))
+wet_days_hrs
 
-
-
-
+write.csv(wet_days_hrs, "wet-days-temperature-variables.csv")
 
