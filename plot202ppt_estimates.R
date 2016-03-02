@@ -8,7 +8,7 @@
 #'  4. ~~Regression model (rainfall & rainy days)~~
 #'  5. Downscaled PRISM (rainfall only)
 #'  
-#+ Load data from shapefiles
+#+ Load data from shapefiles ####
 library(sp); library(rgdal); library(dplyr)
 ppt_reg <- readOGR("shapefiles/", "plot202ppt_regression")# regression estimates
 ppt_int <- readOGR("shapefiles/", "interpolated_ppt")# interpolation estimates
@@ -16,6 +16,8 @@ ppt_vor <- readOGR("shapefiles/", "plot202ppt_voronoi")# Voronoi estimates
 ppt_psm <- readOGR("shapefiles/", "plot202ppt_PRISM")# PRISM estimates
 
 summary(ppt_reg)
+
+# make a dataset of the number of rainy days estimates
 ppt_days <- ppt_reg
 ppt_days@data <- select(ppt_days@data, PLOT_ID, X, Y, contains('dys'))
 summary(ppt_int)
@@ -28,6 +30,7 @@ ppt_days@data <- left_join(ppt_days@data,
                            by = "PLOT_ID")
 summary(ppt_days)
 
+# make a dataset of the total rainfall estimates
 ppt_total <- ppt_reg
 ppt_total@data <- select(ppt_total@data, PLOT_ID, X, Y, contains('tot'))
 summary(ppt_int)
@@ -44,12 +47,16 @@ ppt_total@data <- left_join(ppt_total@data,
                             by = "PLOT_ID")
 summary(ppt_total)
 
+#' Now there are two datasets, one for number of rainy days and one for total rainfall, each containing estimates from the different methodologies.
+
 #' ## Pairs Plots
 #' 
 #+ load pairs panel functions ####
 source("~/Documents/Rscratch/panel_cor.R")# source panel functions; path specific to machine and file name
 
 #' ### Rainy Days
+#' I'm making a pairs plot for each season of the number of rainy days estimates from the different methods to see how they compare/correlate.
+#' 
 #+ pairs plots of rainy days estimates ####
 summary(ppt_days)
 pairs(select(ppt_days@data, contains('04'), -PLOT_ID, -X, -Y, -contains('_r')),
@@ -104,6 +111,8 @@ pairs(select(ppt_days@data, contains('14'), -PLOT_ID, -X, -Y, -contains('_r')),
 #' ***
 
 #' ### Total Rainfall
+#' As for the number of rainy days, I'm making pairs plots for each season of the total rainfall estimates from the different methodologies to compare correlations.
+#' 
 #+ pairs plots of total rainfall estimates ####
 summary(ppt_total)
 pairs(select(ppt_total@data, contains('04'), -PLOT_ID, -X, -Y), 
