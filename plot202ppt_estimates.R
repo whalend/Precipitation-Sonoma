@@ -2,10 +2,10 @@
 #' 
 #' I want to compare the rainfall/rainy days estimates for each season produced using the different methods.
 #' 
-#'  1. 2D interpolation (rainfall & rainy days)
-#'  2. 3D interpolation (rainfall & rainy days)
+#'  1. 2D interpolation (rainfall ~~& rainy days~~)
+#'  2. ~~3D interpolation (rainfall & rainy days)~~
 #'  3. Voronoi polygons (rainfall & rainy days)
-#'  4. Regression model (rainfall & rainy days)
+#'  4. ~~Regression model (rainfall & rainy days)~~
 #'  5. Downscaled PRISM (rainfall only)
 #'  
 #+ Load data from shapefiles
