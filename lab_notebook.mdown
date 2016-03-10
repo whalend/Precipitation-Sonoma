@@ -287,6 +287,8 @@ Added column for total precipitation (in mm) labels to improve map visualization
 
 The parameters I used to interpolated 2D/3D surfaces were based on minimizing MAE for select values. For selecting a good surface, I am thinking that I can try matching the histogram shape and range of the original data as well as making a qualitative judgement on the pattern of the surface.
 
+UPDATE: Based on discussion with Ryan I am going to use a simpler interpolated surface that captures the general trend across the area, usually an east-west or north-south gradient of rainfall. This will introduce a little more variation to the values compared to the nearest-neighbor assignment of the Voronoi polygons. The interpolated surfaces also utilize data from additional rain gauges outside the original network that don't cover any plots in the Voronoi polygons. I'm recalculating surfaces for the full rainy season (November-May) and the sampling season (November-April), and deleting other unused surfaces (tension values > 30) from the GRASS database. I expect that these outputs will not be very different from each other (sample season vs. rainy season).
+
 #### 2004 Total Rainfall
 
 **Range of original data: 266 - 1193, mean: 685, CV: 39**
@@ -298,6 +300,8 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
      - plot point samples: range = 335 - 1287, mean = 763
    - correlation between these surfaces is 0.92
 
+Update: Extract values from the tension = 2 and smoothing = 0.2 surfaces.
+
  2. 3D Surfaces
    a. surface 'ppt04tot3d_t10s1z10', range: 265 - 1196, mean: 689, CV: 19, MAE: 197
      - plot point samples: range = 275 - 1033, mean = 718
@@ -307,6 +311,7 @@ The parameters I used to interpolated 2D/3D surfaces were based on minimizing MA
    - correlation between these surfaces is 0.95
 
 I'm inclined to go with the surfaces that provide the wider range of possible values (higher CV). This would be surface 'a' for the 3D interpolation and surface 'b' for the 2D interpolation.
+
 
 #### 2004 Rainy Days
 
@@ -358,6 +363,8 @@ Use data from surface 'a'.
 
 There is very little qualitative difference between these 2D interpolated surfaces. Use surface 'a'.
 
+Update: Recalculated rainy season and sample season surfaces using tension = 4 and smoothing = 0.1. Extracted values to the 'plot202ppt' shapefile.
+
  2. 3D Surfaces
    a. surface 'ppt05tot3d_t10s9z1', range: 653 - 932, mean: 818, CV: 4, MAE: 172
      - plot point samples: range = 654 - 927, mean = 821
@@ -408,6 +415,8 @@ Not a strong difference between these surfaces. Use surface 'a'.
      - plot point samples: range = 812 - 1529, mean = 1152
 
 Use this surface (obviously).
+
+Update: I recalculated surfaces with tension = 1 and smoothing = 0.1 for the rainy season and sampling season, and extracted values to the 'plot202ppt' shapefile.
 
  2. 3D Surfaces
    a. surface 'ppt06tot3d_t4s1z30', range: 761 - 1534, mean: 1126, CV: 15, MAE: 252
@@ -461,6 +470,8 @@ Use surface 'b'.
 
 Use surface 'c'.
 
+Update: I recalculated surfaces for the rainy season and sampling season with tension = 7 and smoothing = 0.3 and extracted values to the 'plot202ppt' shapefile.
+
  2. 3D Surfaces
    a. surface 'ppt07tot3d_t10s1z100', range: 395 - 651, mean: 522, CV: 9, MAE: 99
    b. surface 'ppt07tot3d_t10s9z100', range: 466 - 576, mean: 524, CV: 4, MAE: 96 
@@ -506,12 +517,14 @@ Use surface 'c'.
    a. surface 'ppt08tot_t10s9', range: 474 - 826, mean: 592, CV: 15, MAE: 132
    b. surface 'ppt08tot_t8s9', range: 470 - 816, mean: 593, CV: 15, MAE: 128
    c. surface 'ppt08tot_t20s9', range: 430 - 846, mean: 591, CV: 15, MAE: 134
-   - correlation between these surfaces is >0.98
+   - correlation between these surfaces is >0.96
       - 1.000000
         0.995511 1.000000
         0.982714 0.964477 1.000000
 
 Use surface 'c'. 
+
+Update: Based on the measurements at the rain gauges, the pattern for the surface where tension = 20 and smoothing = 0.9 looks the most appropriate. This surface also pproduces a range of values closest to the original range in the data. To better capture the range of values I am going to use surfaces with the smoothing value reduced to 0.3.
 
  2. 3D Surfaces (continued 2015/12/9)
    a. surface 'ppt08tot3d_t1s1z60', range: 471 - 687, mean: 570, CV: 8, MAE: 118
@@ -563,6 +576,8 @@ Use surface 'a', though it does produce tight hotspots around the data points.
 
 Use surface 'b'.
 
+Update: There is not much consistency with the rain gauge measurements, so I am going to use a pretty general interpolation for the surface with tension = 1 and smoothing = 0.2. I generated surfaces for the rainy season and sampling season, and extracted values to the 'plot202ppt' shapefile.
+
  2. 3D Surfaces
    a. surface 'ppt09tot3d_t4s1z1', range: 345 - 861, mean: 511, CV: 16, MAE: 145
    b. surface 'ppt09tot3d_t5s1z1', range: 345 - 866, mean: 511, CV: 15, MAE: 142
@@ -597,7 +612,7 @@ Use surface 'b'.
 **Range of original data: 478 - 1081, mean: 768, CV: 22**
 
  1. 2D Surfaces
-   a. surface 'ppt10tot_t30s2', range: 492 - 1070, mean: 761, CV: 15, MAE: 126
+   ~~a. surface 'ppt10tot_t30s2', range: 492 - 1070, mean: 761, CV: 15, MAE: 126~~
    b. surface 'ppt10tot_t20s9', range: 546 - 1031, mean: 762, CV: 14, MAE: 128
    c. surface 'ppt10tot_t10s9', range: 566 - 1013, mean: 764, CV: 15, MAE: 137
    - correlation between these surfaces is >0.96
@@ -606,6 +621,8 @@ Use surface 'b'.
         0.969339 0.985469 1.000000
 
 Use surface 'b'.
+
+Update: I'm going to use tension = 5 and smoothing = 0.3 to generate the new surfaces for the rainy season and sampling season. I extracted values from these surfaces to the 'plot202ppt' shapefile.
 
  2. 3D Surfaces
    a. surface 'ppt10tot3d_t10s1z4', range: 530 - 1028, mean: 756, CV: 11, MAE: 124
@@ -659,6 +676,8 @@ Use surface 'a'.
 
 Use surface 'b'.
 
+Update: I'm using tension = 3 and smoothing = 0.1 values to generate new surfaces for the rainy season and sampling season. I think that this captures the general pattern based on the rain gauge measurements, while also covering the range of actual values. I extracted values from these surfaces to the 'plot202ppt' shapefile.
+
  2. 3D Surfaces
    a. surface 'ppt11tot3d_t4s1z30', range: 520 - 1174, mean: 790, CV: 17, MAE: 260
    b. surface 'ppt11tot3d_t9s1z2', range: 423 - 1152, mean: 771, CV: 16, MAE: 264
@@ -699,7 +718,9 @@ Use surface 'a'.
         0.910965 0.949626 1.000000
         0.874295 0.914875 0.988480 1.000000 
 
-Use surface 'c'.        
+Use surface 'c'.      
+
+Update: I generated new surfaces for the rainy season and sampling season using tension = 4 and smoothing = 0.3, and extracted values from these surfaces to the 'plot202ppt' shapefile. This produces a narrow mid-range value band, but gets the general trend. It also estimates above the maximum value, which is good in this case because we don't have measurements for a substantial high-elevation section of the area for this season. This year was also dramatically drier than 2011 when looking at the maximum rainfall. 
  
  2. 3D Surfaces
    a. surface 'ppt12tot3d_t3s1z20', range: 367 - 733, mean: 558, CV: 19, MAE: 92
@@ -742,6 +763,10 @@ Use surface 'b'.
 
 Use surface 'd'.
 
+#### 2013 Total Rainfall
+
+I added a 2013 rainfall variable so that I can calculate lags. I did not go through the entire cross-validation procedure as I did for the other seasons. Instead, I based my initial values for calculating a surface on what seemed to work for other years. I ended up using tension = 3 and smoothing = 0.2 to generate surfaces for the rainy season and sampling season, and then extracted these values to the 'plot202ppt' shapefile.
+
 #### 2014 Total Rainfall
 
 **Range of original data: 191 - 714, mean: 499, CV: 32**
@@ -756,6 +781,8 @@ Use surface 'd'.
         0.979779 0.911723 1.000000
 
 Use surface 'b'.
+
+Update: I generated new surfaces using tension = 4 and smoothing = 0.2, and then extracted these values to the 'plot202ppt' shapefile.
 
  2. 3D Surfaces
    a. surface 'ppt14tot3d_t2s1z90', range: 349 - 694, mean: 508, CV: 22, MAE: 98
@@ -831,6 +858,26 @@ Estimated total rainfall and number of rainy days at each plot for each season u
 ## 2015/12/17
 
 Added a script for examining/comparing the precipitation estimates for the plot locations.
+
+## 2016/02/09
+
+I finished developing compound temperature/precipitation variables, i.e. the number of hours within specific temperature thresholds on days when rainfall was recorded. This followed the general process of:
+
+ 1. Was there rainfall recorded on the date? Yes/No
+   - This is established by there being >0.01 inches (0.254 mm) of rainfall
+
+ 2. If 'Yes', then flag the date as a "wet" day, otherwise drop that date from the data
+   - This generates a data frame of dates that had measured rainfall
+
+ 3. Count the number of hourly temperature records during wet days when the recorded temperature was within designated thresholds
+   - <= 14 C (hrsblw14_wet); > 14 C and <= 22 C (hrs1422_wet); > 22 C (hrsabv22_wet)
+   - <= 10 C (hrsblw10_wet); > 10 and <= 20 C (hrs1020_wet); > 20 C (hrsabv20_wet)
+
+ 4. Calculate the average daily maximum and minimum temperatures for these dates
+   - the average maximum temperature on "wet" days; (avgtmax_wet)
+   - the average minimum temperature on "wet" days; (avgtmin_wet)
+
+I saved this as a CSV ('wet-days-temperature-variables.csv') in this directory ('soco_ppt'), and copid it to the 'superspreaders/analysis/data' directory for use in path analysis. 
 
 
 
