@@ -175,7 +175,54 @@ pairs(select(ppt_total@data, contains('14'), -PLOT_ID, -X, -Y),
 #' Correlation of these estimates are all reasonably strong as well (0.49 - 0.86), strongest between 2D and Voronoi, weakest between regression and Voronoi. Model inference from these estimates are likely to all be similar.
 #' ***
 #' 
-#+ Save RData with ppt_days and ppt_total
+#' # UPDATE
+#' I recalculated continuous rainfall surfaces using only 2D spline interpolation, and updated the Voronoi polygon files. During discussion of my initial efforts with Ryan, he recommended using settings that captured the major trend while not trying to assume too much of the data. This lead me to avoiding the strong bulls-eye patterning, and generally lower values for the tension parameter. I also added an estimation for the 'sampling season', defined as November 1 - April 30, based on recent discussion with Sarah about the variables she used in her survival analysis model.
+#' 
+#+ load new dataset ####
+library(sp); library(rgdal); library(dplyr)
+rainfall <- readOGR("shapefiles/", "plot202ppt")
+summary(rainfall)
+rainfall@data <- select(rainfall@data, plotid, elev_m, everything(), -cat)
+names(rainfall@data)
+#'
+#' The variables that have 'rs' are for the rainy season (Nov-May), and the variables that have 'ss' are for the sampling season (Nov-Apr). A 'v' indicates the values are from the Voronoi defined polygons, while the other values are from 2D spline interpolations in GRASS GIS.
+#' 
+#+ new dataset pairs plots ####
+pairs(select(rainfall@data, contains('04'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2004 Rainfall Estimates")
+pairs(select(rainfall@data, contains('05'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2005 Rainfall Estimates")
+pairs(select(rainfall@data, contains('06'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2006 Rainfall Estimates")
+pairs(select(rainfall@data, contains('07'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2007 Rainfall Estimates")
+pairs(select(rainfall@data, contains('08'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2008 Rainfall Estimates")
+pairs(select(rainfall@data, contains('09'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2009 Rainfall Estimates")
+pairs(select(rainfall@data, contains('10'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2010 Rainfall Estimates")
+pairs(select(rainfall@data, contains('11'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2011 Rainfall Estimates")
+pairs(select(rainfall@data, contains('12'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2012 Rainfall Estimates")
+pairs(select(rainfall@data, contains('13'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2013 Rainfall Estimates")
+pairs(select(rainfall@data, contains('14'), -plotid, -X, -Y), 
+      upper.panel = panel.cor, diag.panel = panel.hist,
+      main = "2014 Rainfall Estimates")
+
+#+ Save RData with ppt_days and ppt_total ####
 rm(ppt_psm); rm(ppt_reg); rm(ppt_int); rm(ppt_vor)
 save.image("~/Documents/soco_ppt/plot_ppt_estimates.RData")
 
