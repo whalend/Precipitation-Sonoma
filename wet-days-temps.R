@@ -50,12 +50,13 @@ ggplot(filter(wet_days, plotid == "lars01", sample_year == 2004),
 #' This set of values in 2004 appear well outside of what the rest of the temperatures were during this particular time period. It looks like the logger may have been brought back to the lab and continued to record for about a month. This may have implications back to filling in the missing temperature data - were these values part of the data used to fill in the missing values or were they missing values that we filled in?
 #+
 outliers <- filter(wet_days, date > "2004-01-01", date < "2004-02-28", temp > 18)
-wet_days <- anti_join(wet_days, lars)
+wet_days <- anti_join(wet_days, outliers)
 
 ggplot(filter(wet_days, sample_year == 2004), aes(date, temp)) +
       geom_point() +
       labs(title = "2004 Rainy Season Wet Days Temperatures, Outliers Removed",
            x = "Date", y = "Temperature")
+
 #+ 2005 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2005), aes(date, temp)) +
       geom_point() +
@@ -98,7 +99,7 @@ ggplot(filter(wet_days, sample_year == 2009), aes(date, temp)) +
            x = "Date", y = "Temperature")
 summary(filter(wet_days, sample_year == 2009, temp > 30))
 
-#' It is a little suspicious to me that only two plots recorded temperatures above 30, and the majority are at KUNDE01, whichi is fairly nearby other plots.
+#' It is a little suspicious to me that only two plots recorded temperatures above 30, and the majority are at KUNDE01, which is fairly nearby other plots.
 #+
 ggplot(filter(wet_days, sample_year == 2009, date > "2009-04-20", date < "2009-05-15"), aes(date, temp)) +
       geom_point() +
@@ -113,6 +114,7 @@ ggplot(filter(wet_days, sample_year == 2009, plotid == "kunde01" | plotid == "ku
 qplot(plotid, temp, data = filter(wet_days, sample_year == 2009, plotid == "kunde01" | plotid == "kunde02"), geom = "boxplot")
 
 #' The one really different period during the end of April through the first week of May, but otherwise the temperatures at these locations seem to track pretty closely.
+
 
 #+ 2010 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2010), aes(date, temp)) +
@@ -151,6 +153,15 @@ filter(wet_days, sample_year == 2012, temp > 35)
 #' One outlier that is a single observation (>35 C) should definitely be removed. It looks like there may have a warm spell for a few days during the last half of April.
 #+
 wet_days <- filter(wet_days, date != "2012-03-15" | hour != 5 | plotid != "gard01")
+
+# 2013 season -------------------------------------------------------------
+ggplot(filter(wet_days, sample_year == 2013), aes(date, temp)) +
+      geom_point() +
+      labs(title = "2012 Rainy Season Wet Days Temperatures",
+           x = "Date", y = "Temperature")
+filter(wet_days, sample_year == 2013, date > "2013-03-01", date < "2013-03-10", temp > 22)
+
+wet_days <- filter(wet_days, date != "2013-03-05" | hour != 10 | plotid != "sdc03")
 
 #+ 2014 season -------------------------------------------------------------
 ggplot(filter(wet_days, sample_year == 2014), aes(date, temp)) +
@@ -226,8 +237,10 @@ wet_days_hrs
 summary(wet_days_hrs)
 # boxplot(hrsblw14_wet ~ sample_year, data = wet_days_hrs)
 filter(wet_days_hrs, tothrs_wet < 300)
+filter(wet_days_hrs, is.na(hrs1422_wet))
+wet_days_hrs[is.na(wet_days_hrs)] <- 0
 write.csv(wet_days_hrs, "wet-days-temperature-variables.csv")
-write.csv(wet_days_hrs, "~/GitHub/superspreaders/analysis/datawet-days-temperature-variables.csv")
+write.csv(wet_days_hrs, "~/GitHub/superspreaders/analysis/data/wet-days-temperature-variables.csv")
 
 #' It looks like nearly all of the temperatures recorded during wet days are below 14 C, so that doesn't address questions about different temperature thresholds. I can say something about the variability in the number of hours at or below 14 C in relation to other biological and physical plot characteristics. The 10 C threshold appears to provide a more equitable split between the lower temperature and 'optimal' between 10 C and 20 C grouping.
 

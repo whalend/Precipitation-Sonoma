@@ -19,6 +19,7 @@ rgpoly09 <- readOGR("shapefiles", "rg09_vpolys", verbose = F)
 rgpoly10 <- readOGR("shapefiles", "rg10_vpolys", verbose = F)
 rgpoly11 <- readOGR("shapefiles", "rg11_vpolys", verbose = F)
 rgpoly12 <- readOGR("shapefiles", "rg12_vpolys", verbose = F)
+rgpoly13 <- readOGR("shapefiles", "rg13_vpolys", verbose = F)
 rgpoly14 <- readOGR("shapefiles", "rg14_vpolys", verbose = F)
 
 #+ assign station id to plots ####
@@ -41,6 +42,7 @@ rgs_plots11 <- cbind(soco_plots@data, extract(rgpoly11, soco_plots))
 # summary(rgs_plots11)
 rgs_plots12 <- cbind(soco_plots@data, extract(rgpoly12, soco_plots))
 # summary(rgs_plots12)
+rgs_plots13 <- cbind(soco_plots@data, extract(rgpoly13, soco_plots))
 rgs_plots14 <- cbind(soco_plots@data, extract(rgpoly14, soco_plots))
 # summary(rgs_plots14)
 detach("package:raster", unload = T)
@@ -63,11 +65,14 @@ rgs_plots11 <- select(rgs_plots11, plotid:stationid) %>%
       mutate(year = 2011)
 rgs_plots12 <- select(rgs_plots12, plotid:stationid) %>% 
       mutate(year = 2012)
+rgs_plots13 <- select(rgs_plots13, plotid:poly.ID, stationid) %>% 
+      mutate(year = 2013)
 rgs_plots14 <- select(rgs_plots14, plotid:stationid) %>% 
       mutate(year = 2014)
 
 rgs_plots <- rbind(rgs_plots04,rgs_plots05,rgs_plots06,rgs_plots07,rgs_plots08,
-                   rgs_plots09,rgs_plots10,rgs_plots11,rgs_plots12,rgs_plots14)
+                   rgs_plots09,rgs_plots10,rgs_plots11,rgs_plots12,rgs_plots13,
+                   rgs_plots14)
 head(rgs_plots)
 
 #+ load temperature data
@@ -90,8 +95,8 @@ long_temp <- long_temp %>% mutate(sample_year = ifelse(
                            ifelse(date >= "2007-11-01" & date <= "2008-05-31", 2008,
                                   ifelse(date >= "2008-11-01" & date <= "2009-05-31", 2009,
                                          ifelse(date >= "2009-11-01" & date <= "2010-05-31", 2010,
-                                                ifelse(date >= "2010-11-01" & date <= "2011-05-31", 2011, ifelse(date >= "2011-11-01" & date <= "2012-05-31", 2012,
-                                                                                                                 ifelse(date >= "2013-11-01" & date <= "2014-05-31", 2014, NA)))))))))))
+                                                ifelse(date >= "2010-11-01" & date <= "2011-05-31", 2011, ifelse(date >= "2011-11-01" & date <= "2012-05-31", 2012, ifelse(date >= "2012-11-01" & date <= "2013-05-31", 2013,
+                                                                                                                 ifelse(date >= "2013-11-01" & date <= "2014-05-31", 2014, NA))))))))))))
 
 rgs_plots <- left_join(
       select(long_temp, date, hour, plotid, temp, sample_year),
@@ -130,7 +135,3 @@ summary(rgs_plots)
 rgs_plots <- na.omit(rgs_plots)
 
 write.csv(rgs_plots, "wet-days-temps.csv", row.names = F)
-
-
-
-      
