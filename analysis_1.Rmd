@@ -41,8 +41,8 @@ Make data frame of monthly totals and plot across all years
 # Monthly precipitation (ppt) by year, month, and gauge id
 monthly <- dy_rg_data %>% 
       group_by(year, month, stationid) %>%# This grouping order causes reordering by year, month, then id
-      summarise(monthly_ppt = sum(daily_ppt), 
-                monthly_ppt_mm = sum(daily_ppt) * 25.4)
+      summarise(monthly_ppt = sum(daily_ppt, na.rm = T), 
+                monthly_ppt_mm = sum(daily_ppt, na.rm = T) * 25.4)
 monthly
 # Add date factor variable
 monthly <- mutate(monthly, date = paste(year,"-",month, sep = ""))
@@ -63,22 +63,27 @@ Plot total monthly rainfall data
 ```{r plotting monthly data, echo=TRUE, eval=FALSE, fig.height=9, fig.width=6}
 # Plot monthly rainfall grouped by plot ####
 # monthly_ppt <- ungroup(monthly_ppt)
+# monthly$stationid <- as.factor(monthly$stationid)
 mp_id <- ggplot(data = monthly, #%>%
             # filter(id == "cook" | id == "kunde" | id == "sawi"),
             # group_by(id),
-       aes(x = date, y = monthly_ppt)) + 
-      geom_point(size=2) +
-      ylab("rainfall (inches)")
+       aes(x = date, y = monthly_ppt_mm)) + 
+      # geom_point(size=2) +
+      ylab("rainfall (mm)")
 
 library(scales)
 mp_id + 
-      facet_grid(id ~ .) +
+      # geom_point(size=2) +
+      geom_bar(stat = "identity") +
+      facet_grid(stationid ~ .) +
       theme_bw() + 
       theme(legend.position = "none") +
       scale_x_date(breaks = date_breaks("6 months"), 
                    labels = date_format("%m/%y"),
-                   minor_breaks = "1 month") +
-      xlab("date (month/year)") + ggtitle("Total Monthly Rainfall by Station 2004-2013")
+                   date_minor_breaks = "1 month") +
+      xlab("date (month/year)") + 
+      ggtitle("Total Monthly Rainfall by Station 2004-2013")
+
 ggsave("figures/mp_id.png", width = 7, height = 5, scale = 1.5)
 # mp + geom_boxplot()
 # Adjust the way the date is scaled on the x-axis
@@ -95,10 +100,24 @@ mp <- ggplot(data = monthly_ppt,
 library(scales)
 mp + geom_line() +
       theme_bw() + theme(legend.position = "none") +
-      scale_x_date(breaks = date_breaks("1 year"), 
+      scale_x_date(date_breaks = "1 year", 
                    labels = date_format("%m/%y"),
-                   minor_breaks = "1 month") +
+                   date_minor_breaks = "1 month") +
       xlab("date (month/year)") + ggtitle("Average Monthly Rainfall Across All Plots 2004-2013")
+
+mp0809 <- ggplot(data = monthly_ppt %>% 
+                       filter(date >= "2008-07-01", date <= "2009-06-30"),
+            #filter(id == "cook" | id == "kunde" | id == "sawi"),
+            #group_by(id),
+       aes(x = date, y = avg_monthly_ppt)) + 
+      geom_bar(stat = "identity") +
+      # geom_point(size=2) + geom_line() +
+      ylab("rainfall (inches)") +
+      theme_bw() + theme(legend.position = "none") +
+      scale_x_date(date_breaks = "1 month", 
+                   labels = date_format("%m/%y"),
+                   date_minor_breaks = "1 month")
+
 ggsave("figures/avg_mp.png", width = 7, height = 5, scale = 1.5)
 ```
 
@@ -197,11 +216,28 @@ length(unique(dy_rg_data$stationid))# 25 rain gauge stations in total
 dy_rg_data$stationid <- as.factor(dy_rg_data$stationid)
 
 # Calculate number of days, average, total with recorded rain
+
+## rs = rainy season, November 1 - May 31
+## ss = sample season, November 1 - April 30
+
 summary(dy_rg_data %>% filter(date >= "2003-11-01", date <= "2004-05-31"))
 dys_rain <- dy_rg_data %>% 
       filter(date >= "2003-11-01", date <= "2004-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>% 
-      summarise(rain04_dys = length(daily_ppt), rain04_avg = sum(daily_ppt)/212, rain04_tot = sum(daily_ppt))
+      summarise(rain04_dys_rs = length(daily_ppt), 
+                rain04_avg_rs = sum(daily_ppt)/212, 
+                rain04_tot_rs = sum(daily_ppt))
+
+dys_rain <- merge(dys_rain,
+                  dy_rg_data %>% 
+      filter(date >= "2003-11-01", date <= "2004-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>% 
+      summarise(rain04_dys_ss = length(daily_ppt), 
+                rain04_avg_ss = sum(daily_ppt)/181, 
+                rain04_tot_ss = sum(daily_ppt)),
+      by = "stationid", all = T)
+summary(dys_rain)
+
 
 summary(dy_rg_data %>% filter(date >= "2004-11-01", date <= "2005-05-31"))
 na.2005 <- dy_rg_data %>% filter(date >= "2004-11-01", date <= "2005-05-31", is.na(daily_ppt))
@@ -210,7 +246,19 @@ rm(na.2005)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2004-11-01", date <= "2005-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain05_dys = length(daily_ppt), rain05_avg = sum(daily_ppt)/211, rain05_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain05_dys_rs = length(daily_ppt), 
+                rain05_avg_rs = sum(daily_ppt)/211, 
+                rain05_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2004-11-01", date <= "2005-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain05_dys_ss = length(daily_ppt), 
+                rain05_avg_ss = sum(daily_ppt)/180, 
+                rain05_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
 
 summary(dy_rg_data %>% filter(date >= "2005-11-01", date <= "2006-05-31"))
 na.2006 <- dy_rg_data %>% filter(date >= "2005-11-01", date <= "2006-05-31", is.na(daily_ppt))
@@ -219,7 +267,19 @@ rm(na.2006)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2005-11-01", date <= "2006-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain06_dys = length(daily_ppt), rain06_avg = sum(daily_ppt)/211, rain06_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain06_dys_rs = length(daily_ppt), 
+                rain06_avg_rs = sum(daily_ppt)/211, 
+                rain06_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2005-11-01", date <= "2006-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain06_dys_ss = length(daily_ppt), 
+                rain06_avg_ss = sum(daily_ppt)/180, 
+                rain06_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
       
 summary(dy_rg_data %>% filter(date >= "2006-11-01", date <= "2007-05-31"))
 na.2007 <- dy_rg_data %>% filter(date >= "2006-11-01", date <= "2007-05-31", is.na(daily_ppt))
@@ -228,21 +288,53 @@ rm(na.2007)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2006-11-01", date <= "2007-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain07_dys = length(daily_ppt), rain07_avg = sum(daily_ppt)/211, rain07_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain07_dys_rs = length(daily_ppt), 
+                rain07_avg_rs = sum(daily_ppt)/211, 
+                rain07_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2006-11-01", date <= "2007-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain07_dys_ss = length(daily_ppt), 
+                rain07_avg_ss = sum(daily_ppt)/180, 
+                rain07_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
       
 summary(dy_rg_data %>% filter(date >= "2007-11-01", date <= "2008-05-31"))
 dy_rg_data %>% filter(date >= "2007-11-01", date <= "2008-05-31", is.na(daily_ppt))
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2007-11-01", date <= "2008-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain08_dys = length(daily_ppt), rain08_avg = sum(daily_ppt)/212, rain08_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain08_dys_rs = length(daily_ppt), 
+                rain08_avg_rs = sum(daily_ppt)/212, 
+                rain08_tot_rs = sum(daily_ppt)), by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2007-11-01", date <= "2008-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain08_dys_ss = length(daily_ppt), 
+                rain08_avg_ss = sum(daily_ppt)/181, 
+                rain08_tot_ss = sum(daily_ppt)), by = "stationid", all = T)
+
 
 summary(dy_rg_data %>% filter(date >= "2008-11-01", date <= "2009-05-31"))
 dy_rg_data %>% filter(date >= "2008-11-01", date <= "2009-05-31", is.na(daily_ppt))# Glen Ellen WNW station has 10 missing values, 7 in April
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2008-11-01", date <= "2009-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain09_dys = length(daily_ppt), rain09_avg = sum(daily_ppt)/211, rain09_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain09_dys_rs = length(daily_ppt), 
+                rain09_avg_rs = sum(daily_ppt)/211, 
+                rain09_tot_rs = sum(daily_ppt)), by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2008-11-01", date <= "2009-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain09_dys_ss = length(daily_ppt), 
+                rain09_avg_ss = sum(daily_ppt)/180, 
+                rain09_tot_ss = sum(daily_ppt)), by = "stationid", all = T)
+
       
 summary(dy_rg_data %>% filter(date >= "2009-11-01", date <= "2010-05-31"))
 na.2010 <- dy_rg_data %>% filter(date >= "2009-11-01", date <= "2010-05-31", is.na(daily_ppt))
@@ -251,7 +343,19 @@ rm(na.2010)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2009-11-01", date <= "2010-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain10_dys = length(daily_ppt), rain10_avg = sum(daily_ppt)/211, rain10_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain10_dys_rs = length(daily_ppt), 
+                rain10_avg_rs = sum(daily_ppt)/211, 
+                rain10_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2009-11-01", date <= "2010-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain10_dys_ss = length(daily_ppt), 
+                rain10_avg_ss = sum(daily_ppt)/180, 
+                rain10_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
 
 summary(dy_rg_data %>% filter(date >= "2010-11-01", date <= "2011-05-31"))
 na.2011 <- dy_rg_data %>% filter(date >= "2010-11-01", date <= "2011-05-31", is.na(daily_ppt))
@@ -261,7 +365,19 @@ rm(na.2011)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2010-11-01", date <= "2011-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>% 
-      summarise(rain11_dys = length(daily_ppt), rain11_avg = sum(daily_ppt)/211, rain11_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain11_dys_rs = length(daily_ppt), 
+                rain11_avg_rs = sum(daily_ppt)/211, 
+                rain11_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2010-11-01", date <= "2011-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>% 
+      summarise(rain11_dys_ss = length(daily_ppt), 
+                rain11_avg_ss = sum(daily_ppt)/180, 
+                rain11_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
       
 summary(dy_rg_data %>% filter(date >= "2011-11-01", date <= "2012-05-31"))
 na.2012 <- dy_rg_data %>% filter(date >= "2011-11-01", date <= "2012-05-31", is.na(daily_ppt))
@@ -271,30 +387,75 @@ rm(na.2012)
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2011-11-01", date <= "2012-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>% 
-      summarise(rain12_dys = length(daily_ppt), rain12_avg = sum(daily_ppt)/212, rain12_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain12_dys_rs = length(daily_ppt), 
+                rain12_avg_rs = sum(daily_ppt)/212, 
+                rain12_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2011-11-01", date <= "2012-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>% 
+      summarise(rain12_dys_ss = length(daily_ppt), 
+                rain12_avg_ss = sum(daily_ppt)/181, 
+                rain12_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+
+summary(dy_rg_data %>% filter(date >= "2012-11-01", date <= "2013-05-31"))
+dy_rg_data %>% filter(date >= "2012-11-01", date <= "2013-05-31", is.na(daily_ppt))
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2012-11-01", date <= "2013-05-31", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain13_dys_rs = length(daily_ppt), 
+                rain13_avg_rs = sum(daily_ppt)/211, 
+                rain13_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2012-11-01", date <= "2013-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain13_dys_ss = length(daily_ppt), 
+                rain13_avg_ss = sum(daily_ppt)/180, 
+                rain13_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
       
 summary(dy_rg_data %>% filter(date >= "2013-11-01", date <= "2014-05-31"))
 dy_rg_data %>% filter(date >= "2013-11-01", date <= "2014-05-31", is.na(daily_ppt))# both Glen Ellen stations missing data, WNW 11 mostly in March, the other 6
 dys_rain <- merge(dys_rain, dy_rg_data %>% 
       filter(date >= "2013-11-01", date <= "2014-05-31", daily_ppt > 0) %>% 
       group_by(stationid) %>%
-      summarise(rain14_dys = length(daily_ppt), rain14_avg = sum(daily_ppt)/211, rain14_tot = sum(daily_ppt)), by = "stationid", all = T)
+      summarise(rain14_dys_rs = length(daily_ppt), 
+                rain14_avg_rs = sum(daily_ppt)/211, 
+                rain14_tot_rs = sum(daily_ppt)), 
+      by = "stationid", all = T)
+
+dys_rain <- merge(dys_rain, dy_rg_data %>% 
+      filter(date >= "2013-11-01", date <= "2014-04-30", daily_ppt > 0) %>% 
+      group_by(stationid) %>%
+      summarise(rain14_dys_ss = length(daily_ppt), 
+                rain14_avg_ss = sum(daily_ppt)/180, 
+                rain14_tot_ss = sum(daily_ppt)), 
+      by = "stationid", all = T)
 
 summary(dys_rain)
+
+sample_season_rain <- select(dys_rain, stationid, ends_with("ss"))
+rainy_season_rain <- select(dys_rain, stationid, ends_with("rs"))
 ```
 
 I think that the `NAs` during some seasons are due to rain gauges not recording, recording bad data, or being decommissioned.
 
 ```{r investigate dys_rain NAs}
-filter(dys_rain, is.na(rain04_dys)) # mackie, glenellen x2, sonoma2, wunderground stations x2 (6)
-filter(dys_rain, is.na(rain06_dys)) # kunde, mitsui, sugarloaf, glenellen x2, sonoma2, wunderground stations x2 (8)
-filter(dys_rain, is.na(rain07_dys)) # fop, kunde, spaulding, glenellen x2, sonoma2, wunderground stations x2 (8)
-filter(dys_rain, is.na(rain08_dys)) # fop, glenellen x2, sonoma2, wunderground stations x2 (6)
-filter(dys_rain, is.na(rain09_dys)) # backman, cook, fop, mitsui, wunderground stations x2 (6)
-filter(dys_rain, is.na(rain10_dys)) # fop, sugarloaf, kcasanta225 (3)
-filter(dys_rain, is.na(rain11_dys)) # beltane, fop, mitsui, sugarloaf, votruba, kcasanta225 (6)
-filter(dys_rain, is.na(rain12_dys)) # annadel, backman, beltane, fop, kunde, mitsui, sugarloaf, votruba, kcasanta225 (9)
-filter(dys_rain, is.na(rain14_dys)) # annadel, badger, beltane, cook, fop, sawi, secret, spaulding, sugarloaf, votruba (10)
+filter(dys_rain, is.na(rain04_dys_rs)) # mackie, glenellen x2, sonoma2, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain06_dys_rs)) # kunde, mitsui, sugarloaf, glenellen x2, sonoma2, wunderground stations x2 (8)
+filter(dys_rain, is.na(rain07_dys_rs)) # fop, kunde, spaulding, glenellen x2, sonoma2, wunderground stations x2 (8)
+filter(dys_rain, is.na(rain08_dys_rs)) # fop, glenellen x2, sonoma2, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain09_dys_rs)) # backman, cook, fop, mitsui, wunderground stations x2 (6)
+filter(dys_rain, is.na(rain10_dys_rs)) # fop, sugarloaf, kcasanta225 (3)
+filter(dys_rain, is.na(rain11_dys_rs)) # beltane, fop, mitsui, sugarloaf, votruba, kcasanta225 (6)
+filter(dys_rain, is.na(rain12_dys_rs)) # annadel, backman, beltane, fop, kunde, mitsui, sugarloaf, votruba, kcasanta225 (9)
+filter(dys_rain, is.na(rain14_dys_rs)) # annadel, badger, beltane, cook, fop, sawi, secret, spaulding, sugarloaf, votruba (10)
 ```
 
 I noticed that the way the series of join statements were written I missed the "mackie" rain gauge because it was not part of the 2004 season. I corrected this and another join issue that arose later with adding the other rain gauges by calling the `merge` function with `all = TRUE` option. This is a "full outer join" that retains all the values for all the rows, inserting `NAs` for columns where the data is missing for that row. Here the rows correspond to the rain gauge station name.
@@ -302,14 +463,14 @@ I noticed that the way the series of join statements were written I missed the "
 I still need to investigate the very high maximum total rainfall for 2005. (From previously playing with this data I think I may find some other issues as well).
 
 ```{r investigate dys_rain extreme values}
-(filter(dys_rain, rain05_tot > 70))
-summary(select(dys_rain, stationid, rain05_tot))
-sd(filter(dys_rain, rain05_tot < 70)$rain05_tot, na.rm = T)
+(filter(dys_rain, rain05_tot_rs > 70))
+summary(select(dys_rain, stationid, rain05_tot_rs))
+sd(filter(dys_rain, rain05_tot_rs < 70)$rain05_tot_rs, na.rm = T)
 # excluding two major outliers sd ≈ 8.6, 3 x sd ≈ 26, mean ≈ 32, max ≈ 49
 # the total around 70 for Beltane would fall just within 3 standard deviations of the maximum value, which was recorded by the St. Helena station located at a much higher elevation.
-ggplot(data = dys_rain, aes(x = stationid, y = rain05_tot))+
+ggplot(data = dys_rain, aes(x = stationid, y = rain05_tot_rs))+
       geom_point() +
-      geom_abline(intercept = mean(dys_rain$rain05_tot, na.rm = T), slope = 0)
+      geom_abline(intercept = mean(dys_rain$rain05_tot_rs, na.rm = T), slope = 0)
 ```
 
 I think the 2005 seasonal totals for Beltane and FOP are far too big compared to the rest of the measurements to be considered reliable. Particular months may be okay.
@@ -395,37 +556,37 @@ sh4 <- readOGR("shapefiles/", "sthelena_rg")
 santa_rg <- readOGR("shapefiles/", "santa225_rg")
 diamonda_rg <- readOGR("shapefiles/", "diamonda_rg")
 
-summary(diamonda_daily)# 2010-01-01 to 2014-05-31
+# summary(diamonda_daily)# 2010-01-01 to 2014-05-31
 ggplot(data = filter(dy_rg_data_tmp, stationid == "kcasonom8"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Diamond A (?) Rain Gauge Data")
       
-summary(lichau_daily)# 2003-11-01 to 2014-05-31
+# summary(lichau_daily)# 2003-11-01 to 2014-05-31
 ggplot(data = filter(dy_rg_data_tmp, stationid == "lichau"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Lichau Rain Gauge Data")
 
-summary(petaluma_daily)# 2003-11-01 to 2015-05-31
+# summary(petaluma_daily)# 2003-11-01 to 2015-05-31
 ggplot(data = filter(dy_rg_data_tmp, stationid == "petaluma_e"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Petaluma East Rain Gauge Data")
 
-summary(santa225_daily)# 2013-01-01 to 2014-05-31, good for 2014
+# summary(santa225_daily)# 2013-01-01 to 2014-05-31, good for 2014
 ggplot(data = filter(dy_rg_data_tmp, stationid == "kcasanta225"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Santa Rosa 225 Rain Gauge Data")
 
-summary(sonoma1_daily)# 2003-11-01 to 2014-05-31
+# summary(sonoma1_daily)# 2003-11-01 to 2014-05-31
 ggplot(data = filter(dy_rg_data_tmp, stationid == "sonoma1"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Sonoma 1 Rain Gauge Data")
 
-summary(sonoma2_daily)# 2009-02-11 to 2014-05-09
+# summary(sonoma2_daily)# 2009-02-11 to 2014-05-09
 ggplot(data = filter(dy_rg_data_tmp, stationid == "sonoma2"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("Sonoma 2 Rain Gauge Data")
 
-summary(sthelena_daily)# 2003-11-01 to 2015-10-14
+# summary(sthelena_daily)# 2003-11-01 to 2015-10-14
 ggplot(data = filter(dy_rg_data_tmp, stationid == "sh4wsw"), aes(x = date, y = daily_ppt)) +
       geom_point() +
       ggtitle("St. Helena WSW Rain Gauge Data")
@@ -524,71 +685,88 @@ rg0308 <- spTransform(rg0308, CRSobj = proj4string(soco_loc))
 rg0911 <- spTransform(rg0911, CRSobj = proj4string(soco_loc))
 rg1214 <- spTransform(rg1214, CRSobj = proj4string(soco_loc))
 
-writeOGR(rg0308, dsn = "shapefiles/", layer = "rgs_0308", driver = "ESRI Shapefile")
-writeOGR(rg0911, dsn = "shapefiles/", layer = "rgs_0911", driver = "ESRI Shapefile")
-writeOGR(rg1214, dsn = "shapefiles/", layer = "rgs_1214", driver = "ESRI Shapefile")
+writeOGR(rg0308, dsn = "shapefiles/", layer = "rgs_0308", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rg0911, dsn = "shapefiles/", layer = "rgs_0911", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rg1214, dsn = "shapefiles/", layer = "rgs_1214", driver = "ESRI Shapefile", overwrite_layer = T)
 
-rainy04 <- rg0308[!is.na(rg0308$rain04_dys),]# remove NAs for 2004 season
+rainy04 <- rg0308[!is.na(rg0308$rain04_dys_rs),]# remove NAs for 2004 season
 rainy04@data <- rainy04@data %>% select(stationid, elev_ft, elev_m, starts_with("rain04"))
-rainy04@data$totppt_mm <- rainy04@data$rain04_tot * 25.4
+rainy04@data$ppt_mm_rs <- rainy04@data$rain04_tot_rs * 25.4
+rainy04@data$ppt_mm_ss <- rainy04@data$rain04_tot_ss * 25.4
 rainy04; summary(rainy04)
 
 # None missing in 2005, but removed "beltane" (row 4) and "fop" (row 7) because severe positive outliers, recording > 70 and 109 inches of rain. The next highest was 44 inches
-rainy05 <- rg0308[!is.na(rg0308$rain05_dys), c("stationid", "rain05_dys", "rain05_avg", "rain05_tot", "elev_m")]
+rainy05 <- rg0308[!is.na(rg0308$rain05_dys_rs), c("stationid", "rain05_dys_rs", "rain05_avg_rs", "rain05_tot_rs", "rain05_dys_ss", "rain05_avg_ss", "rain05_tot_ss", "elev_m")]
 rainy05@data
 rainy05 <- rainy05[rainy05$stationid != "beltane" & rainy05$stationid != "fop",]# remove outlier stations FOP and Beltane
-rainy05@data$totppt_mm <- rainy05@data$rain05_tot * 25.4
+rainy05@data$ppt_mm_rs <- rainy05@data$rain05_tot_rs * 25.4
+rainy05@data$ppt_mm_ss <- rainy05@data$rain05_tot_ss * 25.4
 rainy05@data; summary(rainy05)
 
-rainy06 <- rg0308[!is.na(rg0308$rain06_dys), c("stationid", "rain06_dys", "rain06_avg", "rain06_tot", "elev_m")]
+rainy06 <- rg0308[!is.na(rg0308$rain06_dys_rs) & !is.na(rg0308$rain06_dys_ss), c("stationid", "rain06_dys_rs", "rain06_avg_rs", "rain06_tot_rs", "rain06_dys_ss", "rain06_avg_ss", "rain06_tot_ss", "elev_m")]
 rainy06@data # In 2006 there were some NAs and also some very small values (<2 inches) that seem extremely unreliable compared to the other measurements.
 rainy06 <- rainy06[rainy06$stationid == "cook" | rainy06$stationid == "mackie" | rainy06$stationid == "spaulding" | rainy06$stationid == "votruba" | rainy06$stationid == "yahng" | rainy06$stationid == "lichau" | rainy06$stationid == "petaluma_e" | rainy06$stationid == "sonoma1" | rainy06$stationid == "sh4wsw",]
-rainy06@data$totppt_mm <- rainy06@data$rain06_tot * 25.4
+rainy06@data$ppt_mm_rs <- rainy06@data$rain06_tot_rs * 25.4
+rainy06@data$ppt_mm_ss <- rainy06@data$rain06_tot_ss * 25.4
 rainy06@data; summary(rainy06); plot(rainy06)
 # This results in essentially zero coverage in the southeastern part of the study area
 
-rainy07 <- rg0308[!is.na(rg0308$rain07_dys) ,c("stationid", "rain07_dys", "rain07_avg", "rain07_tot", "elev_m")]
+rainy07 <- rg0308[!is.na(rg0308$rain07_dys_rs) ,c("stationid", "rain07_dys_rs", "rain07_avg_rs", "rain07_tot_rs", "rain07_dys_ss", "rain07_avg_ss", "rain07_tot_ss", "elev_m")]
 rainy07@data # Again some values that don't seem very reliable
 rainy07 <- rainy07[rainy07$stationid != "mitsui" & rainy07$stationid != "cook" & rainy07$stationid != "secret" & rainy07$stationid != "mackie" &  rainy07$stationid != "sugarloaf" & rainy07$stationid != "votruba" & rainy07$stationid != "yahng",]
-rainy07@data$totppt_mm <- rainy07@data$rain07_tot * 25.4
+rainy07@data$ppt_mm_rs <- rainy07@data$rain07_tot_rs * 25.4
+rainy07@data$ppt_mm_ss <- rainy07@data$rain07_tot_ss * 25.4
 rainy07@data; summary(rainy07); plot(rainy07)
 
-rainy08 <- rg0308[!is.na(rg0308$rain08_dys), c("stationid", "rain08_dys", "rain08_avg", "rain08_tot", "elev_m")]
+rainy08 <- rg0308[!is.na(rg0308$rain08_dys_rs), c("stationid", "rain08_dys_rs", "rain08_avg_rs", "rain08_tot_rs", "rain08_dys_ss", "rain08_avg_ss", "rain08_tot_ss", "elev_m")]
 rainy08@data
 # A few unreliable values for total rainfall
 rainy08 <- rainy08[rainy08$stationid != "backman" & rainy08$stationid != "badger" & rainy08$stationid != "kunde" & rainy08$stationid != "spaulding",]
-rainy08@data$totppt_mm <- rainy08@data$rain08_tot * 25.4
+rainy08@data$ppt_mm_rs <- rainy08@data$rain08_tot_rs * 25.4
+rainy08@data$ppt_mm_ss <- rainy08@data$rain08_tot_ss * 25.4
 rainy08@data; summary(rainy08); plot(rainy08)
 
-rainy09 <- rg0911[!is.na(rg0911$rain09_dys), c("stationid", "rain09_dys", "rain09_avg", "rain09_tot", "elev_m")]
+rainy09 <- rg0911[!is.na(rg0911$rain09_dys_rs), c("stationid", "rain09_dys_rs", "rain09_avg_rs", "rain09_tot_rs", "rain09_dys_ss", "rain09_avg_ss", "rain09_tot_ss", "elev_m")]
 rainy09@data
 # Remove a few unreliable values
 rainy09 <- rainy09[rainy09$stationid != "annadel" & rainy09$stationid != "beltane" & rainy09$stationid != "secret" & rainy09$stationid != "sec" & rainy09$stationid != "glenellen" & rainy09$stationid != "glenellenwnw",]
-rainy09@data$totppt_mm <- rainy09@data$rain09_tot * 25.4
+rainy09@data$ppt_mm_rs <- rainy09@data$rain09_tot_rs * 25.4
+rainy09@data$ppt_mm_ss <- rainy09@data$rain09_tot_ss * 25.4
 rainy09@data; summary(rainy09); plot(rainy09)
 
-rainy10 <- rg0911[!is.na(rg0911$rain10_dys), c("stationid", "rain10_dys", "rain10_avg", "rain10_tot", "elev_m")]
+rainy10 <- rg0911[!is.na(rg0911$rain10_dys_rs), c("stationid", "rain10_dys_rs", "rain10_avg_rs", "rain10_tot_rs", "rain10_dys_ss", "rain10_avg_ss", "rain10_tot_ss", "elev_m")]
 rainy10@data
 rainy10 <- rainy10[rainy10$stationid != "annadel" & rainy10$stationid != "backman" & rainy10$stationid != "badger" & rainy10$stationid != "mitsui" & rainy10$stationid != "sec" & rainy10$stationid != "spaulding",]
-rainy10@data$totppt_mm <- rainy10@data$rain10_tot * 25.4
+rainy10@data$ppt_mm_rs <- rainy10@data$rain10_tot_rs * 25.4
+rainy10@data$ppt_mm_ss <- rainy10@data$rain10_tot_ss * 25.4
 rainy10@data; summary(rainy10); plot(rainy10)
 
-rainy11 <- rg0911[!is.na(rg0911$rain11_dys), c("stationid", "rain11_dys", "rain11_avg", "rain11_tot", "elev_m")]
+rainy11 <- rg0911[!is.na(rg0911$rain11_dys_rs), c("stationid", "rain11_dys_rs", "rain11_avg_rs", "rain11_tot_rs", "rain11_dys_ss", "rain11_avg_ss", "rain11_tot_ss", "elev_m")]
 rainy11@data
 rainy11 <- rainy11[rainy11$stationid != "yahng",]
-rainy11@data$totppt_mm <- rainy11@data$rain11_tot * 25.4
+rainy11@data$ppt_mm_rs <- rainy11@data$rain11_tot_rs * 25.4
+rainy11@data$ppt_mm_ss <- rainy11@data$rain11_tot_ss * 25.4
 rainy11@data; summary(rainy11); plot(rainy11)
 
-rainy12 <- rg1214[!is.na(rg1214$rain12_dys), c("stationid", "rain12_dys", "rain12_avg", "rain12_tot", "elev_m")]
+rainy12 <- rg1214[!is.na(rg1214$rain12_dys_rs), c("stationid", "rain12_dys_rs", "rain12_avg_rs", "rain12_tot_rs", "rain12_dys_ss", "rain12_avg_ss", "rain12_tot_ss", "elev_m")]
 rainy12@data
 rainy12 <- rainy12[rainy12$stationid != "cook" & rainy12$stationid != "secret" & rainy12$stationid != "spaulding" & rainy12$stationid != "sec",]
-rainy12@data$totppt_mm <- rainy12@data$rain12_tot * 25.4
+rainy12@data$ppt_mm_rs <- rainy12@data$rain12_tot_rs * 25.4
+rainy12@data$ppt_mm_ss <- rainy12@data$rain12_tot_ss * 25.4
 rainy12@data; summary(rainy12); plot(rainy12)
 
-rainy14 <- rg1214[!is.na(rg1214$rain14_dys), c("stationid", "rain14_dys", "rain14_avg", "rain14_tot", "elev_m")]
+rainy13 <- rg1214[!is.na(rg1214$rain13_dys_rs), c("stationid", "rain13_dys_rs", "rain13_avg_rs", "rain13_tot_rs", "rain13_dys_ss", "rain13_avg_ss", "rain13_tot_ss", "elev_m")]
+rainy13@data
+rainy13 <- rainy13[rainy13$stationid != "mitsui" & rainy13$stationid != "mackie" & rainy13$stationid != "kcasanta225",]
+rainy13@data$ppt_mm_rs <- rainy13@data$rain13_tot_rs * 25.4
+rainy13@data$ppt_mm_ss <- rainy13@data$rain13_tot_ss * 25.4
+rainy13@data; summary(rainy13); plot(rainy13)
+
+rainy14 <- rg1214[!is.na(rg1214$rain14_dys_rs), c("stationid", "rain14_dys_rs", "rain14_avg_rs", "rain14_tot_rs", "rain14_dys_ss", "rain14_avg_ss", "rain14_tot_ss", "elev_m")]
 rainy14@data
 rainy14 <- rainy14[rainy14$stationid != "mitsui" & rainy14$stationid != "kunde" & rainy14$stationid != "yahng",]
-rainy14@data$totppt_mm <- rainy14@data$rain14_tot * 25.4
+rainy14@data$ppt_mm_rs <- rainy14@data$rain14_tot_rs * 25.4
+rainy14@data$ppt_mm_ss <- rainy14@data$rain14_tot_ss * 25.4
 rainy14@data; summary(rainy14); plot(rainy14)
 
 
@@ -601,9 +779,10 @@ writeOGR(rainy09, dsn = "shapefiles/", layer = "rain_gauges09", driver = "ESRI S
 writeOGR(rainy10, dsn = "shapefiles/", layer = "rain_gauges10", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy11, dsn = "shapefiles/", layer = "rain_gauges11", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy12, dsn = "shapefiles/", layer = "rain_gauges12", driver = "ESRI Shapefile", overwrite_layer = T)
+writeOGR(rainy13, dsn = "shapefiles/", layer = "rain_gauges13", driver = "ESRI Shapefile", overwrite_layer = T)
 writeOGR(rainy14, dsn = "shapefiles/", layer = "rain_gauges14", driver = "ESRI Shapefile", overwrite_layer = T)
 
-save.image("~/Documents/soco_ppt/analysis201511.RData")
+save.image("~/Documents/soco_ppt/analysis201602.RData")
 ```
 
 At this point these shapefiles need to be imported to GRASS for doing the precipitation interpolation.
@@ -617,7 +796,7 @@ shp_list <- grep(".shp$", shp_list, value = TRUE)
 shp_list <- strsplit(shp_list, ".shp")
 tmp <- strsplit(unlist(shp_list), "rain_gauges")
 tmp <- unlist(tmp)
-tmp <- tmp[seq(2, 20, 2)]
+tmp <- tmp[seq(2, 22, 2)]
 
 n = 4
 for(shp in shp_list){
@@ -626,7 +805,8 @@ for(shp in shp_list){
       n = n + 1
 }
 rainy10 <- rainy010; rainy11 <- rainy011 
-rainy12 <- rainy012; rainy14 <- rainy013
+rainy12 <- rainy012; rainy13 <- rainy013
+rainy14 <- rainy014
 rm(list = ls(pattern = "01"))
 ```
 
