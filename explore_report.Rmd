@@ -740,7 +740,9 @@ diamonda_shp <- SpatialPointsDataFrame(
       proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 )
 writeOGR(diamonda_shp, "shapefiles/", "diamonda_rg", driver = "ESRI Shapefile")
+```
 
+```{r bind spatial data}
 library(rgdal)
 # Bind spatial point dataframes together
 add_rg_shp <- rbind(diamonda_shp, lichau_shp, petaluma_shp, santa225_shp, sonoma_shp, sthelena_shp)
@@ -757,7 +759,7 @@ writeOGR(glen_ellen_rg, "shapefiles/", "GlenEllen_ppt_2009_2015", driver = "ESRI
 
 Now I'm going to create a data frame of the Glen Ellen stations formatted to merge with the `dy_rg_data` data frame
 
-```{r daily ppt data}
+```{r add Glen Ellen daily ppt data}
 summary(ppt_other)
 unique(ppt_other$station)
 names(dy_rg_data)
