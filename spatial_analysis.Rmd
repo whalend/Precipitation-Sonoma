@@ -7,7 +7,7 @@ output: html_document
 
 The "spatial.RData" has spatial points data frames and data frames with daily and monthly precipitation data for each station.
 ```{r load data}
-load("analysis201511.RData")
+load("analysis201602.RData")
 ```
 ```{r load libraries, echo=FALSE, message=FALSE}
 library(plyr); library(ggplot2); library(rgdal); library(dplyr); 
