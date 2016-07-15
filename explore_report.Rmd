@@ -7,7 +7,7 @@ output: html_document
 
 # Rain gauge data summary and manipulation
 #### Goal: summarize precipitation events into hourly and daily, and convert to inches
-- Conversion factor: 1 event = 0.01 inches
+- Conversion factor: 1 event = 0.01 inches = 0.254 millimeter
 
 
 ```{r Load libraries}
